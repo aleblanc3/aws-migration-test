@@ -1,2 +1,28 @@
 <h1 id="wb-cont">{{ 'title.project' | translate}}</h1>
 <p>{{'project.content' | translate }}</p>
+<h2>Metadata Extractor</h2>
+
+<textarea [(ngModel)]="urlsInput" rows="6" placeholder="Enter one URL per line" style="width: 100%;"></textarea>
+
+<br /><br />
+<button (click)="fetchMetadata()">Fetch Metadata</button>
+
+<div *ngIf="loading">Loading...</div>
+
+<table *ngIf="results.length > 0" border="1" style="margin-top: 20px; width: 100%;">
+  <thead>
+    <tr>
+      <th>URL</th>
+      <th>Title</th>
+      <th>Description</th>
+      <th>Keywords</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let result of results">
+      <td><a [href]="result.url" target="_blank">{{ result.title }}</a></td>
+      <td>{{ result.description }}</td>
+      <td>{{ result.keywords }}</td>
+    </tr>
+  </tbody>
+</table>
