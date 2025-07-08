@@ -1,29 +1,41 @@
 <h1 id="wb-cont">{{ 'title.project' | translate}}</h1>
-<p>{{'project.content' | translate }}</p>
-<h2>Metadata Extractor</h2>
+<!--<p>{{'project.content' | translate }}</p>-->
+<h2>Inventory assistant</h2>
+<p>Enter a list of Canada.ca or Github pages, to retrive the description and keywords metadata currently published on
+  those pages. For example:</p>
+<ul>
+  <li>https://www.canada.ca/en/services/taxes.html</li>
+  <li>https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/gst-hst-businesses.html</li>
+  <li>https://cra-design.github.io/gst-hst-business/en/topics/gst-hst-businesses.html</li>
+</ul>
 
-<textarea [(ngModel)]="urlsInput" rows="6" placeholder="Enter one URL per line" style="width: 100%;"></textarea>
-
+<label for="prjct_pgs">Project pages</label><br>
+<textarea pTextarea id="prjct_pgs" [(ngModel)]="urlsInput" rows="5" style="width: 100%;"
+  placeholder="Enter one URL per line"></textarea>
 <br /><br />
-<button (click)="fetchMetadata()">Fetch Metadata</button>
+<button pButton type="button" label="Fetch Metadata" (click)="fetchMetadata()"></button>
 
 <div *ngIf="loading">Loading...</div>
-
-<table *ngIf="results.length > 0" border="1" style="margin-top: 20px; width: 100%;">
-  <thead>
+<br /><br />
+<p-table [value]="results">
+  <ng-template pTemplate="header">
     <tr>
-      <th>URL</th>
-      <th>Title</th>
+      <th>Page</th>
+      <th>Source</th>
       <th>Description</th>
       <th>Keywords</th>
     </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let result of results">
-      <td><a [href]="result.url" target="_blank">{{ result.title }}</a></td>
-      <td></td>
-      <td>{{ result.description }}</td>
-      <td>{{ result.keywords }}</td>
+  </ng-template>
+  <ng-template pTemplate="body" let-row>
+    <tr>
+      <td>
+        <a [href]="row.url" target="_blank">
+          {{ row.title }}
+        </a>
+      </td>
+      <td>{{ row.source }}</td>
+      <td>{{ row.description }}</td>
+      <td>{{ row.keywords }}</td>
     </tr>
-  </tbody>
-</table>
+  </ng-template>
+  </p-table>

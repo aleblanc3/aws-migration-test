@@ -4,10 +4,15 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 
+//primeNG
+import { Textarea } from 'primeng/textarea';
+import { ButtonModule } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+
 @Component({
   selector: 'ca-project-assistant',
   standalone: true,
-  imports: [TranslateModule, FormsModule, CommonModule],
+  imports: [TranslateModule, ButtonModule, FormsModule, CommonModule, Textarea, TableModule],
   templateUrl: './project-assistant.component.html',
   styleUrl: './project-assistant.component.css'
 })
@@ -18,70 +23,91 @@ export class ProjectAssistantComponent {
 
   constructor(private http: HttpClient) { }
 
-  fetchMetadata() {
-    const urls = this.urlsInput
+  fetchMetadata(): void {
+    const urls = this.getCleanUrls(this.urlsInput);
+    if (!urls.length) return;
+
+    this.loading = true;
+    this.results = [];
+
+    const resultsBuffer: (MetadataResult | null)[] = Array(urls.length).fill(null);
+
+    urls.forEach((url, index) => {
+      this.processUrl(url, index, resultsBuffer);
+    });
+  }
+
+  private getCleanUrls(input: string): string[] {
+    return input
       .split('\n')
       .map(url => url.trim())
       .filter(url => url.length > 0);
+  }
 
-    this.results = [];
-    this.loading = true;
+  private processUrl(url: string, index: number, buffer: (MetadataResult | null)[]): void {
+    if (!this.isValidUrl(url)) {
+      buffer[index] = this.buildErrorResult(url, 'Invalid URL', 'N/A', 'N/A');
+      this.updateResults(buffer);
+      return;
+    }
 
-    const tempResults: (MetadataResult | null)[] = new Array(urls.length).fill(null);
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
 
-    urls.forEach((url, index) => {
-      if (this.isValidUrl(url)) {
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-        this.http.get(proxyUrl).subscribe({
-          next: (res: any) => {
-            const html = res.contents;
-            const metadata = this.extractMetadata(html, url);
-            tempResults[index] = metadata;
-            this.updateResults(tempResults);
-          },
-          error: () => {
-            tempResults[index] = {
-              url,
-              title: url,
-              description: 'Could not fetch metadata',
-              keywords: '',
-            };
-            this.updateResults(tempResults);
-          }
-        });
-      } else {
-        tempResults[index] = {
-          url,
-          title: 'Invalid URL',
-          description: 'N/A',
-          keywords: 'N/A',
-        };
-        this.updateResults(tempResults);
+    this.http.get(proxyUrl, { responseType: 'text' }).subscribe({
+      next: html => {
+        buffer[index] = this.extractMetadata(html, url);
+        this.updateResults(buffer);
+      },
+      error: () => {
+        buffer[index] = this.buildErrorResult(url, url, 'Could not fetch metadata', '');
+        this.updateResults(buffer);
       }
     });
   }
 
-  updateResults(arr: (MetadataResult | null)[]) {
-    if (arr.every(item => item !== null)) {
-      this.results = arr as MetadataResult[];
+  private updateResults(buffer: (MetadataResult | null)[]): void {
+    if (buffer.every(item => item !== null)) {
+      this.results = buffer as MetadataResult[];
       this.loading = false;
     }
   }
 
-  extractMetadata(html: string, url: string): MetadataResult {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
+  private extractMetadata(html: string, url: string): MetadataResult {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
 
-    let title = doc.querySelector('title')?.innerText || url;
-    let description = doc.querySelector('meta[name="description"]')?.getAttribute('content') || 'No Description';
-    let keywords = doc.querySelector('meta[name="keywords"]')?.getAttribute('content') || 'No Keywords';
+    const h1 = doc.querySelector('h1')?.innerText.trim();
+    const titleTag = doc.querySelector('title')?.innerText.trim();
+    const title = h1 || titleTag || url;
 
-    title = title.replace(' - Canada.ca', '');
+    const description = doc.querySelector('meta[name="description"]')?.getAttribute('content') || 'No Description';
+    const keywords = doc.querySelector('meta[name="keywords"]')?.getAttribute('content') || 'No Keywords';
+    const source = this.detectSource(url);
 
-    return { url, title, description, keywords };
+    return { url, title, description, keywords, source };
   }
 
-  isValidUrl(str: string): boolean {
+  private buildErrorResult(url: string, title: string, description: string, keywords: string): MetadataResult {
+    return {
+      url,
+      title,
+      description,
+      keywords,
+      source: this.detectSource(url)
+    };
+  }
+
+  private detectSource(url: string): string {
+    try {
+      const hostname = new URL(url).hostname;
+      if (hostname.includes('canada.ca')) return 'CA';
+      if (hostname.includes('github.io') || hostname.includes('github.com')) return 'GH';
+      return '';
+    } catch {
+      return '';
+    }
+  }
+
+  private isValidUrl(str: string): boolean {
     try {
       new URL(str);
       return true;
@@ -96,4 +122,5 @@ interface MetadataResult {
   title: string;
   description: string;
   keywords: string;
+  source: string;
 }
