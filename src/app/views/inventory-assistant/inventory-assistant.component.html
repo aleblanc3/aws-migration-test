@@ -1,0 +1,32 @@
+<h1 id="wb-cont">{{ 'title.inventory' | translate}}</h1>
+<p>{{'inventory.intro' | translate }}</p>
+<p [innerHTML]="'inventory.meta.instructions' | translate"></p>
+<textarea pTextarea id="prjct_pgs" [(ngModel)]="urlsInput" rows="5" style="width: 100%;"
+  placeholder="{{'inventory.meta.watermark' | translate }}"></textarea>
+<br /><br />
+<button pButton type="button" label="{{'inventory.meta.fetch-button' | translate }}" (click)="fetchMetadata()"></button>
+
+<div *ngIf="loading">Loading...</div>
+<br /><br />
+<p-table [value]="results" *ngIf="results.length > 0">
+  <ng-template pTemplate="header">
+    <tr>
+      <th>Page</th>
+      <th>Source</th>
+      <th>Description</th>
+      <th>{{'inventory.meta.keywords' | translate }}</th>
+    </tr>
+  </ng-template>
+  <ng-template pTemplate="body" let-row>
+    <tr>
+      <td>
+        <a [href]="row.url" target="_blank">
+          {{ row.title }}
+        </a>
+      </td>
+      <td>{{ row.source }}</td>
+      <td>{{ row.description }}</td>
+      <td>{{ row.keywords }}</td>
+    </tr>
+  </ng-template>
+</p-table>
