@@ -10,7 +10,7 @@ import { CardModule } from 'primeng/card';
 import { DomSanitizer, SafeResourceUrl, SafeHtml } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
 
-import { sampleHtmlA, sampleHtmlB } from './sample-data';
+import { sampleHtmlA, sampleHtmlB } from './upload/sample-data';
 
 @Component({
   selector: 'ca-upload-content',

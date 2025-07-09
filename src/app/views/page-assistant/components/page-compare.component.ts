@@ -1,4 +1,18 @@
-import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy, Input } from '@angular/core';
+/*TO-DO
+1. Load 2 version of an HTML page 
+2. Fix ajax & json content
+3. Generate diffs in 2 formats 
+    text based diff using diff and diff2html (side-by-side code)
+    visual diff using @ali-tas/htmldiff-js (diffs wrapped in <ins> and <del> tags)
+4. Inject visual diff into shadow dom diff-viewer (or iframe if we can handle the extra resources)
+5. Enhance rendered diff by styling inserted & deleted content, wrapping new/changed links. handling media queries, modal content, ajax-loaded sections, json-managed data
+6. Add navigation between diff elements (next() & prev())
+7. Store and restore UI state using sessionStorage?
+
+
+*/
+
+import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy, Input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -108,63 +122,63 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy {
     }
 
     if (!this.shadowRoot) {
-    console.error('Shadow DOM failed to initialize');
-    return;
-  }
+      console.error('Shadow DOM failed to initialize');
+      return;
+    }
 
-      // Parse HTML using DOMParser
-      const parser = new DOMParser();
-      const originalDoc = parser.parseFromString(this.originalHtml, 'text/html');
-      const modifiedDoc = parser.parseFromString(this.modifiedHtml, 'text/html');
+    // Parse HTML using DOMParser
+    const parser = new DOMParser();
+    const originalDoc = parser.parseFromString(this.originalHtml, 'text/html');
+    const modifiedDoc = parser.parseFromString(this.modifiedHtml, 'text/html');
 
-      // Create diff container to render the HTML
-      const diffContainer = document.createElement('div');
-      diffContainer.className = 'rendered-diff-container';
+    // Create diff container to render the HTML
+    const diffContainer = document.createElement('div');
+    diffContainer.className = 'rendered-diff-container';
 
-      // Create the rendered content container
-      const renderedContent = document.createElement('div');
-      renderedContent.className = 'rendered-content';
+    // Create the rendered content container
+    const renderedContent = document.createElement('div');
+    renderedContent.className = 'rendered-content';
 
-      // Use htmldiff-js to get the diff with HTML highlighting
-      const options: DiffOptions = {
+    // Use htmldiff-js to get the diff with HTML highlighting
+    const options: DiffOptions = {
       repeatingWordsAccuracy: 0,
       ignoreWhiteSpaceDifferences: true,
       orphanMatchThreshold: 0,
       matchGranularity: 4,
       combineWords: true,
     };
-      const diffResult = Diff.execute(
-        this.originalHtml, 
-        this.modifiedHtml, 
-        options,
+    const diffResult = Diff.execute(
+      this.originalHtml,
+      this.modifiedHtml,
+      options,
     ).replace(
       /<(ins|del)[^>]*>(\s|&nbsp;|&#32;|&#160;|&#x00e2;|&#x0080;|&#x00af;|&#x202f;|&#xa0;)+<\/(ins|del)>/gis,
       ' ',
     );
 
-      // Parse the diff result and render it
-      const diffDoc = parser.parseFromString(diffResult, 'text/html');
+    // Parse the diff result and render it
+    const diffDoc = parser.parseFromString(diffResult, 'text/html');
 
-      // Clone the body content from the diff result
-      if (diffDoc.body) {
-        renderedContent.innerHTML = diffDoc.body.innerHTML;
-      } else {
-        renderedContent.innerHTML = diffResult;
-      }
+    // Clone the body content from the diff result
+    if (diffDoc.body) {
+      renderedContent.innerHTML = diffDoc.body.innerHTML;
+    } else {
+      renderedContent.innerHTML = diffResult;
+    }
 
-      diffContainer.appendChild(renderedContent);
+    diffContainer.appendChild(renderedContent);
 
-      // Clear previous content and add new diff
-        this.shadowRoot.innerHTML = '';
-        this.shadowRoot.appendChild(diffContainer);
+    // Clear previous content and add new diff
+    this.shadowRoot.innerHTML = '';
+    this.shadowRoot.appendChild(diffContainer);
 
-        // Add enhanced styles for rendered content
-        const style = document.createElement('style');
-        style.textContent = this.getRenderedDiffStyles();
-        this.shadowRoot.insertBefore(style, this.shadowRoot.firstChild);
-      }
-    
-  
+    // Add enhanced styles for rendered content
+    const style = document.createElement('style');
+    style.textContent = this.getRenderedDiffStyles();
+    this.shadowRoot.insertBefore(style, this.shadowRoot.firstChild);
+  }
+
+
 
   private getRenderedDiffStyles(): string {
     return `
@@ -173,6 +187,43 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy {
         @import url('https://www.canada.ca/etc/designs/canada/wet-boew/css/theme.min.css');
         @import url('https://www.canada.ca/etc/designs/canada/wet-boew/méli-mélo/2024-09-kejimkujik.min.css');
 
+    /* Shadow DOM container and layout fixes */
+      :host {
+        all: initial;
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        max-width: 100%;
+        overflow-x: hidden;
+        font-family: sans-serif;
+      }
+
+      .rendered-content {
+        width: 100%;
+        max-width: 100%;
+        overflow-wrap: break-word;
+        box-sizing: border-box;
+      }
+
+      table {
+        width: 100%;
+        table-layout: auto;
+      }
+
+      td, th, pre {
+        word-break: break-word;
+      }
+
+      pre {
+        white-space: pre-wrap;
+      }
+      
       /* Custom diff styles */
       .rendered-content ins {
         background-color: #d4edda !important;

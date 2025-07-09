@@ -2,179 +2,91 @@
 <p>{{'page.description' | translate }}</p>
 
 <!-- To-do: 
- Add 4 steps: 
- "What to compare (URL + GenAI content, 2 URLs, 2 prompts, 2 AI's)" COMPLETE
- "Upload content" IN PROGRESS
- "Build AI prompt & select a model" IN PROGRESS
- "Review results side-by-side with page & code view tabs" & "Submit feedback" IN PROGRESS ON TEST PAGE -->
+ Upload content - url, copy/paste, word, sample
+ Show content imediately in tab interface - web | code
+ Submit to get response from AI - send very basic prompt to 1 AI
+ Show diffs in tab interface - web | code
+ Build side menu with AI options for iteration
+ Build dropdown to select an iteration
+ Add option to submit feedback-->
 
-<p-stepper [value]="1" [linear]="true">
-    <p-step-item [value]="1">
-        <p-step>What do you want to compare?</p-step>
-        <p-step-panel>
-            <ng-template #content let-activateCallback="activateCallback">
-                <div class="flex flex-col h-48">
-                    <div
-                        class="bg-surface-050 dark:bg-surface-950 flex-auto flex justify-center items-center font-medium">
 
-                        <!-- ***** Select Task Form ***** -->
-                        <div class="flex flex-wrap align-items-center justify-content-center">
-                            <div class="py-1">
-                                <div *ngFor="let task of tasks" class="field-checkbox">
-                                    <p-radiobutton class="m-1" [inputId]="task.key" name="category" [value]="task"
-                                        [disabled]="task.unavailable" [(ngModel)]="selectedTask" size="large"
-                                        required />
-                                    <label [for]="task.key">{{ task.name }}</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="py-3">
-                    <p-button label="Next" [disabled]="!selectedTask" (onClick)="activateCallback(2)" />
-                </div>
-
-            </ng-template>
-        </p-step-panel>
-    </p-step-item>
-
-    <p-step-item [value]="2">
-        <p-step>Upload content</p-step>
-        <p-step-panel>
+<!--TEST SPACE-->
+<p-stepper class="basis-[50rem]" [(value)]="activeStep" [linear]="false">
+    <p-step-list>
+        <p-step [value]="1">Upload</p-step>
+        <p-step [value]="2">View</p-step>
+    </p-step-list>
+    <p-step-panels>
+        <p-step-panel [value]="1">
             <ng-template #content let-activateCallback="activateCallback">
 
-                <!-- ***** Select Upload Type Form ***** -->
-                <div class="flex flex-wrap align-items-start justify-content-start">
-                    <div class="py-1">
-                        <div *ngFor="let upload of uploads" class="field-checkbox">
-                            <p-radiobutton class="m-1" [inputId]="upload.key" name="upload" [value]="upload"
-                                [disabled]="upload.unavailable" [(ngModel)]="selectedUpload" size="large" />
-                            <label [for]="upload.key">{{ upload.name }}</label>
-                        </div>
-                    </div>
-                </div>
-                <!-- ***** Upload options ***** -->
-                <ca-upload-content *ngIf="selectedUpload" [uploadType]="selectedUpload.key"
-                    [taskType]="selectedTask.key" (uploadData)="handleUpload($event)"></ca-upload-content>
+                <div class="border-2 border-dashed rounded">
 
-                <div class="flex py-3 gap-2">
-                    <p-button label="Back" severity="secondary" (onClick)="activateCallback(1)" />
-                    <p-button label="Next" [disabled]="!receivedUploadData" (onClick)="activateCallback(3)" />
-                </div>
-            </ng-template>
-        </p-step-panel>
-    </p-step-item>
+                    <div class="flex flex-wrap">
+                        <!--SELECT UPLOAD TYPE-->
+                        <div class="flex-grow-0 flex-shrink-0 flex align-items-top justify-content-left surface-50 m-2 px-5 py-3 border-round">
 
-    <p-step-item [value]="3">
-        <p-step>Choose options</p-step>
-        <p-step-panel>
-            <ng-template #content let-activateCallback="activateCallback">
-                <div class="flex flex-col h-48">
-                    <div
-                        class="bg-surface-50 dark:bg-surface-950 flex-auto flex justify-center items-center font-medium">
-                        <!-- ***** Build Prompt Form ***** -->
-                        <div class="flex flex-wrap align-items-start justify-content-start"
-                            *ngIf="selectedTask.key !== 'task2Contents'">
-                            <div class="py-1 pr-5">
-                                <h2>Prompt options</h2>
-                                <div *ngFor="let prompt of prompts" class="field-checkbox">
-                                    <p-checkbox class="m-1" [inputId]="prompt.key" name="prompt" [value]="prompt"
-                                        [disabled]="prompt.unavailable" [(ngModel)]="selectedPrompts" size="large"
-                                        binary="false" />
-                                    <label [for]="prompt.key">{{ prompt.name }}</label>
+                            <fieldset class="border-none p-0 m-0">
+                                <legend class="font-bold mb-3">Choose upload type:</legend>
+
+                                <div class="flex flex-column gap-3">
+                                    <label class="flex align-items-center">
+                                        <p-radioButton name="uploadType" value="url"
+                                            [(ngModel)]="selectedUploadType"></p-radioButton>
+                                        <span class="ml-2">URL</span>
+                                    </label>
+
+                                    <label class="flex align-items-center">
+                                        <p-radioButton name="uploadType" value="paste"
+                                            [(ngModel)]="selectedUploadType"></p-radioButton>
+                                        <span class="ml-2">Copy & Paste</span>
+                                    </label>
+
+                                    <label class="flex align-items-center">
+                                        <p-radioButton name="uploadType" value="word"
+                                            [(ngModel)]="selectedUploadType"></p-radioButton>
+                                        <span class="ml-2">Word doc (converts to HTML)</span>
+                                    </label>
                                 </div>
-                            </div>
-                        </div>
-                        <!-- ***** Select 1 AI Model Form ***** -->
-                        <div class="flex flex-wrap align-items-start justify-content-start"
-                            *ngIf="selectedTask.key !== 'task2Contents' && selectedTask.key !== 'task2Models'">
-                            <div class="py-1 pr-5">
-                                <h2>AI model</h2>
-                                <div *ngFor="let ai of ais" class="field-checkbox">
-                                    <p-radiobutton class="m-1" [inputId]="ai.key" name="ai" [value]="ai"
-                                        [disabled]="ai.unavailable" [(ngModel)]="selectedAI" size="large" />
-                                    <label [for]="ai.key">{{ ai.name }}</label>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- ***** Select 2 AI Model Form ***** -->
-                        <div class="flex flex-wrap align-items-start justify-content-start"
-                            *ngIf="selectedTask.key !== 'task2Contents' && selectedTask.key === 'task2Models'">
-                            <div class="py-1">
-                                <h2>AI models</h2>
-                                <div *ngFor="let ai of ais" class="field-checkbox">
-                                    <p-checkbox class="m-1" [inputId]="ai.key" name="ai" [value]="ai"
-                                        [disabled]="(!isSelected(ai) && selectedAIs.length >= 2) || ai.unavailable"
-                                        [ngModel]="selectedAIs" (onChange)="toggleSelection(ai)" size="large"
-                                        binary="false" />
-                                    <label [for]="ai.key">{{ ai.name }}</label>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- ***** Compare 2 URLs message ***** -->
-                        <div class="flex flex-wrap align-items-start justify-content-start"
-                            *ngIf="selectedTask.key == 'task2Contents'">
-                            <div class="py-1">
-                                <p>No additional options available.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex py-3 gap-2">
-                    <p-button label="Back" severity="secondary" (onClick)="activateCallback(2)" />
-                    <p-button label="Next"
-                        [disabled]="(selectedTask.key === 'task2Models' && selectedAIs.length <= 1) || (selectedTask.key !== 'task2Contents' && (!selectedAI || selectedPrompts.length < 1))"
-                        (onClick)="activateCallback(4)" />
-                </div>
-            </ng-template>
-        </p-step-panel>
-    </p-step-item>
+                            </fieldset>
 
-    <p-step-item [value]="4">
-        <p-step>View results</p-step>
-        <p-step-panel>
-            <ng-template #content let-activateCallback="activateCallback">
-                <div class="flex flex-column h-48">
-                    <div class="bg-surface-50 dark:bg-surface-950 flex-auto">
-        <!--Summary of collected data-->
-                        <div class="p-3" *ngIf="selectedTask.name">
-                        <p-panel header="User Input Summary" [toggleable]="true" [collapsed]="true">
-                            <p>Task: {{selectedTask.name}}</p>
+                        </div>
+                        <!--Upload-->
+                        <div
+                            class="flex-grow-1 flex-shrink-0 flex align-items-top justify-content-left surface-50 m-2 px-5 py-3 border-round">
 
-                            <p>Upload type: {{selectedUpload.name}}</p>
+                            <ng-container [ngSwitch]="selectedUploadType">
 
-                            <ng-container *ngIf="receivedUploadData">
-                                <p>Source URL: {{this.receivedUploadData.sourceURL}}</p>
-                                <p *ngIf="receivedUploadData.prototypeURL">Prototype URL:
-                                    {{this.receivedUploadData.prototypeURL}}</p>
+                                <ca-upload-url *ngSwitchCase="'url'"
+                                    (uploadData)="handleUpload($event)"></ca-upload-url>
+                                <ca-upload-paste *ngSwitchCase="'paste'"></ca-upload-paste>
+                                <ca-upload-word *ngSwitchCase="'word'"></ca-upload-word>
+
                             </ng-container>
-
-                            <p *ngIf="selectedTask.key !== 'task2Contents' && selectedTask.key !== 'task2Models'">AI
-                                model: {{selectedAI.name}}</p>
-
-                            <p *ngIf="selectedAIs.length > 0">AI models: <span
-                                    *ngFor="let ai of selectedAIs; let i = index">{{ ai.name }}<span
-                                        *ngIf="i < selectedAIs.length - 1"> and </span></span></p>
-
-                            <p *ngIf="selectedPrompts.length > 0">Complete prompt: <span
-                                    *ngFor="let prompt of selectedPrompts; let i = index">{{ prompt.name }}<span
-                                        *ngIf="i < selectedPrompts.length - 1">, </span></span></p>
-                        </p-panel>
                         </div>
-                        <!-- ***** Upload options ***** -->
+                    </div>
+                </div>
+            </ng-template>
+        </p-step-panel>
+
+        <p-step-panel [value]="2">
+            <ng-template #content let-activateCallback="activateCallback">
+                <div class="border-2 border-dashed rounded">
+
+                    <!--VIEW CONTENT-->
+                    <div *ngIf=receivedUploadData>
                         <div class="p-3" *ngIf="receivedUploadData; else noData">
                             <ca-page-compare [originalHtml]="this.receivedUploadData.sourceHTML"
                                 [modifiedHtml]="this.receivedUploadData.prototypeHTML ?? ''"></ca-page-compare>
                         </div>
                         <ng-template #noData>
-                            <p-message severity="danger" text="Did not receive upload data"/>
+                            <p-message severity="danger" text="Did not receive upload data" />
                         </ng-template>
                     </div>
                 </div>
-                <div class="py-3">
-                    <p-button label="Back" severity="secondary" (onClick)="activateCallback(3)" />
-                </div>
+
             </ng-template>
         </p-step-panel>
-    </p-step-item>
+    </p-step-panels>
 </p-stepper>

@@ -1,8 +1,9 @@
-import { Component} from '@angular/core';
+import { Component, signal} from '@angular/core';
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
 import { LocalStorageService } from '../../services/local-storage.service'; //Delete if you aren't using anything from local storage
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 
 //primeNG
 import { RadioButtonModule } from 'primeng/radiobutton';
@@ -11,22 +12,64 @@ import { ButtonModule } from 'primeng/button';
 import { StepperModule } from 'primeng/stepper';
 import { PanelModule } from 'primeng/panel';
 import { MessageModule } from 'primeng/message';
+import { CardModule } from 'primeng/card';
 
 //Components
-import { UploadContentComponent } from './components/upload-content.component';
+import { UploadUrlComponent } from './components/upload/upload-url.component';
+import { UploadPasteComponent } from './components/upload/upload-paste.component';
+import { UploadWordComponent } from './components/upload/upload-word.component';
 import { PageCompareComponent } from './components/page-compare.component';
 
 @Component({
   selector: 'ca-page-assistant',
-  imports: [TranslateModule, CommonModule, FormsModule, RadioButtonModule, CheckboxModule, ButtonModule, StepperModule, UploadContentComponent, PanelModule, MessageModule, PageCompareComponent],
+  imports: [TranslateModule, CommonModule, FormsModule, RadioButtonModule, CheckboxModule, ButtonModule, StepperModule, UploadUrlComponent, UploadPasteComponent, UploadWordComponent, PageCompareComponent, PanelModule, MessageModule, CardModule],
   templateUrl: './page-assistant.component.html',
   styles: ``
 })
 export class PageAssistantComponent {
 
+
+
+  selectedUploadType: string = 'url';  // Default to first radio button
+  activeStep = 1;
+
+  //Test
+  activeStepIndex = 0;           // current step index: 0 (Upload) or 1 (View)
+  preloadedUrl?: string;         // if coming from direct URL
+  finalUrl?: string;             // URL to pass to View step
+  //End test
+
+  
+
+ // cancelUpload() {
+  //  this.selectedUploadType = null;
+ // }
+
   sourceURL: any;
 
-  constructor(public localStore: LocalStorageService, private translate: TranslateService) { } 
+  constructor(public localStore: LocalStorageService, private translate: TranslateService, private route: ActivatedRoute) { } 
+
+  /*Test continued
+ ngOnInit() {
+    // Check if arriving via /stepper/view?url=...
+    this.route.queryParamMap.subscribe(params => {
+      const directUrl = params.get('url');
+      if (directUrl) {
+        this.preloadedUrl = directUrl;
+        this.finalUrl = directUrl;
+        this.activeStepIndex = 1; // jump directly to View step
+      }
+    });
+  }
+
+  onUploadCompleted(uploadedUrl: string) {
+    this.finalUrl = uploadedUrl;
+    this.activeStepIndex = 1; // advance to View step
+  }
+
+
+
+  //End test*/
   
   //Step 1 radio buttons to select task
   selectedTask: any = null;
@@ -42,9 +85,9 @@ export class PageAssistantComponent {
   selectedUpload: any = null;
 
   uploads: any[] = [
-    { name: 'URL', key: 'uploadURL', unavailable: 'false' },
-    { name: 'Copy & paste', key: 'uploadCP', unavailable: 'false' },
-    { name: 'Word doc (converts to HTML)', key: 'uploadWD', unavailable: 'true' }
+    { name: 'URL', key: 'url', unavailable: 'false' },
+    { name: 'Copy & paste', key: 'paste', unavailable: 'false' },
+    { name: 'Word doc (converts to HTML)', key: 'word', unavailable: 'true' }
   ];
   //Step 2 get upload data from child component
   public receivedUploadData: {
@@ -56,43 +99,8 @@ export class PageAssistantComponent {
 
   public handleUpload(uploadData: { sourceURL: string, sourceHTML: string, prototypeURL?: any, prototypeHTML?: any } | null = null) {
     this.receivedUploadData = uploadData;
+    this.activeStep = 2;  // move to step 2
   }
 
-  //Step 3 checkboxes for AI prompt
-  selectedPrompts: any[] = [];
-
-  prompts: any[] = [
-    { name: 'Suggest an SEOed title', key: 'promptSEOTitle', unavailable: 'false' },
-    { name: 'Suggest a metadata description', key: 'promptMetaDesc', unavailable: 'false' },
-    { name: '...', key: 'promptEtc', unavailable: 'true' },
-    { name: 'Propose a better heading structure', key: 'promptHeadingStructure', unavailable: 'false' }
-  ];
-
-  //Step 3 radio buttons or checkboxes for AI model
-  selectedAI: any = null;
-
-  selectedAIs: any[] = [];
-
-  ais: any[] = [
-    { name: 'Gemini 2.0 Flash', key: 'aiGenini', unavailable: 'false' },
-    { name: 'Llama 3.3 70B', key: 'aiLlama', unavailable: 'false' },
-    { name: 'Phi-3 Medium', key: 'aiPhi', unavailable: 'true' },
-    { name: 'Mistral Nemo', key: 'aiMistral', unavailable: 'false' },
-    { name: 'Dolphin3.0 R1', key: 'aiDolphin', unavailable: 'false' }
-  ];
-
-  isSelected(option: any): boolean {
-    return this.selectedAIs.includes(option);
-  }
-
-  toggleSelection(option: any): void {
-    const index = this.selectedAIs.indexOf(option);
-    if (index > -1) {
-      // Deselect
-      this.selectedAIs.splice(index, 1);
-    } else if (this.selectedAIs.length < 2) {
-      // Add only if under the limit
-      this.selectedAIs.push(option);
-    }
-  }
+ 
 }
