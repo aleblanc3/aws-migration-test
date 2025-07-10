@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
 
+import { ToolbarModule } from 'primeng/toolbar';
 import { ButtonModule } from 'primeng/button';
 import { ToggleButtonModule } from 'primeng/togglebutton';
 
@@ -10,46 +11,49 @@ import { LocalStorageService } from '../services/local-storage.service';
 
 @Component({
   selector: 'ca-header',
-  imports: [CommonModule, TranslateModule, ButtonModule, ToggleButtonModule, ApiResetComponent],
+  imports: [CommonModule, TranslateModule, ToolbarModule, ButtonModule, ToggleButtonModule, ApiResetComponent],
   template: `
   <header id="header">
-  <div class="row">
-    <div class="col-lg-3 col-md-4 col-sm-6 col-6 text-start">
-<img
+  <p-toolbar>
+    <div class="flex align-items-center hidden md:block">
+      <img
         id="cra-logo"
-        class="img-fluid fip-colour"
-        [src]='logoSrc'
-        width="471"
-        height="38"
+        class="img-fluid fip-colour w-28rem"
+        [src]="logoSrc"
         [alt]="'CRA' | translate"
         priority="true"
       />
     </div>
-    <div class="col-lg-9 col-md-8 col-sm-6 col-6 text-end"> 
-      
-    <ca-api-reset class="mr-3" *ngIf="this.localStore.getData('apiKey') != null"></ca-api-reset>  
+    <div class="flex align-items-center gap-3">
+      <ca-api-reset
+        *ngIf="this.localStore.getData('apiKey') != null">
+      </ca-api-reset>
 
-    <p-togglebutton
-          offIcon="pi pi-moon"
-          offLabel=""
-          onIcon="pi pi-sun"
-          onLabel=""
-          class="p-button-rounded p-button-secondary p-button-outlined p-button-sm mr-3 pr-0"
-          (click)="toggleDarkMode()">
-        </p-togglebutton>
-        
-        <a
-          style="cursor: pointer"
-          class="langs"
-          tabindex="0"
-          (click)="selectLanguage()"> 
-          {{ 'opp.lang' | translate }}
-        </a>
+      <p-togglebutton
+        offIcon="pi pi-moon"
+        offLabel=""
+        onIcon="pi pi-sun"
+        onLabel=""
+        class="p-button-rounded p-button-secondary p-button-outlined p-button-sm pr-0"
+        (click)="toggleDarkMode()">
+      </p-togglebutton>
+
+      <a
+        class="cursor-pointer underline font-medium text-blue-600 hover:text-blue-800"
+        tabindex="0"
+        (click)="selectLanguage()">
+        {{ 'opp.lang' | translate }}
+      </a>
     </div>
-  </div>
+  </p-toolbar>
 </header>
   `,
-  styles: ``
+  styles: `
+  ::ng-deep .p-toolbar {
+        background-color: transparent !important;
+        border: none !important;
+    }
+    `
 })
 export class HeaderComponent {
   @Output() darkModeToggled = new EventEmitter<void>();

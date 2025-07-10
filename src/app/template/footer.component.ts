@@ -1,25 +1,26 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from "@ngx-translate/core";
+import { ToolbarModule } from 'primeng/toolbar';
 
 @Component({
   selector: 'ca-footer',
-  imports: [CommonModule, TranslateModule],
+  imports: [CommonModule, TranslateModule, ToolbarModule],
   template: `
-    <footer class="container">
-    <div class="d-flex justify-content-between align-items-end mt-auto pb-4">
-      <div class="align-self-end">
-        <span class="text-muted small">{{'app.version'|translate}}</span>
-      </div>
-      <div class="col-lg-2 col-md-3 col-sm-4 col-4">
-        <img
+<footer class="container">
+  <p-toolbar>
+    <div class="flex align-items-end">
+      <p class="text-color-secondary text-sm pt-5">{{'app.version'|translate}}</p>
+    </div>
+    <div class="flex align-items-end">
+      <img
           class="img-fluid fip-colour"
           [src]="logoSrc"
           [alt]="'GoC' | translate"
         />
-      </div>
     </div>
-  </footer>
+  </p-toolbar>
+</footer>
   `,
   styles: `
     :host {
