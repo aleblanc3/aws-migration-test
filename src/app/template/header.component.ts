@@ -13,7 +13,7 @@ import { LocalStorageService } from '../services/local-storage.service';
   selector: 'ca-header',
   imports: [CommonModule, TranslateModule, ToolbarModule, ButtonModule, ToggleButtonModule, ApiResetComponent],
   template: `
-  <header id="header">
+  <header id="header" class="pb-2">
   <p-toolbar>
     <div class="flex align-items-center hidden md:block">
       <img
@@ -24,7 +24,7 @@ import { LocalStorageService } from '../services/local-storage.service';
         priority="true"
       />
     </div>
-    <div class="flex align-items-center gap-3">
+    <div class="flex align-items-end gap-3">
       <ca-api-reset
         *ngIf="this.localStore.getData('apiKey') != null">
       </ca-api-reset>
@@ -50,8 +50,15 @@ import { LocalStorageService } from '../services/local-storage.service';
   `,
   styles: `
   ::ng-deep .p-toolbar {
-        background-color: transparent !important;
-        border: none !important;
+      background-color: transparent !important;
+      border: none !important;
+       
+    }
+    header {
+      border-bottom-style: solid;
+      border-bottom-color: #c4c4c4;
+      border-width: 1px;
+      margin-top: -4rem;
     }
     `
 })
