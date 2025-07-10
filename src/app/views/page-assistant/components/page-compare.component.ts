@@ -8,11 +8,17 @@
 5. Enhance rendered diff by styling inserted & deleted content, wrapping new/changed links. handling media queries, modal content, ajax-loaded sections, json-managed data
 6. Add navigation between diff elements (next() & prev())
 7. Store and restore UI state using sessionStorage?
-
-
+Notes: 
+Add radio buttons to change display from original, modified, & differences
+Add dropdown to select from an array of modified versions (so you can step it back if needed after a bad iteration)
 */
 
-import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy, Input, signal } from '@angular/core';
+import {
+  Component, Input, ViewChild, ViewEncapsulation, AfterViewInit, OnDestroy, //decorators & lifecycle
+  ElementRef, Renderer2, //DOM utilities
+  inject, //Dependency injection
+  signal, WritableSignal, Signal, computed, effect //Signals/reactivity
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -20,9 +26,10 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 //import { PanelModule } from 'primeng/panel';
-import { TabViewModule } from 'primeng/tabview';
+import { TabsModule } from 'primeng/tabs';
 //import { MessageModule } from 'primeng/message';
 //import { DividerModule } from 'primeng/divider';
+import { RadioButtonModule } from 'primeng/radiobutton';
 
 //Diffs
 import {
@@ -32,7 +39,7 @@ import {
 import { createPatch } from 'diff';
 import { Diff } from '@ali-tas/htmldiff-js';
 
-interface DiffOptions { //Used when generating an HTML diff, tweaks how sensitive diff is to whitespace, word repitition, etc.
+interface DiffOptions { //Tweaks how sensitive HTML diff is to whitespace, word repitition, etc.
   repeatingWordsAccuracy?: number;
   ignoreWhiteSpaceDifferences?: boolean;
   orphanMatchThreshold?: number;
@@ -40,35 +47,21 @@ interface DiffOptions { //Used when generating an HTML diff, tweaks how sensitiv
   combineWords?: boolean;
 }
 
+export interface ViewOption {
+  label: string;
+  value: 'original' | 'modified' | 'diff';
+  icon: string;
+}
+
 @Component({
   selector: 'ca-page-compare',
   standalone: true,
   imports: [
-    CommonModule,
-    FormsModule,
-    ButtonModule,
-    CardModule,
-    TabViewModule,
+    CommonModule, FormsModule,
+    ButtonModule, CardModule, TabsModule, RadioButtonModule
   ],
   templateUrl: './page-compare.component.html',
-  styles: `
-  :host {
-      display: block;
-    }
-
-    /*Diff containers*/
-    .shadow-diff-container {
-      min-height: 200px;
-      background: #FFFFFF;
-      color: #000000;
-    }
-    
-    .diff2html-container {
-      min-height: 200px;
-      background: #FFFFFF;
-      color: #000000;
-    }
-  `
+  styleUrl: './page-compare.component.scss'
 })
 export class PageCompareComponent implements AfterViewInit, OnDestroy {
 
@@ -76,19 +69,54 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy {
   @Input() originalHtml: string = '';
   @Input() modifiedHtml: string = '';
 
-  @ViewChild('shadowDiffContainer', { static: false }) shadowDiffContainer!: ElementRef;
-  @ViewChild('diff2htmlContainer', { static: false }) diff2htmlContainer!: ElementRef;
+  //View children
+  @ViewChild('liveContainer', { static: false }) liveContainer!: ElementRef;
+  @ViewChild('sourceContainer', { static: false }) sourceContainer!: ElementRef;
 
+  //signals
+  shadowDOM = signal<ShadowRoot | null>(null);
+
+  legendItems = signal<
+    { text: string; colour: string; style: string; lineStyle?: string }[]
+  >([
+    { text: 'Previous version', colour: '#F3A59D', style: 'highlight' },
+    { text: 'Updated version', colour: '#83d5a8', style: 'highlight' },
+    { text: 'Updated link', colour: '#FFEE8C', style: 'highlight' },
+    { text: 'Hidden content', colour: '#6F9FFF', style: 'line' },
+    {
+      text: 'Modal content',
+      colour: '#666',
+      style: 'line',
+      lineStyle: 'dashed',
+    },
+    {
+      text: 'Dynamic content',
+      colour: '#fbc02f',
+      style: 'line',
+      lineStyle: 'dashed',
+    },
+  ]);
+
+  //View options
+  selectedView: 'original' | 'modified' | 'diff' = 'diff';
+
+  viewOptions: ViewOption[] = [
+    { label: 'Original', value: 'original', icon: 'pi pi-file' },
+    { label: 'Modified', value: 'modified', icon: 'pi pi-file-edit' },
+    { label: 'Diff', value: 'diff', icon: 'pi pi-sort-alt' }
+  ];
+
+  //Variables
   showResults = false;
-  textDiffResult = '';
-  originalStructure = '';
-  modifiedStructure = '';
+  //textDiffResult = '';
+  //originalStructure = '';
+  //modifiedStructure = '';
 
   private shadowRoot?: ShadowRoot;
 
   ngAfterViewInit() {
     // Initialize shadow DOM when the view is ready
-    if (this.shadowDiffContainer) {
+    if (this.liveContainer) {
       this.initializeShadowDOM();
     }
   }
@@ -99,8 +127,8 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy {
   }
 
   private initializeShadowDOM() {
-    if (this.shadowDiffContainer && !this.shadowRoot) {
-      this.shadowRoot = this.shadowDiffContainer.nativeElement.attachShadow({ mode: 'open' });
+    if (this.liveContainer && !this.shadowRoot) {
+      this.shadowRoot = this.liveContainer.nativeElement.attachShadow({ mode: 'open' });
     }
   }
 
@@ -115,7 +143,100 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy {
     this.generateShadowDOMDiff();
     this.generateDiff2HtmlDiff();
   }
-  //Web view
+
+  // View switcher method
+  onViewChange(viewType: 'original' | 'modified' | 'diff') {
+    this.selectedView = viewType;
+    this.generateShadowDOMContent();
+  }
+
+  // Enhanced method to handle different view types
+  private generateShadowDOMContent() {
+    if (!this.shadowRoot) {
+      this.initializeShadowDOM();
+    }
+
+    if (!this.shadowRoot) {
+      console.error('Shadow DOM failed to initialize');
+      return;
+    }
+
+    // Clear previous content
+    this.shadowRoot.innerHTML = '';
+
+    // Add base styles
+    const style = document.createElement('style');
+    style.textContent = this.getRenderedDiffStyles();
+    this.shadowRoot.insertBefore(style, this.shadowRoot.firstChild);
+
+    // Create container
+    const diffContainer = document.createElement('div');
+    diffContainer.className = 'rendered-diff-container';
+
+    const renderedContent = document.createElement('div');
+    renderedContent.className = 'rendered-content';
+
+    switch (this.selectedView) {
+      case 'original':
+        this.renderOriginalHtml(renderedContent);
+        break;
+      case 'modified':
+        this.renderModifiedHtml(renderedContent);
+        break;
+      case 'diff':
+        this.renderDiffHtml(renderedContent);
+        break;
+    }
+
+    diffContainer.appendChild(renderedContent);
+    this.shadowRoot.appendChild(diffContainer);
+  }
+
+  private renderOriginalHtml(container: HTMLElement) {
+    const parser = new DOMParser();
+    const originalDoc = parser.parseFromString(this.originalHtml, 'text/html');
+
+    container.className = 'rendered-content original-content';
+    container.innerHTML = originalDoc.body ? originalDoc.body.innerHTML : this.originalHtml;
+  }
+
+  private renderModifiedHtml(container: HTMLElement) {
+    const parser = new DOMParser();
+    const modifiedDoc = parser.parseFromString(this.modifiedHtml, 'text/html');
+
+    container.className = 'rendered-content modified-content';
+    container.innerHTML = modifiedDoc.body ? modifiedDoc.body.innerHTML : this.modifiedHtml;
+  }
+
+  private renderDiffHtml(container: HTMLElement) {
+    const parser = new DOMParser();
+
+    // Use htmldiff-js to get the diff with HTML highlighting
+    const options: DiffOptions = {
+      repeatingWordsAccuracy: 0,
+      ignoreWhiteSpaceDifferences: true,
+      orphanMatchThreshold: 0,
+      matchGranularity: 4,
+      combineWords: true,
+    };
+
+    const diffResult = Diff.execute(
+      this.originalHtml,
+      this.modifiedHtml,
+      options,
+    ).replace(
+      /<(ins|del)[^>]*>(\s|&nbsp;|&#32;|&#160;|&#x00e2;|&#x0080;|&#x00af;|&#x202f;|&#xa0;)+<\/(ins|del)>/gis,
+      ' ',
+    );
+
+    // Parse the diff result and render it
+    const diffDoc = parser.parseFromString(diffResult, 'text/html');
+
+    container.className = 'rendered-content diff-content';
+    container.innerHTML = diffDoc.body ? diffDoc.body.innerHTML : diffResult;
+  }
+
+  //Web view <--old
   private generateShadowDOMDiff() {
     if (!this.shadowRoot) {
       this.initializeShadowDOM();
@@ -182,7 +303,7 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy {
 
   private getRenderedDiffStyles(): string {
     return `
-      /* Import Canada.ca CSS */
+      /* Import canada.ca CSS */
         @import url('https://use.fontawesome.com/releases/v5.15.4/css/all.css');
         @import url('https://www.canada.ca/etc/designs/canada/wet-boew/css/theme.min.css');
         @import url('https://www.canada.ca/etc/designs/canada/wet-boew/méli-mélo/2024-09-kejimkujik.min.css');
@@ -272,12 +393,12 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy {
       };
 
       // Clear previous content
-      if (this.diff2htmlContainer) {
-        this.diff2htmlContainer.nativeElement.innerHTML = '';
+      if (this.sourceContainer) {
+        this.sourceContainer.nativeElement.innerHTML = '';
 
         // Create diff2html UI
         const diff2htmlUi = new Diff2HtmlUI(
-          this.diff2htmlContainer.nativeElement,
+          this.sourceContainer.nativeElement,
           patch,
           configuration
         );
@@ -286,8 +407,8 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy {
       }
     } catch (error) {
       console.error('Error generating diff2html:', error);
-      if (this.diff2htmlContainer) {
-        this.diff2htmlContainer.nativeElement.innerHTML = '<p class="p-error">Error generating unified diff view.</p>';
+      if (this.sourceContainer) {
+        this.sourceContainer.nativeElement.innerHTML = '<p class="p-error">Error generating unified diff view.</p>';
       }
     }
   }
@@ -296,9 +417,9 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy {
     this.originalHtml = '';
     this.modifiedHtml = '';
     this.showResults = false;
-    this.textDiffResult = '';
-    this.originalStructure = '';
-    this.modifiedStructure = '';
+    //this.textDiffResult = '';
+    //this.originalStructure = '';
+    //this.modifiedStructure = '';
 
     // Clear shadow DOM
     if (this.shadowRoot) {
@@ -306,8 +427,8 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy {
     }
 
     // Clear diff2html container
-    if (this.diff2htmlContainer) {
-      this.diff2htmlContainer.nativeElement.innerHTML = '';
+    if (this.sourceContainer) {
+      this.sourceContainer.nativeElement.innerHTML = '';
     }
   }
 }

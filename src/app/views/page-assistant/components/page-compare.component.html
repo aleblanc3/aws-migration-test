@@ -1,27 +1,70 @@
 <div class="pb-2">
-    <!-- Control Buttons -->
-    <p-button label="Compare HTML" icon="pi pi-search" (onClick)="compareHtml()" class="mr-2"
-        [disabled]="!originalHtml || !modifiedHtml"></p-button>
-    <p-button label="Clear All" icon="pi pi-trash" (onClick)="clearAll()" severity="danger"></p-button>
+  <!-- Control Buttons -->
+  <p-button label="Compare HTML" icon="pi pi-search" (onClick)="compareHtml()" class="mr-2"
+    [disabled]="!originalHtml || !modifiedHtml"></p-button>
+  <p-button label="Clear All" icon="pi pi-trash" (onClick)="clearAll()" severity="danger"></p-button>
 
-    <!-- Results Section -->
-    <div *ngIf="showResults" class="mt-4">
-        <p-tabView>
-            <!-- Rendered page -->
-            <p-tabPanel header="Web page" leftIcon="pi pi-eye">
-                <p-card>
-                    <div #shadowDiffContainer class="shadow-diff-container border-1 surface-border border-round p-3">
-                    </div>
-                </p-card>
-            </p-tabPanel>
+  <!-- Results Section -->
+  <div *ngIf="showResults" class="mt-4">
+    <p-tabs value="0">
+      <p-tablist>
+        <p-tab value="0"><i class="pi pi-eye mr-1"></i>Web page</p-tab>
+        <p-tab value="1"><i class="pi pi-code mr-1"></i>Page source</p-tab>
+      </p-tablist>
+      <!-- Rendered page -->
+      <p-tabpanels>
+        <p-tabpanel value="0">
 
-            <!-- Source code -->
-            <p-tabPanel header="Page source" leftIcon="pi pi-code">
-                <p-card>
-                    <div #diff2htmlContainer class="diff2html-container"></div>
-                </p-card>
-            </p-tabPanel>
-        </p-tabView>
-    </div>
+          <p-card>
+            <!--Switch view-->
+            <div class="view-switcher-container" *ngIf="showResults">
+        <div class="field-radiobutton-group">
+          <span class="view-switcher-label">View:</span>
+          <div class="flex align-items-center gap-3">
+            <div class="field-radiobutton" *ngFor="let option of viewOptions">
+              <p-radioButton 
+                [inputId]="option.value" 
+                name="viewType" 
+                [value]="option.value"
+                [(ngModel)]="selectedView"
+                (ngModelChange)="onViewChange($event)">
+              </p-radioButton>
+              <label [for]="option.value" class="ml-2 flex align-items-center gap-1">
+                <i [class]="option.icon"></i>
+                {{ option.label }}
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+            <!--Legend-->
+            <div class="group-legend mb-2">
+              <div *ngFor="let item of legendItems()" class="legend-item">
+                <div class="legend-box" [ngStyle]="{
+                'background-color':
+                  item.style === 'highlight' ? item.colour : 'transparent',
+                border:
+                  item.style === 'line'
+                    ? '2px ' + (item.lineStyle || 'solid') + ' ' + item.colour
+                    : 'none',
+              }"></div>
+                <span class="legend-text">{{ item.text }}</span>
+              </div>
+            </div>
+            <!--Shadow Dom-->
+            <div #liveContainer class="live-container border-1 surface-border border-round p-3"></div>
+
+          </p-card>
+        </p-tabpanel>
+
+        <!-- Source code -->
+        <p-tabpanel value="1">
+
+          <p-card>
+            <div #sourceContainer class="source-container"></div>
+          </p-card>
+        </p-tabpanel>
+      </p-tabpanels>
+    </p-tabs>
+  </div>
 </div>
-   

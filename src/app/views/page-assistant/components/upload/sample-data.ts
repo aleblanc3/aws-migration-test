@@ -628,7 +628,7 @@ export const sampleHtmlB = `<!doctype html>
                             <p>How to start a charity, find existing ones, or get tax credits for giving</p>
                         </div>
                         <div class="col-lg-4 col-md-6">
-                            <h3><a href="https://www.canada.ca/en/services/taxes/savings-and-pension-plans.html">Savings and pension plans</a></h3>
+                            <h3><a href="https://www.canada.ca/en/services/taxes/savings-or-pension-plans.html">Savings and pension plans</a></h3>
                             <p>Tax-free savings, retirement plans, pooled pensions, and keeping track</p>
                         </div>
                         <div class="col-lg-4 col-md-6">
@@ -648,7 +648,7 @@ export const sampleHtmlB = `<!doctype html>
                             <p>Rules, collecting debts, audits, tax breaks, and fighting over bills</p>
                         </div>
                         <div class="col-lg-4 col-md-6">
-                            <h3><a href="https://www.canada.ca/en/revenue-agency/services/make-a-service-complaint.html">Tell us what you think</a></h3>
+                            <h3><a href="https://www.canada.ca/en/revenue-agency/services/make-a-service-compliment.html">Tell us what you think</a></h3>
                             <p>Got beef with the CRA? Tell us about your service experience</p>
                         </div>
                     </div>
