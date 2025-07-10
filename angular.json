@@ -39,7 +39,6 @@
               }
             ],
             "styles": [
-              "node_modules/diff2html/bundles/css/diff2html.min.css",
               "node_modules/primeflex/primeflex.css",
               "node_modules/primeicons/primeicons.css",
               "src/styles.css"
@@ -66,7 +65,10 @@
                   "maximumError": "8kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "allowedCommonJsDependencies": [
+                "diff2html/lib/ui/js/diff2html-ui"
+              ]
             },
             "development": {
               "optimization": false,
