@@ -51,7 +51,13 @@ export class ImageProcessorService {
       }),
       switchMap(({ img, base64Data }) =>
         this.getVisionAnalysis(base64Data, selectedVisionModel, apiKey, identifier, isPdfPage).pipe(
-          map(visionResult => ({ ...visionResult, imageBase64: base64Data })) // Add base64 to result for display
+          map(visionResult => {
+            // If vision analysis failed, throw error to stop the pipeline
+            if (visionResult.error) {
+              throw new Error(visionResult.error);
+            }
+            return { ...visionResult, imageBase64: base64Data }; // Add base64 to result for display
+          })
         )
       ),
       switchMap(visionResult => {
@@ -79,7 +85,21 @@ export class ImageProcessorService {
       }),
       catchError(error => {
         console.error(`Error in image analysis pipeline for ${identifier}:`, error);
-        return throwError(() => new Error(`Failed to process image ${identifier}: ${error.message || 'Unknown error'}`));
+        // Check if this is a key limit error from vision model
+        if (error.message === 'KEY_LIMIT_EXCEEDED') {
+          return from([{
+            english: null,
+            french: null,
+            error: 'KEY_LIMIT_EXCEEDED',
+            imageBase64: null
+          }]);
+        }
+        return from([{
+          english: null,
+          french: null,
+          error: error.message || 'Unknown error',
+          imageBase64: null
+        }]);
       })
     );
   }
@@ -214,7 +234,8 @@ export class ImageProcessorService {
         }
         
         console.error(`Error in vision API call for ${identifier}:`, errorMessage, error);
-        return throwError(() => new Error(errorMessage));
+        // Return error as part of result instead of throwing
+        return from([{ english: null, french: null, error: errorMessage }]);
       })
     );
   }
@@ -269,6 +290,12 @@ export class ImageProcessorService {
         if (error.error && error.error.error && error.error.error.message) {
           errorMessage += ` - ${error.error.error.message}`;
         }
+        
+        // Check if this is a key limit exceeded error for translation
+        if (error.status === 403 && error.error?.error?.message?.toLowerCase().includes('key limit exceeded')) {
+          errorMessage = 'KEY_LIMIT_EXCEEDED';
+        }
+        
         console.error(`Error translating text for ${identifier}:`, errorMessage, error);
         return throwError(() => new Error(errorMessage));
       })
