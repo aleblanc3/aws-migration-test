@@ -60,11 +60,11 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Check for API key in URL parameters
+    // check for API key in URL parameters
     this.route.queryParams.subscribe(params => {
       const apiKey = params['key'];
       if (apiKey) {
-        // Set the API key from URL parameter
+        // set the API key from URL parameter
         this.apiKeyService.setKey(apiKey);
       }
     });
@@ -93,10 +93,10 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
       }
     }
     
-    // Reset state and start processing
+    // Reset state and start processing. i need to look aty this it's a bit funky
     this.stateService.resetState();
     this.stateService.updateState({
-      filesInProgress: actualFileCount, // Use actual count, not including PDFs
+      filesInProgress: actualFileCount, 
       processedCount: 0,
       showProgressArea: true,
       progressText: this.translate.instant('image.progress.starting', { count: actualFileCount })
@@ -186,8 +186,15 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
             if (errorMessage === 'KEY_LIMIT_EXCEEDED') {
               // Ensure translation is loaded before using instant
               const translatedMsg = this.translate.instant('image.error.paidModel');
-              // Fallback if translation not loaded
-              errorMessage = translatedMsg !== 'image.error.paidModel' ? translatedMsg : 'This is a paid model. Please add credits to your API key.';
+              // Fallback if translation not loaded - check current language
+              if (translatedMsg === 'image.error.paidModel') {
+                const currentLang = this.translate.currentLang || 'en';
+                errorMessage = currentLang === 'fr' 
+                  ? 'Il s\'agit d\'un modèle payant. Veuillez ajouter des crédits à votre clé API.'
+                  : 'This is a paid model. Please add credits to your API key.';
+              } else {
+                errorMessage = translatedMsg;
+              }
             }
             
             this.stateService.updateResult(displayName, {
@@ -208,8 +215,17 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
             
             // Check for specific error types
             let errorMessage = err.message || this.translate.instant('image.error.unknown');
-            if (err.message === 'KEY_LIMIT_EXCEEDED') {
-              errorMessage = this.translate.instant('image.error.paidModel');
+            if (err.message === 'KEY_LIMIT_EXCEEDED' || (err.message && err.message.includes('KEY_LIMIT_EXCEEDED'))) {
+              const translatedMsg = this.translate.instant('image.error.paidModel');
+              // Fallback if translation not loaded - check current language
+              if (translatedMsg === 'image.error.paidModel') {
+                const currentLang = this.translate.currentLang || 'en';
+                errorMessage = currentLang === 'fr' 
+                  ? 'Il s\'agit d\'un modèle payant. Veuillez ajouter des crédits à votre clé API.'
+                  : 'This is a paid model. Please add credits to your API key.';
+              } else {
+                errorMessage = translatedMsg;
+              }
             }
             
             this.stateService.updateResult(displayName, {
