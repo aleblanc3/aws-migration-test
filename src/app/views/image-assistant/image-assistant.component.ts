@@ -181,13 +181,19 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
         // Process regular images (including PDF pages)
         this.imageProcessorService.analyzeImage(file, this.selectedVisionModel, displayName, isPdfPage).subscribe({
           next: (result: VisionAnalysisResult) => {
+            // Check for specific error types and translate them
+            let errorMessage = result.error;
+            if (errorMessage === 'KEY_LIMIT_EXCEEDED') {
+              errorMessage = this.translate.instant('image.error.paidModel');
+            }
+            
             this.stateService.updateResult(displayName, {
               status: result.error ? 'error' : 'completed',
               data: {
                 imageBase64: result.imageBase64 || null,
                 english: result.english,
                 french: result.french,
-                error: result.error
+                error: errorMessage
               }
             });
             
