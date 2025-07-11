@@ -65,6 +65,8 @@ export class InventoryAssistantComponent {
     });
   }
 
+  //Checks if processing is complete
+  //Turns buffer array of MetadataResults or nulls that no longer has nulls into an array of MetadataResult only.
   private updateResults(buffer: (MetadataResult | null)[]): void {
     if (buffer.every(item => item !== null)) {
       this.results = buffer as MetadataResult[];
