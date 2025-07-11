@@ -184,7 +184,10 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
             // Check for specific error types and translate them
             let errorMessage = result.error;
             if (errorMessage === 'KEY_LIMIT_EXCEEDED') {
-              errorMessage = this.translate.instant('image.error.paidModel');
+              // Ensure translation is loaded before using instant
+              const translatedMsg = this.translate.instant('image.error.paidModel');
+              // Fallback if translation not loaded
+              errorMessage = translatedMsg !== 'image.error.paidModel' ? translatedMsg : 'This is a paid model. Please add credits to your API key.';
             }
             
             this.stateService.updateResult(displayName, {
