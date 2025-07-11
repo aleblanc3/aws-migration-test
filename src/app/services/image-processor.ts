@@ -20,7 +20,7 @@ export class ImageProcessorService {
   private readonly MAX_IMAGE_SIZE = 1024; // Max width/height for resizing
   private readonly OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
   // --- UPDATED: New Translation Model and specific prompt ---
-  private readonly TRANSLATION_MODEL_FOR_CRA = "google/gemini-2.5-flash-preview-05-20"; // Updated to a more recent model, flash for speed
+  private readonly TRANSLATION_MODEL_FOR_CRA = "qwen/qwen3-30b-a3b-04-28:free"; // Updated to Qwen3-30B model
 
   constructor(
     private http: HttpClient,
