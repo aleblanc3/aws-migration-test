@@ -207,6 +207,12 @@ export class ImageProcessorService {
         } else if (typeof error.error === 'string') {
           errorMessage += ` - ${error.error}`;
         }
+        
+        // Check if this is a key limit exceeded error
+        if (error.status === 403 && errorMessage.toLowerCase().includes('key limit exceeded')) {
+          errorMessage = 'KEY_LIMIT_EXCEEDED';
+        }
+        
         console.error(`Error in vision API call for ${identifier}:`, errorMessage, error);
         return throwError(() => new Error(errorMessage));
       })

@@ -196,13 +196,20 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
           },
           error: (err: any) => {
             console.error(`Error analyzing image ${displayName}:`, err);
+            
+            // Check for specific error types
+            let errorMessage = err.message || this.translate.instant('image.error.unknown');
+            if (err.message === 'KEY_LIMIT_EXCEEDED') {
+              errorMessage = this.translate.instant('image.error.paidModel');
+            }
+            
             this.stateService.updateResult(displayName, {
               status: 'error',
               data: {
                 imageBase64: null,
                 english: null,
                 french: null,
-                error: err.message || this.translate.instant('image.error.unknown')
+                error: errorMessage
               }
             });
             
