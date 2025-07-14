@@ -1,13 +1,25 @@
-import { Component } from '@angular/core';
-import { TranslateModule } from "@ngx-translate/core";
+import { Component, Injectable, inject } from '@angular/core';
+import { TranslateModule } from '@ngx-translate/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 
-//primeNG
+// PrimeNG (primeflex) UI modules
 import { Textarea } from 'primeng/textarea';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
+
+// Interface for metadata extraction results
+interface MetadataResult {
+  url: string;
+  title: string;
+  description: string;
+  keywords: string;
+  source: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
 
 @Component({
   selector: 'ca-inventory-assistant',
@@ -17,26 +29,39 @@ import { TableModule } from 'primeng/table';
 })
 
 export class InventoryAssistantComponent {
-  urlsInput = '';
+  // Component state
   results: MetadataResult[] = [];
   loading = false;
+  errorMessage = '';
+  urlsInput = '';
 
-  constructor(private http: HttpClient) { }
-
-  fetchMetadata(): void {
-    const urls = this.getCleanUrls(this.urlsInput);
+  /**
+   * Main method for processing multiple URLs from input.
+   * Populates the `results` array with extracted metadata.
+   */
+  async fetchMetadata(urlsInput: string): Promise<void> {
+    const urls = this.getCleanUrls(urlsInput);
     if (!urls.length) return;
 
     this.loading = true;
-    this.results = [];
+    this.results.length = 0; // Clear the existing results
 
     const resultsBuffer: (MetadataResult | null)[] = Array(urls.length).fill(null);
 
-    urls.forEach((url, index) => {
-      this.processUrl(url, index, resultsBuffer);
-    });
+    // Fetch and process all URLs concurrently
+    const promises = urls.map((url, index) => this.processUrl(url, index, resultsBuffer));
+    await Promise.all(promises);
+
+    // Filter out any null entries and update results
+    const validResults = resultsBuffer.filter((r): r is MetadataResult => r !== null);
+    this.results.splice(0, this.results.length, ...validResults);
+
+    this.loading = false;
   }
 
+  /**
+   * Splits a multi-line string into a clean array of trimmed, non-empty URLs.
+   */
   private getCleanUrls(input: string): string[] {
     return input
       .split('\n')
@@ -44,29 +69,37 @@ export class InventoryAssistantComponent {
       .filter(url => url.length > 0);
   }
 
-  private processUrl(url: string, index: number, buffer: (MetadataResult | null)[]): void {
+  /**
+   * Processes a single URL, extracting metadata and updating the results buffer.
+   */
+  private async processUrl(url: string, index: number, buffer: (MetadataResult | null)[]): Promise<void> {
     if (!this.isValidUrl(url)) {
       buffer[index] = this.buildErrorResult(url, 'Invalid URL', 'N/A', 'N/A');
       this.updateResults(buffer);
       return;
     }
 
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-
-    this.http.get(proxyUrl, { responseType: 'text' }).subscribe({
-      next: html => {
-        buffer[index] = this.extractMetadata(html, url);
-        this.updateResults(buffer);
-      },
-      error: () => {
-        buffer[index] = this.buildErrorResult(url, url, 'Could not fetch metadata', '');
-        this.updateResults(buffer);
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Fetch failed: HTTP ${response.status}`);
       }
-    });
+
+      const html = await response.text();
+      buffer[index] = this.extractMetadata(html, url);
+
+      console.log('Success', buffer[index]);
+    } catch {
+      buffer[index] = this.buildErrorResult(url, url, 'Could not fetch metadata', '');
+      console.log('Error', buffer[index]);
+    }
+
+    this.updateResults(buffer);
   }
 
-  //Checks if processing is complete
-  //Turns buffer array of MetadataResults or nulls that no longer has nulls into an array of MetadataResult only.
+  /**
+   * Updates the displayed results once all URLs are processed.
+   */
   private updateResults(buffer: (MetadataResult | null)[]): void {
     if (buffer.every(item => item !== null)) {
       this.results = buffer as MetadataResult[];
@@ -74,6 +107,9 @@ export class InventoryAssistantComponent {
     }
   }
 
+  /**
+   * Extracts metadata fields from the raw HTML string.
+   */
   private extractMetadata(html: string, url: string): MetadataResult {
     const doc = new DOMParser().parseFromString(html, 'text/html');
 
@@ -88,6 +124,9 @@ export class InventoryAssistantComponent {
     return { url, title, description, keywords, source };
   }
 
+  /**
+   * Returns a fallback metadata object in case of error.
+   */
   private buildErrorResult(url: string, title: string, description: string, keywords: string): MetadataResult {
     return {
       url,
@@ -98,6 +137,9 @@ export class InventoryAssistantComponent {
     };
   }
 
+  /**
+   * Attempts to detect the source type from a given URL.
+   */
   private detectSource(url: string): string {
     try {
       const hostname = new URL(url).hostname;
@@ -109,6 +151,9 @@ export class InventoryAssistantComponent {
     }
   }
 
+  /**
+   * Validates whether a string is a properly formatted URL.
+   */
   private isValidUrl(str: string): boolean {
     try {
       new URL(str);
@@ -117,12 +162,4 @@ export class InventoryAssistantComponent {
       return false;
     }
   }
-}
-
-interface MetadataResult {
-  url: string;
-  title: string;
-  description: string;
-  keywords: string;
-  source: string;
 }
