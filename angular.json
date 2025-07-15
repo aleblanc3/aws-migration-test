@@ -41,7 +41,8 @@
             "styles": [
               "node_modules/primeflex/primeflex.css",
               "node_modules/primeicons/primeicons.css",
-              "src/styles.css"
+              "src/styles.css",
+              "diff2html/bundles/css/diff2html.min.css"
             ],
             "scripts": []
           },

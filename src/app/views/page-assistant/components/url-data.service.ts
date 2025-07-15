@@ -17,7 +17,7 @@ export class UrlDataService {
   /** Gets HTML content from a URL and processes it. 
     * Note: remove type later if it isn't needed */
 
-  async fetchAndProcess(url: string, type: 'source' | 'prototype'): Promise<string> {
+  async fetchAndProcess(url: string): Promise<string> {
     const parsedUrl = new URL(url);
 
     //Check if host is allowed
@@ -28,9 +28,9 @@ export class UrlDataService {
     //Get HTML content
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`${type} fetch failed: HTTP ${response.status}`);
+      throw new Error(`Fetch failed: HTTP ${response.status}`);
     }
-    console.warn(`${type} response code: ${response.status}`);
+    console.warn(`Response code: ${response.status}`);
 
     const html = await response.text();
 
@@ -59,7 +59,11 @@ export class UrlDataService {
 
     // Return main content
     const main = doc.querySelector('main');
-    return main ? main.innerHTML : '';
+    if (main) {
+      return main ? main.innerHTML : '';
+    }
+    console.warn('No <main> tag found. Using full <body> content instead.');
+    return doc.body.innerHTML.trim();
   }
   //START OF CLEAN-UP FUNCTIONS
 
@@ -142,87 +146,87 @@ export class UrlDataService {
   //Resolve JSON-loaded content
 
   private async processJsonReplacements(doc: Document): Promise<void> {
-  const baseUrl = 'https://www.canada.ca';
+    const baseUrl = 'https://www.canada.ca';
 
-  const fetchUrl = async (url: string, type: 'json' | 'text'): Promise<any> => {
-    try {
-      const response = await fetch(url);
-      return type === 'json' ? response.json() : response.text();
-    } catch (error) {
-      console.error(`Error fetching URL: ${url}`, error);
-      return type === 'json' ? {} : '';
-    }
-  };
-
-  const parseJsonUrl = (url: string): { url: string; jsonKey: string } => {
-    const [baseUrl, jsonKey = ''] = url.split('#');
-    return { url: baseUrl, jsonKey: jsonKey.slice(1) };
-  };
-
-  const parseJsonConfig = (config: string): Record<string, any> | null => {
-    try {
-      return JSON.parse(config.replace(/&quot;/g, '"'));
-    } catch (error) {
-      console.error('Error parsing JSON config:', error);
-      return null;
-    }
-  };
-
-  const resolveJsonPath = (obj: any, path: string): any => {
-    return path
-      .split('/')
-      .reduce(
-        (acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined),
-        obj,
-      );
-  };
-
-  const jsonElements = doc.querySelectorAll('[data-wb-jsonmanager]');
-  if (!jsonElements.length) return;
-
-  const jsonDataMap = new Map<string, any>();
-
-  // Process all JSON manager elements and fetch their data
-  await Promise.all(
-    Array.from(jsonElements).map(async (element) => {
-      const jsonConfigAttr = element.getAttribute('data-wb-jsonmanager');
-      if (!jsonConfigAttr) return;
-
-      const jsonConfig = parseJsonConfig(jsonConfigAttr);
-      if (!jsonConfig?.['url'] || !jsonConfig?.['name']) return;
-
-      const { url, jsonKey } = parseJsonUrl(jsonConfig['url']);
-      const fullUrl = `${baseUrl}${url}`;
-
+    const fetchUrl = async (url: string, type: 'json' | 'text'): Promise<any> => {
       try {
-        const jsonData = await fetchUrl(fullUrl, 'json');
-        const content = resolveJsonPath(jsonData, jsonKey);
-        jsonDataMap.set(jsonConfig['name'], content);
+        const response = await fetch(url);
+        return type === 'json' ? response.json() : response.text();
       } catch (error) {
-        console.error(`Error fetching JSON for ${jsonConfig['name']}:`, error);
+        console.error(`Error fetching URL: ${url}`, error);
+        return type === 'json' ? {} : '';
       }
-    })
-  );
+    };
 
-  // Process all JSON replace elements
-  const replaceElements = doc.querySelectorAll('[data-json-replace]');
-  replaceElements.forEach((element) => {
-    const replacePath = element.getAttribute('data-json-replace') || '';
-    const match = replacePath.match(/^#\[(.*?)\](.*)$/);
-    if (!match) return;
+    const parseJsonUrl = (url: string): { url: string; jsonKey: string } => {
+      const [baseUrl, jsonKey = ''] = url.split('#');
+      return { url: baseUrl, jsonKey: jsonKey.slice(1) };
+    };
 
-    const jsonName = match[1];
-    const jsonPath = match[2].substring(1);
+    const parseJsonConfig = (config: string): Record<string, any> | null => {
+      try {
+        return JSON.parse(config.replace(/&quot;/g, '"'));
+      } catch (error) {
+        console.error('Error parsing JSON config:', error);
+        return null;
+      }
+    };
 
-    if (!jsonDataMap.has(jsonName)) {
-      console.warn(`No JSON data found for: ${jsonName}`);
-      return;
-    }
+    const resolveJsonPath = (obj: any, path: string): any => {
+      return path
+        .split('/')
+        .reduce(
+          (acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined),
+          obj,
+        );
+    };
 
-    const jsonData = jsonDataMap.get(jsonName);
-    const content = resolveJsonPath(jsonData, jsonPath);
+    const jsonElements = doc.querySelectorAll('[data-wb-jsonmanager]');
+    if (!jsonElements.length) return;
 
-    const styledContent = `
+    const jsonDataMap = new Map<string, any>();
+
+    // Process all JSON manager elements and fetch their data
+    await Promise.all(
+      Array.from(jsonElements).map(async (element) => {
+        const jsonConfigAttr = element.getAttribute('data-wb-jsonmanager');
+        if (!jsonConfigAttr) return;
+
+        const jsonConfig = parseJsonConfig(jsonConfigAttr);
+        if (!jsonConfig?.['url'] || !jsonConfig?.['name']) return;
+
+        const { url, jsonKey } = parseJsonUrl(jsonConfig['url']);
+        const fullUrl = `${baseUrl}${url}`;
+
+        try {
+          const jsonData = await fetchUrl(fullUrl, 'json');
+          const content = resolveJsonPath(jsonData, jsonKey);
+          jsonDataMap.set(jsonConfig['name'], content);
+        } catch (error) {
+          console.error(`Error fetching JSON for ${jsonConfig['name']}:`, error);
+        }
+      })
+    );
+
+    // Process all JSON replace elements
+    const replaceElements = doc.querySelectorAll('[data-json-replace]');
+    replaceElements.forEach((element) => {
+      const replacePath = element.getAttribute('data-json-replace') || '';
+      const match = replacePath.match(/^#\[(.*?)\](.*)$/);
+      if (!match) return;
+
+      const jsonName = match[1];
+      const jsonPath = match[2].substring(1);
+
+      if (!jsonDataMap.has(jsonName)) {
+        console.warn(`No JSON data found for: ${jsonName}`);
+        return;
+      }
+
+      const jsonData = jsonDataMap.get(jsonName);
+      const content = resolveJsonPath(jsonData, jsonPath);
+
+      const styledContent = `
       <div style="
         border: 3px dashed #fbc02f;
         padding: 8px;
@@ -232,15 +236,15 @@ export class UrlDataService {
       </div>
     `;
 
-    element.outerHTML = styledContent;
-  });
-}
+      element.outerHTML = styledContent;
+    });
+  }
 
 
 
   //Remove irrelevent stuff
   private cleanupUnnecessaryElements(doc: Document): void {
-    const noisySelectors = ['section#chat-bottom-bar'];
+    const noisySelectors = ['section#chat-bottom-bar', '#gc-pft', 'header', 'footer'];
     noisySelectors.forEach(selector => {
       doc.querySelectorAll(selector).forEach(el => el.remove());
     });
@@ -305,39 +309,39 @@ export class UrlDataService {
 
   //Add ToC anchors
   private addToc(doc: Document): void {
-  const tocSection = doc.querySelector('.section.mwsinpagetoc');
-  if (!tocSection) return;
+    const tocSection = doc.querySelector('.section.mwsinpagetoc');
+    if (!tocSection) return;
 
-  // Extract TOC links and their data
-  const tocLinks = Array.from(tocSection.querySelectorAll('a'))
-    .map(link => {
-      const href = link.getAttribute('href');
-      const text = link.textContent?.trim();
-      
-      if (href?.startsWith('#') && text) {
-        return {
-          id: href.slice(1), // Remove the '#'
-          text: text
-        };
+    // Extract TOC links and their data
+    const tocLinks = Array.from(tocSection.querySelectorAll('a'))
+      .map(link => {
+        const href = link.getAttribute('href');
+        const text = link.textContent?.trim();
+
+        if (href?.startsWith('#') && text) {
+          return {
+            id: href.slice(1), // Remove the '#'
+            text: text
+          };
+        }
+        return null;
+      })
+      .filter(link => link !== null); // Remove null entries
+
+    if (!tocLinks.length) return;
+
+    // Match headings with TOC links and add IDs
+    const headings = doc.querySelectorAll('h2, h3, h4, h5, h6');
+    headings.forEach(heading => {
+      const headingText = heading.textContent?.trim();
+      if (!headingText) return;
+
+      const matchedLink = tocLinks.find(link => link.text === headingText);
+      if (matchedLink) {
+        heading.setAttribute('id', matchedLink.id);
       }
-      return null;
-    })
-    .filter(link => link !== null); // Remove null entries
-
-  if (!tocLinks.length) return;
-
-  // Match headings with TOC links and add IDs
-  const headings = doc.querySelectorAll('h2, h3, h4, h5, h6');
-  headings.forEach(heading => {
-    const headingText = heading.textContent?.trim();
-    if (!headingText) return;
-
-    const matchedLink = tocLinks.find(link => link.text === headingText);
-    if (matchedLink) {
-      heading.setAttribute('id', matchedLink.id);
-    }
-  });
-}
+    });
+  }
 
   //END OF CLEAN-UP FUNCTIONS
 

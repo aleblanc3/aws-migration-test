@@ -1,12 +1,37 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild, Input, Output, EventEmitter} from '@angular/core';
+import { CommonModule} from '@angular/common';
+
+import { ButtonModule } from 'primeng/button';
+import { DrawerModule, Drawer } from 'primeng/drawer';
+
 
 @Component({
   selector: 'ca-ai-options',
-  imports: [],
+  imports: [CommonModule, ButtonModule, DrawerModule ],
   templateUrl: './ai-options.component.html',
-  styles: ``
+  styles: `
+  ::ng-deep .custom-drawer2 {
+  height: auto !important;
+  min-height: 10vh;
+  max-height: calc(80vh - 4rem); /* adjust based on header height */
+  top: 0rem !important; /* offset to start below header */
+  background-color: var(--surface-ground);
+  border: 4px solid var(--primary-color, #007ad9); /* Use your theme color or fallback */
+  border-top-left-radius: 2rem;
+  border-bottom-left-radius: 2rem;
+}`,
 })
 export class AiOptionsComponent {
+
+  //test 3
+ @ViewChild('drawerRef') drawerRef!: Drawer;
+
+    closeDrawer(e: any): void {
+        this.drawerRef.close(e);
+    }
+
+    visible: boolean = false;
+//END TEST
 
    //Step 3 checkboxes for AI prompt
   selectedPrompts: any[] = [];
@@ -45,5 +70,4 @@ export class AiOptionsComponent {
       this.selectedAIs.push(option);
     }
   }
-  
 }

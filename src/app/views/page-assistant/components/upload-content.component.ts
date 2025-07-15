@@ -29,7 +29,7 @@ export class UploadContentComponent {
   @Input() uploadType = '';
 
   //Export data to parent component
-  @Output() uploadData = new EventEmitter<{ sourceURL: string, sourceHTML: string, prototypeURL?: string, prototypeHTML?: string }>();
+  @Output() uploadData = new EventEmitter<{ sourceURL: string, sourceHTML: string, prototypeURL: string, prototypeHTML: string }>();
 
   //Initialize stuff
   source: string = '';

@@ -5,23 +5,23 @@
     </legend>
     <!-- URL input -->
     <div class="mb-3 p-1">
-      <label for="source" class="font-semibold">
-        {{ 'Source URL' | translate }}
+      <label for="urlInput" class="font-semibold">
+        {{ 'Original URL' | translate }}
       </label>
 
       <p-inputGroup>
         <p-inputgroup-addon>
           <i class="pi pi-globe"></i>
         </p-inputgroup-addon>
-        <input id="source" pInputText type="url" name="source" [(ngModel)]="source" required pattern="https?://.+"
-          #sourceField="ngModel" class="w-full" autocomplete="url" placeholder="https://(your path)" fluid />
+        <input id="urlInput" pInputText type="url" name="urlInput" [(ngModel)]="urlInput" required pattern="https?://.+"
+          #urlField="ngModel" class="w-full" autocomplete="url" placeholder="https://(your path)" fluid />
       </p-inputGroup>
 
-      <div *ngIf="sourceField.invalid && sourceField.touched" class="text-danger text-sm mt-1 p-1">
-        <div *ngIf="sourceField.errors?.['required']">
-          {{ 'Source URL' | translate }} {{ 'is required' | translate }}.
+      <div *ngIf="urlField.invalid && urlField.touched" class="text-red-500 text-sm mt-1 p-1">
+        <div *ngIf="urlField.errors?.['required']">
+          {{ 'Original URL' | translate }} {{ 'is required' | translate }}.
         </div>
-        <div *ngIf="sourceField.errors?.['pattern']">
+        <div *ngIf="urlField.errors?.['pattern']">
           {{ 'page.step2.error' | translate }}
         </div>
       </div>

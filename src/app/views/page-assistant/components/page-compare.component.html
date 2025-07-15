@@ -1,7 +1,7 @@
 <div class="pb-2">
   <!-- Control Buttons -->
   <p-button label="Compare HTML" icon="pi pi-search" (onClick)="compareHtml()" class="mr-2"
-    [disabled]="!originalHtml || !modifiedHtml"></p-button>
+    [disabled]="!uploadData.originalHtml || !uploadData.modifiedHtml"></p-button>
   <p-button label="Clear All" icon="pi pi-trash" (onClick)="clearAll()" severity="danger"></p-button>
 
   <!-- Results Section -->
