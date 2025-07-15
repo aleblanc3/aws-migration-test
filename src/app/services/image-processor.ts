@@ -20,7 +20,7 @@ export class ImageProcessorService {
   private readonly MAX_IMAGE_SIZE = 1024; // Max width/height for resizing
   private readonly OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
   // --- UPDATED: New Translation Model and specific prompt ---
-  private readonly TRANSLATION_MODEL_FOR_CRA = "google/gemini-2.5-flash-preview-05-20"; // Updated to a more recent model, flash for speed
+  private readonly TRANSLATION_MODEL_FOR_CRA = "qwen/qwen3-30b-a3b-04-28:free"; // Updated to Qwen3-30B model
 
   constructor(
     private http: HttpClient,
@@ -51,7 +51,13 @@ export class ImageProcessorService {
       }),
       switchMap(({ img, base64Data }) =>
         this.getVisionAnalysis(base64Data, selectedVisionModel, apiKey, identifier, isPdfPage).pipe(
-          map(visionResult => ({ ...visionResult, imageBase64: base64Data })) // Add base64 to result for display
+          map(visionResult => {
+            // If vision analysis failed, throw error to stop the pipeline
+            if (visionResult.error) {
+              throw new Error(visionResult.error);
+            }
+            return { ...visionResult, imageBase64: base64Data }; // Add base64 to result for display
+          })
         )
       ),
       switchMap(visionResult => {
@@ -79,7 +85,21 @@ export class ImageProcessorService {
       }),
       catchError(error => {
         console.error(`Error in image analysis pipeline for ${identifier}:`, error);
-        return throwError(() => new Error(`Failed to process image ${identifier}: ${error.message || 'Unknown error'}`));
+        // Check if this is a key limit error from vision model
+        if (error.message === 'KEY_LIMIT_EXCEEDED') {
+          return from([{
+            english: null,
+            french: null,
+            error: 'KEY_LIMIT_EXCEEDED',
+            imageBase64: null
+          }]);
+        }
+        return from([{
+          english: null,
+          french: null,
+          error: error.message || 'Unknown error',
+          imageBase64: null
+        }]);
       })
     );
   }
@@ -207,8 +227,15 @@ export class ImageProcessorService {
         } else if (typeof error.error === 'string') {
           errorMessage += ` - ${error.error}`;
         }
+        
+        // Check if this is a key limit exceeded error
+        if (error.status === 403 && errorMessage.toLowerCase().includes('key limit exceeded')) {
+          errorMessage = 'KEY_LIMIT_EXCEEDED';
+        }
+        
         console.error(`Error in vision API call for ${identifier}:`, errorMessage, error);
-        return throwError(() => new Error(errorMessage));
+        // Return error as part of result instead of throwing
+        return from([{ english: null, french: null, error: errorMessage }]);
       })
     );
   }
@@ -263,6 +290,12 @@ export class ImageProcessorService {
         if (error.error && error.error.error && error.error.error.message) {
           errorMessage += ` - ${error.error.error.message}`;
         }
+        
+        // Check if this is a key limit exceeded error for translation
+        if (error.status === 403 && error.error?.error?.message?.toLowerCase().includes('key limit exceeded')) {
+          errorMessage = 'KEY_LIMIT_EXCEEDED';
+        }
+        
         console.error(`Error translating text for ${identifier}:`, errorMessage, error);
         return throwError(() => new Error(errorMessage));
       })
