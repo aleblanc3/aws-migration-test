@@ -1,1 +1,26 @@
-<p>upload-word works!</p>
+<fieldset class="border-none p-0 m-0">
+    <legend class="font-bold mb-0">
+        {{ 'page.uploadWord.legend' | translate }}
+    </legend>
+    <p-fileupload #fileUploadRef name="word[]" accept=".docx" auto="true" maxFileSize="1000000" [customUpload]="true"
+        (uploadHandler)="getWordContent($event)" mode="advanced" styleClass="border-none">
+        <ng-template #header></ng-template>
+        <ng-template #file>
+            <div class="flex flex-column align-items-center justify-content-center p-3
+                    border-solid border-round border-200 surface-100">
+                <p class="text-xl"><i class="pi pi-file-word text-blue-500 text-2xl mr-1"></i>{{ (uploadedFileName) }}
+                </p>
+            </div>
+        </ng-template>
+        <!--ng-template #content><p class="m-0 p-0">Content</p></ng-template-->
+        <ng-template #empty>
+            <div class="flex flex-column align-items-center justify-content-center p-3
+                    border-dashed border-round border-200 surface-100
+                    hover:surface-200 hover:border-green-400 transition-colors transition-duration-500 cursor-pointer"
+                (click)="fileUploadRef.choose()">
+                <i class="pi pi-upload border-2 border-circle border-300 p-4 text-5xl text-color-secondary mb-3"></i>
+                <p class="m-0 mt-4">Drag and drop .docx file here to generate HTML markup.</p>
+            </div>
+        </ng-template>
+    </p-fileupload>
+</fieldset>

@@ -16,7 +16,10 @@ import { UrlDataService } from '../url-data.service';
 
 @Component({
   selector: 'ca-upload-url',
-  imports: [CommonModule, TranslateModule, FormsModule, ButtonModule, InputTextModule, InputGroupModule, InputGroupAddonModule, CardModule],
+  imports: [CommonModule, 
+            TranslateModule, 
+            FormsModule, 
+            ButtonModule, InputTextModule, InputGroupModule, InputGroupAddonModule, CardModule],
   templateUrl: './upload-url.component.html',
   styles: `
     :host {
@@ -27,14 +30,14 @@ import { UrlDataService } from '../url-data.service';
 export class UploadUrlComponent {
 
   //Export data to parent component
-  @Output() uploadData = new EventEmitter<{ sourceURL: string, sourceHTML: string, prototypeURL?: string, prototypeHTML?: string }>();
+   @Output() uploadData = new EventEmitter<{ originalUrl: string, originalHtml: string, modifiedUrl: string, modifiedHtml: string }>();
 
   //Initialize stuff
-  sourceURL: string = '';
-  sourceHTML: string = '';
-  prototypeURL: string = '';
-  prototypeHTML: string = '';
-  source: string = '';
+  originalUrl: string = '';
+  originalHtml: string = '';
+  modifiedUrl: string = '';
+  modifiedHtml: string = '';
+  urlInput: string = '';
   error: string = '';
   loading = false;
 
@@ -46,14 +49,14 @@ export class UploadUrlComponent {
     this.error = '';
 
     try {
-      const mainHTML = await this.urlDataService.fetchAndProcess(this.source, 'source');
+      const mainHTML = await this.urlDataService.fetchAndProcess(this.urlInput);
 
-      //Emit source data & set prototype to same (no changes)
+      //Emit original data & set modified to same (no changes)
       this.uploadData.emit({
-        sourceURL: this.source,
-        sourceHTML: mainHTML,
-        prototypeURL: this.source,
-        prototypeHTML: mainHTML
+        originalUrl: this.urlInput,
+        originalHtml: mainHTML,
+        modifiedUrl: this.urlInput,
+        modifiedHtml: mainHTML
       });
 
     } catch (err: any) {
@@ -64,13 +67,13 @@ export class UploadUrlComponent {
   }
     //Emit sample data
     async loadSampleData() {
-      const sourceHTML = await this.urlDataService.extractContent(sampleHtmlA);
-      const prototypeHTML = await this.urlDataService.extractContent(sampleHtmlB);
+      const originalHtml = await this.urlDataService.extractContent(sampleHtmlA);
+      const modifiedHtml = await this.urlDataService.extractContent(sampleHtmlB);
       this.uploadData.emit({
-        sourceURL: "Sample data A",
-        sourceHTML: sourceHTML,
-        prototypeURL: "Sample data B",
-        prototypeHTML: prototypeHTML
+        originalUrl: "Sample data A",
+        originalHtml: originalHtml,
+        modifiedUrl: "Sample data B",
+        modifiedHtml: modifiedHtml
       });
   }
 }

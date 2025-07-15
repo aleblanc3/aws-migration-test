@@ -35,8 +35,9 @@ export class ModelSelectorComponent {
   @Output() modelChange = new EventEmitter<string>();
   
   visionModels: VisionModel[] = [
-    { name: 'OpenAI GPT-4o Mini', value: 'openai/gpt-4o-mini' },
-    { name: 'Qwen2.5 VL 32B (Free)', value: 'qwen/qwen2.5-vl-32b-instruct:free' }
+    { name: 'OpenAI GPT-4o Mini (paid)', value: 'openai/gpt-4o-mini' },
+    { name: 'Qwen2.5 VL 32B (Free)', value: 'qwen/qwen2.5-vl-32b-instruct:free' },
+    { name: 'Google Gemma 3 27B (Free)', value: 'google/gemma-3-27b-it:free' }
   ];
 
   onModelChange(event: any): void {

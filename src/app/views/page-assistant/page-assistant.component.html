@@ -58,10 +58,9 @@
 
                             <ng-container [ngSwitch]="selectedUploadType">
 
-                                <ca-upload-url *ngSwitchCase="'url'"
-                                    (uploadData)="handleUpload($event)"></ca-upload-url>
-                                <ca-upload-paste *ngSwitchCase="'paste'"></ca-upload-paste>
-                                <ca-upload-word *ngSwitchCase="'word'"></ca-upload-word>
+                                <ca-upload-url *ngSwitchCase="'url'" (uploadData)="handleUpload($event)"></ca-upload-url>
+                                <ca-upload-paste *ngSwitchCase="'paste'" (uploadData)="handleUpload($event)"></ca-upload-paste>
+                                <ca-upload-word *ngSwitchCase="'word'" (uploadData)="handleUpload($event)"></ca-upload-word>
 
                             </ng-container>
                         </div>
@@ -77,8 +76,7 @@
                     <!--VIEW CONTENT-->
                     <div *ngIf=receivedUploadData>
                         <div class="p-3" *ngIf="receivedUploadData; else noData">
-                            <ca-page-compare [originalHtml]="this.receivedUploadData.sourceHTML"
-                                [modifiedHtml]="this.receivedUploadData.prototypeHTML ?? ''"></ca-page-compare>
+                            <ca-page-compare [uploadData]="receivedUploadData"></ca-page-compare>
                         </div>
                         <ng-template #noData>
                             <p-message severity="danger" text="Did not receive upload data" />

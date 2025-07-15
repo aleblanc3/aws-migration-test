@@ -14,7 +14,7 @@ Add dropdown to select from an array of modified versions (so you can step it ba
 */
 
 import {
-  Component, Input, ViewChild, ViewEncapsulation, AfterViewInit, OnDestroy, //decorators & lifecycle
+  Component, Input, ViewChild, ViewEncapsulation, AfterViewInit, OnDestroy, OnChanges, SimpleChanges, //decorators & lifecycle
   ElementRef, Renderer2, //DOM utilities
   inject, //Dependency injection
   signal, WritableSignal, Signal, computed, effect //Signals/reactivity
@@ -39,13 +39,11 @@ import {
 import { createPatch } from 'diff';
 import { Diff } from '@ali-tas/htmldiff-js';
 
-interface DiffOptions { //Tweaks how sensitive HTML diff is to whitespace, word repitition, etc.
-  repeatingWordsAccuracy?: number;
-  ignoreWhiteSpaceDifferences?: boolean;
-  orphanMatchThreshold?: number;
-  matchGranularity?: number;
-  combineWords?: boolean;
-}
+import {UploadData, DiffOptions} from '../../../common/data.types'
+
+
+
+
 
 export interface ViewOption {
   label: string;
@@ -63,11 +61,23 @@ export interface ViewOption {
   templateUrl: './page-compare.component.html',
   styleUrl: './page-compare.component.scss'
 })
-export class PageCompareComponent implements AfterViewInit, OnDestroy {
+export class PageCompareComponent implements AfterViewInit, OnDestroy, OnChanges {
 
   //Accept input from parent component
-  @Input() originalHtml: string = '';
-  @Input() modifiedHtml: string = '';
+  @Input() uploadData: UploadData = {
+  originalHtml: '',
+  modifiedHtml: '',
+  originalUrl: '',
+  modifiedUrl: ''
+};
+
+  //On changes
+  ngOnChanges(changes: SimpleChanges): void {
+  if (changes['modifiedHtml'] && !changes['modifiedHtml'].isFirstChange()) {
+    console.log('AI response updated!');
+    this.compareHtml();
+  }
+}
 
   //View children
   @ViewChild('liveContainer', { static: false }) liveContainer!: ElementRef;
@@ -133,7 +143,7 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy {
   }
 
   compareHtml() {
-    if (!this.originalHtml.trim() || !this.modifiedHtml.trim()) {
+    if (!this.uploadData?.originalHtml.trim() || !this.uploadData?.modifiedHtml.trim()) {
       return;
     }
 
@@ -194,18 +204,18 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy {
 
   private renderOriginalHtml(container: HTMLElement) {
     const parser = new DOMParser();
-    const originalDoc = parser.parseFromString(this.originalHtml, 'text/html');
+    const originalDoc = parser.parseFromString(this.uploadData?.originalHtml, 'text/html');
 
     container.className = 'rendered-content original-content';
-    container.innerHTML = originalDoc.body ? originalDoc.body.innerHTML : this.originalHtml;
+    container.innerHTML = originalDoc.body ? originalDoc.body.innerHTML : this.uploadData?.originalHtml;
   }
 
   private renderModifiedHtml(container: HTMLElement) {
     const parser = new DOMParser();
-    const modifiedDoc = parser.parseFromString(this.modifiedHtml, 'text/html');
+    const modifiedDoc = parser.parseFromString(this.uploadData?.modifiedHtml, 'text/html');
 
     container.className = 'rendered-content modified-content';
-    container.innerHTML = modifiedDoc.body ? modifiedDoc.body.innerHTML : this.modifiedHtml;
+    container.innerHTML = modifiedDoc.body ? modifiedDoc.body.innerHTML : this.uploadData?.modifiedHtml;
   }
 
   private renderDiffHtml(container: HTMLElement) {
@@ -221,8 +231,8 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy {
     };
 
     const diffResult = Diff.execute(
-      this.originalHtml,
-      this.modifiedHtml,
+      this.uploadData?.originalHtml,
+      this.uploadData?.modifiedHtml,
       options,
     ).replace(
       /<(ins|del)[^>]*>(\s|&nbsp;|&#32;|&#160;|&#x00e2;|&#x0080;|&#x00af;|&#x202f;|&#xa0;)+<\/(ins|del)>/gis,
@@ -249,8 +259,8 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy {
 
     // Parse HTML using DOMParser
     const parser = new DOMParser();
-    const originalDoc = parser.parseFromString(this.originalHtml, 'text/html');
-    const modifiedDoc = parser.parseFromString(this.modifiedHtml, 'text/html');
+    const originalDoc = parser.parseFromString(this.uploadData?.originalHtml, 'text/html');
+    const modifiedDoc = parser.parseFromString(this.uploadData?.modifiedHtml, 'text/html');
 
     // Create diff container to render the HTML
     const diffContainer = document.createElement('div');
@@ -269,8 +279,8 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy {
       combineWords: true,
     };
     const diffResult = Diff.execute(
-      this.originalHtml,
-      this.modifiedHtml,
+      this.uploadData?.originalHtml,
+      this.uploadData?.modifiedHtml,
       options,
     ).replace(
       /<(ins|del)[^>]*>(\s|&nbsp;|&#32;|&#160;|&#x00e2;|&#x0080;|&#x00af;|&#x202f;|&#xa0;)+<\/(ins|del)>/gis,
@@ -373,10 +383,10 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy {
       // Create unified diff patch
       const patch = createPatch(
         '',
-        this.originalHtml,
-        this.modifiedHtml,
-        'Source',
-        'Prototype'
+        this.uploadData?.originalHtml,
+        this.uploadData?.modifiedHtml,
+        'Original',
+        'Modified'
       );
 
       // Configure diff2html
@@ -414,8 +424,8 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy {
   }
 
   clearAll() {
-    this.originalHtml = '';
-    this.modifiedHtml = '';
+    this.uploadData.originalHtml = '';
+    this.uploadData.modifiedHtml = '';
     this.showResults = false;
     //this.textDiffResult = '';
     //this.originalStructure = '';
