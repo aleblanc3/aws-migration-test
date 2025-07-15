@@ -4,14 +4,15 @@
 <textarea pTextarea id="prjct_pgs" [(ngModel)]="urlsInput" rows="5" style="width: 100%;"
   placeholder="{{'inventory.meta.watermark' | translate }}"></textarea>
 <br /><br />
-<button pButton type="button" label="{{'inventory.meta.fetch-button' | translate }}" (click)="fetchMetadata()"></button>
+<button pButton type="button" label="{{'inventory.meta.fetch-button' | translate }}"
+  (click)="fetchMetadata(urlsInput)"></button>
 
 <div *ngIf="loading">Loading...</div>
 <br /><br />
 <p-table [value]="results" *ngIf="results.length > 0">
   <ng-template pTemplate="header">
     <tr>
-      <th>Page</th>
+      <th>Page (h1)</th>
       <th>Source</th>
       <th>Description</th>
       <th>{{'inventory.meta.keywords' | translate }}</th>
