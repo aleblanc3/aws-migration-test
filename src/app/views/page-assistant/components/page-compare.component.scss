@@ -34,17 +34,18 @@
   position: relative;
 }
 
-
-
 .slide-content {
   display: flex;
-  justify-content: flex-end; /* Align content to the right */
-  align-items: center; /* Vertically center the text and buttons */
+  justify-content: flex-end;
+  /* Align content to the right */
+  align-items: center;
+  /* Vertically center the text and buttons */
 }
 
 .change-text {
   margin: 0;
-  text-align: right; /* Align the text to the right */
+  text-align: right;
+  /* Align the text to the right */
   padding: 10px;
 }
 
@@ -87,9 +88,12 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  flex-wrap: nowrap; /* Prevent wrapping */
-  overflow-x: auto; /* Add horizontal scrolling if content overflows */
-  justify-content: flex-end; /* Align items to the right */
+  flex-wrap: nowrap;
+  /* Prevent wrapping */
+  overflow-x: auto;
+  /* Add horizontal scrolling if content overflows */
+  justify-content: flex-end;
+  /* Align items to the right */
 }
 
 .legend-item {
@@ -101,8 +105,10 @@
 .legend-box {
   width: 16px;
   height: 16px;
-  border-radius: 4px; /* Adjust for rounded corners */
-  flex-shrink: 0; /* Prevent shrinking */
+  border-radius: 4px;
+  /* Adjust for rounded corners */
+  flex-shrink: 0;
+  /* Prevent shrinking */
 }
 
 .loading-overlay {
@@ -133,6 +139,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -146,11 +153,33 @@
   vertical-align: middle;
 }
 
-.legend-red-modal { background-color: rgb(243, 165, 157); }
-.legend-green-modal { background-color: rgb(131, 213, 168); }
-.legend-yellow-modal { background-color: rgb(255, 238, 140); }
-.legend-blue-modal { background-color: transparent; border: 2px solid rgb(111, 159, 255); }
-.legend-dashed-popup-modal { background-color: transparent; border: 2px dashed rgb(102, 102, 102); }
-.legend-dashed-dynamic-modal { background-color: transparent; border: 2px dashed rgb(251, 192, 47); }
+.legend-red-modal {
+  background-color: rgb(243, 165, 157);
+}
 
-.no-bullet-points {list-style: none;}
+.legend-green-modal {
+  background-color: rgb(131, 213, 168);
+}
+
+.legend-yellow-modal {
+  background-color: rgb(255, 238, 140);
+}
+
+.legend-blue-modal {
+  background-color: transparent;
+  border: 2px solid rgb(111, 159, 255);
+}
+
+.legend-dashed-popup-modal {
+  background-color: transparent;
+  border: 2px dashed rgb(102, 102, 102);
+}
+
+.legend-dashed-dynamic-modal {
+  background-color: transparent;
+  border: 2px dashed rgb(251, 192, 47);
+}
+
+.no-bullet-points {
+  list-style: none;
+}

@@ -1,13 +1,24 @@
-import { Component, ViewChild, Input, Output, EventEmitter} from '@angular/core';
-import { CommonModule} from '@angular/common';
+import { Component, ViewChild, Input, Output, EventEmitter } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 import { ButtonModule } from 'primeng/button';
 import { DrawerModule, Drawer } from 'primeng/drawer';
 
+import { RadioButtonModule } from 'primeng/radiobutton';
+
+import { AccordionModule } from 'primeng/accordion';
+
+import { TranslateModule } from "@ngx-translate/core";
+
+//Services
+import { OpenRouterService, OpenRouterMessage } from '../../components/openrouter.service';
+import { UploadData } from '../../../../common/data.types'
+import { LocalStorageService } from '../../../../services/local-storage.service'; //Delete if you aren't using anything from local storage
 
 @Component({
   selector: 'ca-ai-options',
-  imports: [CommonModule, ButtonModule, DrawerModule ],
+  imports: [TranslateModule, CommonModule, FormsModule, ButtonModule, DrawerModule, RadioButtonModule, AccordionModule],
   templateUrl: './ai-options.component.html',
   styles: `
   ::ng-deep .custom-drawer2 {
@@ -23,17 +34,30 @@ import { DrawerModule, Drawer } from 'primeng/drawer';
 })
 export class AiOptionsComponent {
 
-  //test 3
- @ViewChild('drawerRef') drawerRef!: Drawer;
+  @Input() uploadData: UploadData | null = null;
 
-    closeDrawer(e: any): void {
-        this.drawerRef.close(e);
+  constructor(public localStore: LocalStorageService, private openRouterService: OpenRouterService) { }
+
+  ngOnChanges(): void {
+    if (this.uploadData) {
+      // use this.uploadData.originalHtml, etc. for my AI call
     }
+  }
 
-    visible: boolean = false;
-//END TEST
+  //test 3
+  @ViewChild('drawerRef') drawerRef!: Drawer;
 
-   //Step 3 checkboxes for AI prompt
+  closeDrawer(e: any): void {
+    this.drawerRef.close(e);
+  }
+
+  visible: boolean = false;
+  //END TEST
+
+  //Selected task
+  selectedTask: any = 1;
+
+  //Step 3 checkboxes for AI prompt
   selectedPrompts: any[] = [];
 
   prompts: any[] = [
@@ -69,5 +93,38 @@ export class AiOptionsComponent {
       // Add only if under the limit
       this.selectedAIs.push(option);
     }
+  }
+
+  aiResponse: string = '';
+  isLoading = false;
+
+  sendToAI(): void {
+    const html = this.uploadData?.originalHtml;
+    const prompt = "You are an expert web content writer with 10 years of experience in the public service. Your primary function is to help web publishers rewrite technical content to be easy to understand for the general public. Please review the included HTML code and update only the words. Return only the updated HTML code with no explanations. "
+
+    if (!html) return;
+    const messages: OpenRouterMessage[] = [
+      { role: 'system', content: prompt },
+      { role: 'user', content: html }
+    ];
+
+    this.isLoading = true;
+    setTimeout(() => {
+      this.openRouterService.sendChat('deepseek/deepseek-chat-v3-0324:free', messages).subscribe({
+        next: (response) => {
+          this.aiResponse = response;
+          this.isLoading = false;
+        },
+        error: (err) => {
+          console.error('Error getting AI response:', err);
+          this.aiResponse = 'An error occurred while contacting the AI.';
+          this.isLoading = false;
+        }
+      });
+    }, 1000); // 1 second delay
+  }
+
+  get modifiedHtml(): string {
+    return this.aiResponse || this.uploadData?.modifiedHtml || '';
   }
 }

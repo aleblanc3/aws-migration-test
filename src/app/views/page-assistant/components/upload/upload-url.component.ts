@@ -9,6 +9,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { InputGroupModule } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { CardModule } from 'primeng/card';
+import { Message } from 'primeng/message';
 
 //Page assistant
 import { sampleHtmlA, sampleHtmlB } from './sample-data';
@@ -19,7 +20,7 @@ import { UrlDataService } from '../url-data.service';
   imports: [CommonModule, 
             TranslateModule, 
             FormsModule, 
-            ButtonModule, InputTextModule, InputGroupModule, InputGroupAddonModule, CardModule],
+            ButtonModule, InputTextModule, InputGroupModule, InputGroupAddonModule, CardModule, Message],
   templateUrl: './upload-url.component.html',
   styles: `
     :host {
@@ -67,13 +68,7 @@ export class UploadUrlComponent {
   }
     //Emit sample data
     async loadSampleData() {
-      const originalHtml = await this.urlDataService.extractContent(sampleHtmlA);
-      const modifiedHtml = await this.urlDataService.extractContent(sampleHtmlB);
-      this.uploadData.emit({
-        originalUrl: "Sample data A",
-        originalHtml: originalHtml,
-        modifiedUrl: "Sample data B",
-        modifiedHtml: modifiedHtml
-      });
+      const uploadData = await this.urlDataService.loadSampleDataset('webpage');
+      this.uploadData.emit(uploadData);
   }
 }

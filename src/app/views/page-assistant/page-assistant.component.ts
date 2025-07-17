@@ -1,4 +1,4 @@
-import { Component, signal} from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
 import { LocalStorageService } from '../../services/local-storage.service'; //Delete if you aren't using anything from local storage
 import { CommonModule } from '@angular/common';
@@ -22,7 +22,7 @@ import { PageCompareComponent } from './components/page-compare.component';
 
 //Services
 import { OpenRouterService, OpenRouterMessage } from './components/openrouter.service';
-import {UploadData} from '../../common/data.types'
+import { UploadData } from '../../common/data.types'
 
 @Component({
   selector: 'ca-page-assistant',
@@ -34,7 +34,7 @@ export class PageAssistantComponent {
 
 
 
- 
+
 
   selectedUploadType: string = 'url';  // Default to first radio button
   activeStep = 1;
@@ -45,15 +45,15 @@ export class PageAssistantComponent {
   finalUrl?: string;             // URL to pass to View step
   //End test
 
-  
 
- // cancelUpload() {
+
+  // cancelUpload() {
   //  this.selectedUploadType = null;
- // }
+  // }
 
   sourceURL: any;
 
-  constructor(public localStore: LocalStorageService, private translate: TranslateService, private route: ActivatedRoute, private openRouterService: OpenRouterService) { } 
+  constructor(public localStore: LocalStorageService, private translate: TranslateService, private route: ActivatedRoute, private openRouterService: OpenRouterService) { }
 
   /*Test continued
  ngOnInit() {
@@ -76,7 +76,7 @@ export class PageAssistantComponent {
 
 
   //End test*/
-  
+
   //Step 1 radio buttons to select task
   selectedTask: any = null;
 
@@ -98,16 +98,16 @@ export class PageAssistantComponent {
   //Step 2 get upload data from child component
   public receivedUploadData: UploadData | null = null;
 
-  public handleUpload(uploadData: { originalUrl: string, originalHtml: string, modifiedUrl: string, modifiedHtml: string } | null = null) {
+  public handleUpload(uploadData: UploadData | null = null): void {
     this.receivedUploadData = uploadData;
     this.activeStep = 2;  // move to step 2
   }
 
   //Interaction with AI
- 
-  
-aiResponse: string = '';
-   isLoading = false;
+
+
+  aiResponse: string = '';
+  isLoading = false;
 
   sendToAI(): void {
     const html = this.receivedUploadData?.originalHtml;
@@ -121,31 +121,31 @@ aiResponse: string = '';
 
     this.isLoading = true;
     setTimeout(() => {
-    this.openRouterService.sendChat('deepseek/deepseek-chat-v3-0324:free', messages).subscribe({ 
-      next: (response) => {
-        this.aiResponse = response;
-        this.isLoading = false;
-      },
-      error: (err) => {
-        console.error('Error getting AI response:', err);
-        this.aiResponse = 'An error occurred while contacting the AI.';
-        this.isLoading = false;
-      }
-    });
+      this.openRouterService.sendChat('deepseek/deepseek-chat-v3-0324:free', messages).subscribe({
+        next: (response) => {
+          this.aiResponse = response;
+          this.isLoading = false;
+        },
+        error: (err) => {
+          console.error('Error getting AI response:', err);
+          this.aiResponse = 'An error occurred while contacting the AI.';
+          this.isLoading = false;
+        }
+      });
     }, 1000); // 1 second delay
   }
- 
+
   get modifiedHtml(): string {
-  return this.aiResponse || this.receivedUploadData?.modifiedHtml || '';
-}
+    return this.aiResponse || this.receivedUploadData?.modifiedHtml || '';
+  }
 
-//TEST FOR RIGHT DRAWER
-drawerVisible = false;
-parentData = 'Some input from parent';
+  //TEST FOR RIGHT DRAWER
+  drawerVisible = false;
+  parentData = 'Some input from parent';
 
-handleDrawerMessage(data: string) {
-  console.log('Drawer says:', data);
-}
-//END TEST
+  handleDrawerMessage(data: string) {
+    console.log('Drawer says:', data);
+  }
+  //END TEST
 
 }
