@@ -30,7 +30,7 @@ export class ImageProcessorService {
   /**
    * Main method to analyze an image file using OpenRouter's vision API.
    * @param file The image file to analyze.
-   * @param selectedVisionModel The OpenRouter vision model ID (e.g., 'openai/gpt-4o-mini').
+   * @param selectedVisionModel The OpenRouter vision model ID (e.g., 'qwen/qwen2.5-vl-32b-instruct:free').
    * @param identifier A unique identifier for logging (e.g., file name).
    * @param isPdfPage Whether this image is from a PDF page (for different prompting).
    * @returns An Observable emitting the analysis result.

@@ -40,7 +40,7 @@ import { CsvDownloadComponent } from './components/csv-download/csv-download.com
 })
 export class ImageAssistantComponent implements OnInit, OnDestroy {
   // Processing State
-  selectedVisionModel: string = 'openai/gpt-4o-mini';
+  selectedVisionModel: string = 'qwen/qwen2.5-vl-32b-instruct:free';
   filesToProcess: Array<{file: File, displayName: string}> = [];
   state$!: Observable<any>;
   
