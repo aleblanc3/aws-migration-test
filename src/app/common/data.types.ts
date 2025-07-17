@@ -5,6 +5,11 @@ export interface UploadData {
   modifiedUrl: string;
 }
 
+export interface PageAssistantState {
+  uploadData: UploadData | null;
+  activeStep: number;
+}
+
 export interface DiffOptions { //Tweaks how sensitive HTML diff is to whitespace, word repitition, etc.
   repeatingWordsAccuracy?: number;
   ignoreWhiteSpaceDifferences?: boolean;
