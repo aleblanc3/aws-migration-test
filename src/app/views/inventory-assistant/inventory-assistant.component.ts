@@ -7,6 +7,7 @@ import { CommonModule } from '@angular/common';
 import { Textarea } from 'primeng/textarea';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
+import { RadioButtonModule } from 'primeng/radiobutton';
 
 // Interface for metadata extraction results
 interface MetadataResult {
@@ -23,7 +24,7 @@ interface MetadataResult {
 
 @Component({
   selector: 'ca-inventory-assistant',
-  imports: [TranslateModule, ButtonModule, FormsModule, CommonModule, Textarea, TableModule],
+  imports: [TranslateModule, ButtonModule, FormsModule, CommonModule, Textarea, TableModule, RadioButtonModule],
   templateUrl: './inventory-assistant.component.html',
   styleUrl: './inventory-assistant.component.css'
 })
@@ -34,6 +35,9 @@ export class InventoryAssistantComponent {
   loading = false;
   errorMessage = '';
   urlsInput = '';
+  selectedSourceOption: string = 'canadaOrGithub'; // Default selection
+  previewInput: string = '';
+
 
   /**
    * Main method for processing multiple URLs from input.
@@ -161,5 +165,9 @@ export class InventoryAssistantComponent {
     } catch {
       return false;
     }
+  }
+
+  fetchPreviewMetadata(urls: string): void {
+    // New logic for preview sources
   }
 }

@@ -16,3 +16,19 @@ tbody tr {
 thead tr {
   border-bottom: 2px solid #444;
 }
+
+.p-field-radiobutton label {
+  margin-left: 0.75rem;
+}
+
+.p-field-radiobutton {
+  margin-bottom: 1rem;
+}
+
+.p-field-last-radiobutton label {
+  margin-left: 0.75rem;
+}
+
+.p-last-field-radiobutton {
+  margin-bottom: 1rem;
+}
