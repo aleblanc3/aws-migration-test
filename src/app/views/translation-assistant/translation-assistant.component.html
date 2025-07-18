@@ -2,59 +2,65 @@
   <h1 class="p-text-bold">Translation Assistant</h1>
 </div>
 
-<!-- Upload Source File Card -->
 <p-card class="p-mb-4">
-  <div class="p-d-flex p-jc-between p-ai-center p-mb-3">
-    <span class="p-text-bold">Upload source language file</span>
-    <button
+  <!-- Title and Clear button on same line -->
+  <div class="p-d-flex p-ai-center p-mb-3">
+    <h2 class="p-m-0 p-text-bold p-text-2xl">Upload source language file</h2>
+    <!-- <button
       pButton
       type="button"
       label="Clear"
-      class="p-button-text p-button-sm"
+      class="p-button-secondary"
       (click)="onClear()"
-    ></button>
+    ></button> -->
   </div>
 
-  <div class="p-mb-3">
+  <!-- File input and Upload button -->
+  <div class="p-d-flex p-ai-center p-mt-2">
     <input
       type="file"
       accept=".docx,.pptx"
-      class="p-inputtext"
+      class="p-mr-3"
       (change)="onFileSelected($event)"
     />
-    <p-message
-      severity="error"
-      *ngIf="sourceError"
-      text="{{ sourceError }}"
-    ></p-message>
   </div>
 
-  <button
-    pButton
-    type="button"
-    label="Upload file"
-    icon="pi pi-upload"
-    class="p-button-success"
-    [disabled]="!selectedFile"
-    (click)="previewSource()"
-  ></button>
-
-  <div *ngIf="previewText" class="p-mt-4">
-    <p-panel header="Preview source language file" toggleable>
-      <div class="p-d-flex p-jc-between p-ai-center">
-        <span>{{ previewText }}</span>
-        <button
-          pButton
-          type="button"
-          icon="pi pi-copy"
-          class="p-button-text"
-          title="Copy All"
-          (click)="copyAll($event)"
-        ></button>
-      </div>
-    </p-panel>
+  <div class="p-mt-2">
+    <button
+      pButton
+      type="button"
+      label="Upload file"
+      icon="pi pi-upload"
+      class="p-button-success"
+      [disabled]="!selectedFile"
+      (click)="previewSource()"
+    ></button>
   </div>
+
+  <!-- Error message -->
+  <p-message
+    severity="error"
+    *ngIf="sourceError"
+    text="{{ sourceError }}"
+    class="p-mt-2"
+  ></p-message>
 </p-card>
+
+<div *ngIf="previewText" class="p-mt-4">
+  <p-panel header="Preview source language file" toggleable>
+    <div class="p-d-flex p-jc-between p-ai-center">
+      <span>{{ previewText }}</span>
+      <button
+        pButton
+        type="button"
+        icon="pi pi-copy"
+        class="p-button-text"
+        title="Copy All"
+        (click)="copyAll($event)"
+      ></button>
+    </div>
+  </p-panel>
+</div>
 
 <!-- Target Language Content Card -->
 <div *ngIf="showSecondUpload" class="p-mt-5">
