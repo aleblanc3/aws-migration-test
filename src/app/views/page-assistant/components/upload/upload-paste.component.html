@@ -1,32 +1,33 @@
 <form #form="ngForm" (ngSubmit)="getPasteContent()" novalidate>
   <fieldset class="border-none p-0 m-0">
-    <legend class="font-bold mb-3">
+
+    <legend class="font-bold mb-3 p-0">
       {{ 'page.uploadPaste.legend' | translate }}
     </legend>
-    <!-- Copy/paste input -->
-    <div class="mb-3 p-1">
-      <label for="source" class="font-semibold">
-        {{ 'Original HTML' | translate }}
-      </label>
-      
-        <textarea type="text" id="source" pTextarea rows="3" name="userInput" [(ngModel)]="userInput" required
-          #inputField="ngModel" class="w-full"  fluid></textarea>
-    
 
-      <div *ngIf="inputField.invalid && inputField.touched" class="text-red-500 text-sm mt-1 p-1">
+    <!-- Copy/paste input -->
+    <div>
+      <label for="source" class="font-semibold">{{ 'Original HTML' | translate }}</label>
+
+      <textarea type="text" id="source" pTextarea rows="3" name="userInput" [(ngModel)]="userInput" required
+        #inputField="ngModel" class="w-full" fluid></textarea>
+
+      <!--Validation error-->
+      <div *ngIf="inputField.invalid && inputField.touched" class="text-red-500 text-xs mt-0">
         <div *ngIf="inputField.errors?.['required']">
           {{ 'User input' | translate }} {{ 'is required' | translate }}.
         </div>
       </div>
+
     </div>
 
-    <!-- Error -->
+    <!--Upload Error -->
     <p-message *ngIf="error" severity="error" [text]="error"></p-message>
 
     <!-- Buttons -->
-    <div class="flex gap-2 flex-wrap p-1">
+    <div class="flex gap-2 flex-wrap mt-3">
       <p-button type="submit" icon="pi pi-save" [label]="'continue' | translate" [loading]="loading"
-        [disabled]="form.invalid" severity="info">
+        [disabled]="form.invalid" severity="primary">
       </p-button>
       <p-button label="Load sample data" icon="pi pi-file" (onClick)="loadSampleData()" severity="secondary">
       </p-button>

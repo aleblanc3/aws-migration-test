@@ -10,7 +10,6 @@
  Build dropdown to select an iteration
  Add option to submit feedback-->
 
-
 <!--TEST SPACE-->
 <p-stepper class="basis-[50rem]" [(value)]="activeStep" [linear]="false">
     <p-step-list>
@@ -25,7 +24,8 @@
 
                     <div class="flex flex-wrap">
                         <!--SELECT UPLOAD TYPE-->
-                        <div class="flex-grow-0 flex-shrink-0 flex align-items-top justify-content-left surface-50 m-2 px-5 py-3 border-round">
+                        <div
+                            class="flex-grow-0 flex-shrink-0 flex align-items-top justify-content-left m-2 px-5 py-3 border-round">
 
                             <fieldset class="border-none p-0 m-0">
                                 <legend class="font-bold mb-3">Choose upload type:</legend>
@@ -54,13 +54,16 @@
                         </div>
                         <!--Upload-->
                         <div
-                            class="flex-grow-1 flex-shrink-0 flex align-items-top justify-content-left surface-50 m-2 px-5 py-3 border-round">
+                            class="flex-grow-1 flex-shrink-0 flex align-items-top justify-content-left m-2 px-5 py-3 border-round">
 
                             <ng-container [ngSwitch]="selectedUploadType">
 
-                                <ca-upload-url *ngSwitchCase="'url'" (uploadData)="handleUpload($event)"></ca-upload-url>
-                                <ca-upload-paste *ngSwitchCase="'paste'" (uploadData)="handleUpload($event)"></ca-upload-paste>
-                                <ca-upload-word *ngSwitchCase="'word'" (uploadData)="handleUpload($event)"></ca-upload-word>
+                                <ca-upload-url *ngSwitchCase="'url'"
+                                    (uploadData)="handleUpload($event)"></ca-upload-url>
+                                <ca-upload-paste *ngSwitchCase="'paste'"
+                                    (uploadData)="handleUpload($event)"></ca-upload-paste>
+                                <ca-upload-word *ngSwitchCase="'word'"
+                                    (uploadData)="handleUpload($event)"></ca-upload-word>
 
                             </ng-container>
                         </div>

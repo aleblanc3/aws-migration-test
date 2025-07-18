@@ -143,7 +143,7 @@ footer {
         padding: 1rem 1rem 0
     }
     .show-n {
-        width: calc(var(--nav-width) + 0px)
+    width: calc(var(--nav-width) + 66px)
     }
     .show-n:hover {
         width: calc(var(--nav-width) + 176px)
@@ -292,4 +292,9 @@ footer {
     direction: ltr;
     -webkit-font-feature-settings: 'liga';
     -webkit-font-smoothing: antialiased;
+}
+
+.p-panelmenu-header-label,
+.p-panelmenu-item-label {
+  padding-left: 20px !important;
 }

@@ -1,4 +1,8 @@
 import { Injectable } from '@angular/core';
+import { sampleHtmlO, sampleHtmlM, sampleSnippetO, sampleSnippetM, sampleWordO, sampleWordM } from '../components/upload/sample-data';
+import { UploadData } from '../../../common/data.types'
+import prettier from 'prettier/standalone';
+import * as parserHtml from 'prettier/parser-html';
 
 @Injectable({
   providedIn: 'root'
@@ -59,13 +63,29 @@ export class UrlDataService {
 
     // Return main content
     const main = doc.querySelector('main');
-    if (main) {
-      return main ? main.innerHTML : '';
+    if (!main) {
+      console.warn('No <main> tag found. Using full <body> content instead.');
     }
-    console.warn('No <main> tag found. Using full <body> content instead.');
-    return doc.body.innerHTML.trim();
+    const content = main ? main.innerHTML : doc.body.innerHTML.trim();
+    return await this.formatHtml(content);
   }
+
   //START OF CLEAN-UP FUNCTIONS
+
+  //Prettier HTML
+  async formatHtml(html: string): Promise<string> {
+    try {
+      const formatted = prettier.format(html, {
+        parser: 'html',
+        plugins: [parserHtml],
+        htmlWhitespaceSensitivity: 'ignore', // default is css which treats <span> as inline and <div> as block
+      });
+      return formatted;
+    } catch (error) {
+      console.error('Error formatting HTML:', error);
+      return html; // returns unformatted HTML
+    }
+  }
 
   //Resolve AJAX-loaded content
   private async processAjaxReplacements(doc: Document): Promise<void> {
@@ -244,7 +264,7 @@ export class UrlDataService {
 
   //Remove irrelevent stuff
   private cleanupUnnecessaryElements(doc: Document): void {
-    const noisySelectors = ['section#chat-bottom-bar', '#gc-pft', 'header', 'footer'];
+    const noisySelectors = ['section#chat-bottom-bar', '#gc-pft', 'header', 'footer', 'charlie'];
     noisySelectors.forEach(selector => {
       doc.querySelectorAll(selector).forEach(el => el.remove());
     });
@@ -344,6 +364,44 @@ export class UrlDataService {
   }
 
   //END OF CLEAN-UP FUNCTIONS
+
+  //Start of sample data
+  async loadSampleDataset(name: 'webpage' | 'snippet' | 'word' = 'webpage'): Promise<UploadData> {
+    let originalHtml: string;
+    let modifiedHtml: string;
+
+    switch (name) {
+      case 'snippet':
+        originalHtml = await this.extractContent(sampleSnippetO);
+        modifiedHtml = await this.formatHtml(sampleSnippetM);
+        return {
+          originalUrl: 'Original snippet',
+          originalHtml,
+          modifiedUrl: 'Modified snippet',
+          modifiedHtml,
+        };
+
+      case 'word':
+        originalHtml = await this.extractContent(sampleWordO);
+        modifiedHtml = await this.formatHtml(sampleWordM);
+        return {
+          originalUrl: 'Original word content',
+          originalHtml,
+          modifiedUrl: 'Modified word content',
+          modifiedHtml,
+        };
+
+      default:
+        originalHtml = await this.extractContent(sampleHtmlO);
+        modifiedHtml = await this.formatHtml(sampleHtmlM);
+        return {
+          originalUrl: 'Original HTML',
+          originalHtml,
+          modifiedUrl: 'Modified HTML',
+          modifiedHtml,
+        };
+    }
+  }
 
 }
 

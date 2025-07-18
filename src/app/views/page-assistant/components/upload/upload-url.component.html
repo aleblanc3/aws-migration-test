@@ -1,13 +1,13 @@
 <form #form="ngForm" (ngSubmit)="getHtmlContent()" novalidate>
   <fieldset class="border-none p-0 m-0">
-    <legend class="font-bold mb-3">
+
+    <legend class="font-bold mb-3 p-0">
       {{ 'page.uploadUrl.legend' | translate }}
     </legend>
+
     <!-- URL input -->
-    <div class="mb-3 p-1">
-      <label for="urlInput" class="font-semibold">
-        {{ 'Original URL' | translate }}
-      </label>
+    <div>
+      <label for="urlInput" class="font-semibold">{{ 'Original URL' | translate }}</label>
 
       <p-inputGroup>
         <p-inputgroup-addon>
@@ -17,7 +17,8 @@
           #urlField="ngModel" class="w-full" autocomplete="url" placeholder="https://(your path)" fluid />
       </p-inputGroup>
 
-      <div *ngIf="urlField.invalid && urlField.touched" class="text-red-500 text-sm mt-1 p-1">
+      <!--Validation errors-->
+      <div *ngIf="urlField.invalid && urlField.touched" class="text-red-500 text-xs mt-0">
         <div *ngIf="urlField.errors?.['required']">
           {{ 'Original URL' | translate }} {{ 'is required' | translate }}.
         </div>
@@ -25,17 +26,16 @@
           {{ 'page.step2.error' | translate }}
         </div>
       </div>
+
     </div>
 
-    <!-- Error -->
-    <div *ngIf="error" class="alert alert-danger mb-3" role="alert">
-      {{ error }}
-    </div>
+    <!-- Upload error -->
+    <p-message *ngIf="error" severity="error" [text]="error"></p-message>
 
     <!-- Buttons -->
-    <div class="flex gap-2 flex-wrap p-1">
+    <div class="flex gap-2 flex-wrap mt-3">
       <p-button type="submit" icon="pi pi-save" [label]="'continue' | translate" [loading]="loading"
-        [disabled]="form.invalid" severity="info">
+        [disabled]="form.invalid" severity="primary">
       </p-button>
       <p-button label="Load sample data" icon="pi pi-file" (onClick)="loadSampleData()" severity="secondary">
       </p-button>

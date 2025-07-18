@@ -20,7 +20,7 @@ export class ImageProcessorService {
   private readonly MAX_IMAGE_SIZE = 1024; // Max width/height for resizing
   private readonly OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
   // --- UPDATED: New Translation Model and specific prompt ---
-  private readonly TRANSLATION_MODEL_FOR_CRA = "qwen/qwen3-30b-a3b-04-28:free"; // Updated to Qwen3-30B model
+  private readonly TRANSLATION_MODEL_FOR_CRA = "mistralai/mistral-small-3.2-24b-instruct:free"; // Using Mistral Small for reliable free translation
 
   constructor(
     private http: HttpClient,
@@ -30,7 +30,7 @@ export class ImageProcessorService {
   /**
    * Main method to analyze an image file using OpenRouter's vision API.
    * @param file The image file to analyze.
-   * @param selectedVisionModel The OpenRouter vision model ID (e.g., 'openai/gpt-4o-mini').
+   * @param selectedVisionModel The OpenRouter vision model ID (e.g., 'qwen/qwen2.5-vl-32b-instruct:free').
    * @param identifier A unique identifier for logging (e.g., file name).
    * @param isPdfPage Whether this image is from a PDF page (for different prompting).
    * @returns An Observable emitting the analysis result.
@@ -275,14 +275,35 @@ export class ImageProcessorService {
     return this.http.post<any>(this.OPENROUTER_API_URL, payload, { headers }).pipe(
       timeout(45000),
       map(response => {
-        let translation = response?.choices?.[0]?.message?.content?.trim();
-        if (!translation) {
-          console.warn(`No content or unexpected structure from translation model for ${identifier}. Response:`, response);
-          throw new Error("No content returned from translation model.");
+        console.log(`Translation response for ${identifier}:`, response);
+        
+        // Check if the response has the expected structure
+        if (!response || !response.choices || !Array.isArray(response.choices) || response.choices.length === 0) {
+          console.error(`Invalid response structure from translation model for ${identifier}:`, response);
+          throw new Error("Invalid response structure from translation model.");
         }
+        
+        let translation = response.choices[0]?.message?.content;
+        
+        // Check if content exists
+        if (!translation || typeof translation !== 'string') {
+          console.error(`No content in translation response for ${identifier}. Full response:`, JSON.stringify(response, null, 2));
+          throw new Error("Translation model returned empty content.");
+        }
+        
+        translation = translation.trim();
+        
+        // If still empty after trimming
+        if (!translation) {
+          console.error(`Translation content is empty after trimming for ${identifier}`);
+          throw new Error("Translation model returned empty content after trimming.");
+        }
+        
         // Basic cleanup (though prompt aims to prevent this)
         translation = translation.replace(/^Voici la traduction\s*:\s*/i, '');
         translation = translation.replace(/^Translation\s*:\s*/i, '');
+        translation = translation.replace(/^Here is the translation\s*:\s*/i, '');
+        
         return translation;
       }),
       catchError((error: HttpErrorResponse) => {

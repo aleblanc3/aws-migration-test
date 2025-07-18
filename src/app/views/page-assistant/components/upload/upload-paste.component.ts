@@ -66,13 +66,7 @@ export class UploadPasteComponent {
   }
     //Emit sample data
     async loadSampleData() {
-      const originalHtml = await this.urlDataService.extractContent(sampleHtmlA);
-      const modifiedHtml = await this.urlDataService.extractContent(sampleHtmlB);
-      this.uploadData.emit({
-        originalUrl: "Sample data A",
-        originalHtml: originalHtml,
-        modifiedUrl: "Sample data B",
-        modifiedHtml: modifiedHtml
-      });
+      const uploadData = await this.urlDataService.loadSampleDataset('snippet');
+      this.uploadData.emit(uploadData);
   }
 }

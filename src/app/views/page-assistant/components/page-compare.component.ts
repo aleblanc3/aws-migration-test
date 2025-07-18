@@ -39,8 +39,11 @@ import {
 import { createPatch } from 'diff';
 import { Diff } from '@ali-tas/htmldiff-js';
 
-import {UploadData, DiffOptions} from '../../../common/data.types'
+import { UploadData, DiffOptions } from '../../../common/data.types'
 
+//Services
+import { OpenRouterService, OpenRouterMessage } from './openrouter.service';
+import { AiOptionsComponent } from './view/ai-options.component';
 
 
 
@@ -56,28 +59,31 @@ export interface ViewOption {
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    ButtonModule, CardModule, TabsModule, RadioButtonModule
+    ButtonModule, CardModule, TabsModule, RadioButtonModule,
+    AiOptionsComponent
   ],
   templateUrl: './page-compare.component.html',
   styleUrl: './page-compare.component.scss'
 })
 export class PageCompareComponent implements AfterViewInit, OnDestroy, OnChanges {
 
+  constructor(private openRouterService: OpenRouterService) { }
+
   //Accept input from parent component
   @Input() uploadData: UploadData = {
-  originalHtml: '',
-  modifiedHtml: '',
-  originalUrl: '',
-  modifiedUrl: ''
-};
+    originalHtml: '',
+    modifiedHtml: '',
+    originalUrl: '',
+    modifiedUrl: ''
+  };
 
   //On changes
   ngOnChanges(changes: SimpleChanges): void {
-  if (changes['modifiedHtml'] && !changes['modifiedHtml'].isFirstChange()) {
-    console.log('AI response updated!');
-    this.compareHtml();
+    if (changes['modifiedHtml'] && !changes['modifiedHtml'].isFirstChange()) {
+      console.log('AI response updated!');
+      this.compareHtml();
+    }
   }
-}
 
   //View children
   @ViewChild('liveContainer', { static: false }) liveContainer!: ElementRef;
@@ -336,6 +342,7 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy, OnChanges
       }
 
       .rendered-content {
+        background-color: #ffffff !important; 
         width: 100%;
         max-width: 100%;
         overflow-wrap: break-word;
@@ -385,8 +392,8 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy, OnChanges
         '',
         this.uploadData?.originalHtml,
         this.uploadData?.modifiedHtml,
-        'Original',
-        'Modified'
+        this.uploadData?.originalUrl,
+        this.uploadData?.modifiedUrl,
       );
 
       // Configure diff2html
@@ -441,4 +448,43 @@ export class PageCompareComponent implements AfterViewInit, OnDestroy, OnChanges
       this.sourceContainer.nativeElement.innerHTML = '';
     }
   }
+
+  aiResponse: string = '';
+  isLoading = false;
+
+  sendToAI(): void {
+    const html = this.uploadData?.originalHtml;
+    const prompt = "You are an expert web content writer with 10 years of experience in the public service. Your primary function is to help web publishers rewrite technical content to be easy to understand for the general public. Please review the included HTML code and update only the words. Return only the updated HTML code with no explanations. "
+
+    if (!html) return;
+
+    const messages: OpenRouterMessage[] = [
+      { role: 'system', content: prompt },
+      { role: 'user', content: html }
+    ];
+
+    this.isLoading = true;
+
+    setTimeout(() => {
+      this.openRouterService.sendChat('deepseek/deepseek-chat-v3-0324:free', messages).subscribe({
+        next: (response) => {
+          this.aiResponse = response;
+          this.uploadData.modifiedHtml = response;
+          this.uploadData.modifiedUrl = "GenAI response"
+          this.isLoading = false;
+          this.compareHtml();
+        },
+        error: (err) => {
+          console.error('Error getting AI response:', err);
+          this.aiResponse = 'An error occurred while contacting the AI.';
+          this.isLoading = false;
+        }
+      });
+    }, 1000); // 1 second delay
+  }
+
+  get modifiedHtml(): string {
+    return this.aiResponse || this.uploadData?.modifiedHtml || '';
+  }
+
 }

@@ -1,16 +1,77 @@
-<p-button (click)="visible = true" icon="pi pi-bars" />
+<p-button label="Options" icon="pi pi-bars" (click)="visible=true" severity="info" />
 
 <div class="card flex justify-center">
-<p-drawer modal="false" [style]="{ top: '5rem', width: '30rem', height: 'auto',}" #drawerRef [(visible)]="visible" position="right">
+  <p-drawer modal="false" [style]="{ top: '5rem', width: '30rem', height: 'auto',}" #drawerRef [(visible)]="visible"
+    position="right">
     <ng-template #headless>
-     <p>Hello world</p>
+      <div class="p-2">
+        <h2>Compare options</h2>
 
-  <!-- Close button -->
-  <button
-    type="button"
-    (click)="closeDrawer($event)"
-    class="fixed bg-primary text-white flex align-items-center justify-content-center"
-    style="
+        <p-accordion value="1">
+          <!--TASK OPTIONS-->
+          <p-accordion-panel value="0">
+            <p-accordion-header>Task</p-accordion-header>
+            <p-accordion-content>
+              <fieldset class="border-none">
+                <legend class="font-bold">Compare your content with:</legend>
+                <div class="flex flex-column gap-2">
+                  <ng-container *ngFor="let option of [
+                    { id: '1', label: 'AI generated content', disabled: false },
+                    { id: '2', label: 'A prototype URL', disabled: false },
+                    { id: '3', label: 'Two AI models', disabled: true  },
+                    { id: '4', label: 'Two prompts', disabled: true  }
+                    ]; let i = index">
+                    <div class="p-field-radiobutton">
+                      <p-radioButton name="myOptions" [value]="option.id" [(ngModel)]="selectedTask"
+                        inputId="option{{ i }}" [disabled]="option.disabled" />
+                      <label for="option{{ i }}" class="pl-2">{{ option.label }}</label>
+                    </div>
+                  </ng-container>
+                </div>
+              </fieldset>
+            </p-accordion-content>
+          </p-accordion-panel>
+          <!--PROMPT OPTIONS-->
+          <p-accordion-panel value="1">
+            <p-accordion-header>AI Prompt</p-accordion-header>
+            <p-accordion-content>
+              <fieldset class="border-none">
+                <div class="flex flex-column gap-2">
+                  <legend class="font-bold">Select a prompt:</legend>
+                  <div class="p-field-radiobutton"
+                    *ngFor="let option of ['Headings', 'Doormats', 'Plain language']; let i = index">
+                    <p-radioButton name="myOptions" [value]="option" [(ngModel)]="selectedPrompts"
+                      inputId="option{{ i }}" />
+                    <label for="option{{ i }}" class="pl-2">{{ option }}</label>
+                  </div>
+                </div>
+              </fieldset>
+            </p-accordion-content>
+          </p-accordion-panel>
+          <!--AI OPTIONS-->
+          <p-accordion-panel value="2">
+            <p-accordion-header>AI Model</p-accordion-header>
+            <p-accordion-content>
+              <fieldset class="border-none">
+                <div class="flex flex-column gap-2">
+                  <legend class="font-bold">Select an AI model:</legend>
+                  <div class="p-field-radiobutton"
+                    *ngFor="let option of ['Mistral', 'Gemini', 'Claude']; let i = index">
+                    <p-radioButton name="myOptions" [value]="option" [(ngModel)]="selectedAI" inputId="option{{ i }}" />
+                    <label for="option{{ i }}" class="pl-2">{{ option }}</label>
+                  </div>
+                </div>
+              </fieldset>
+            </p-accordion-content>
+          </p-accordion-panel>
+        </p-accordion>
+        <div *ngIf="uploadData?.originalHtml">
+          <button (click)="sendToAI()" [disabled]="isLoading" pButton label="Send to GenAI"></button>
+        </div>
+      </div>
+      <!-- Close button -->
+      <button type="button" (click)="closeDrawer($event)"
+        class="fixed bg-primary text-white flex align-items-center justify-content-center" style="
       top: calc(20%);
       right: 30rem;
       height: 3rem;
@@ -18,14 +79,12 @@
       border-top-left-radius: 1rem;
       border-bottom-left-radius: 1rem;
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    "
-  >
-    <i class="pi pi-chevron-right"></i>
-  </button>
+    ">
+        <i class="pi pi-chevron-right"></i>
+      </button>
 
- 
+
 
     </ng-template>
-    </p-drawer>
-    </div>
-
+  </p-drawer>
+</div>

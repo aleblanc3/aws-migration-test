@@ -1,8 +1,13 @@
 <div class="pb-2">
   <!-- Control Buttons -->
-  <p-button label="Compare HTML" icon="pi pi-search" (onClick)="compareHtml()" class="mr-2"
-    [disabled]="!uploadData.originalHtml || !uploadData.modifiedHtml"></p-button>
-  <p-button label="Clear All" icon="pi pi-trash" (onClick)="clearAll()" severity="danger"></p-button>
+  <div class="flex gap-2 flex-wrap">
+    <p-button label="Send to GenAI" [icon]="isLoading ? 'pi pi-spinner pi-spin' : 'pi pi-comments'" severity="primary"
+      (onClick)="sendToAI()" [disabled]="!uploadData.originalHtml || isLoading"></p-button>
+    <p-button label="Compare HTML" icon="pi pi-search" severity="success" (onClick)="compareHtml()"
+      [disabled]="!uploadData.originalHtml || !uploadData.modifiedHtml"></p-button>
+    <ca-ai-options></ca-ai-options>
+    <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="clearAll()" class="md:ml-auto"></p-button>
+  </div>
 
   <!-- Results Section -->
   <div *ngIf="showResults" class="mt-4">
@@ -18,25 +23,21 @@
           <p-card>
             <!--Switch view-->
             <div class="view-switcher-container" *ngIf="showResults">
-        <div class="field-radiobutton-group">
-          <span class="view-switcher-label">View:</span>
-          <div class="flex align-items-center gap-3">
-            <div class="field-radiobutton" *ngFor="let option of viewOptions">
-              <p-radioButton 
-                [inputId]="option.value" 
-                name="viewType" 
-                [value]="option.value"
-                [(ngModel)]="selectedView"
-                (ngModelChange)="onViewChange($event)">
-              </p-radioButton>
-              <label [for]="option.value" class="ml-2 flex align-items-center gap-1">
-                <i [class]="option.icon"></i>
-                {{ option.label }}
-              </label>
+              <div class="field-radiobutton-group">
+                <span class="view-switcher-label">View:</span>
+                <div class="flex align-items-center gap-3">
+                  <div class="field-radiobutton" *ngFor="let option of viewOptions">
+                    <p-radioButton [inputId]="option.value" name="viewType" [value]="option.value"
+                      [(ngModel)]="selectedView" (ngModelChange)="onViewChange($event)">
+                    </p-radioButton>
+                    <label [for]="option.value" class="ml-2 flex align-items-center gap-1">
+                      <i [class]="option.icon"></i>
+                      {{ option.label }}
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
             <!--Legend-->
             <div class="group-legend mb-2">
               <div *ngFor="let item of legendItems()" class="legend-item">
