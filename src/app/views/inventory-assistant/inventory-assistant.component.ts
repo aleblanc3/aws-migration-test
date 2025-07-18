@@ -30,6 +30,7 @@ interface MetadataResult {
 })
 
 export class InventoryAssistantComponent {
+
   // Component state
   results: MetadataResult[] = [];
   loading = false;
@@ -170,4 +171,11 @@ export class InventoryAssistantComponent {
   fetchPreviewMetadata(urls: string): void {
     // New logic for preview sources
   }
+
+onSourceChange(): void {
+  this.results = [];
+  this.loading = false;
+  this.urlsInput = '';
+  this.previewInput = '';
+}
 }
