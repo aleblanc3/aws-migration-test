@@ -1,9 +1,20 @@
-import { TranslateModule } from '@ngx-translate/core';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ApiKeyService } from '../../services/api-key.service';
 import { RouterModule } from '@angular/router';
+
+//primeNG
+import { CardModule } from 'primeng/card';
+import { ButtonModule } from 'primeng/button';
+import { PanelModule } from 'primeng/panel';
+import { MessageModule } from 'primeng/message';
+import { FileUploadModule } from 'primeng/fileupload'; 
+
+
+
+
+//services
+import { ApiKeyService } from '../../services/api-key.service';
 import { FileParseService } from '../../services/file-parse.service';
 
 @Component({
@@ -11,9 +22,14 @@ import { FileParseService } from '../../services/file-parse.service';
   imports: [
     CommonModule, // *ngIf / <ng-template>
     RouterModule,
+    ButtonModule, 
+    CardModule, 
+    PanelModule,
+    MessageModule, 
+    FileUploadModule, 
   ],
   templateUrl: './translation-assistant.component.html',
-  styleUrls: ['./translation-assistant.component.css'],
+  styles: ``,
 })
 export class TranslationAssistantComponent implements OnInit {
   selectedFile: File | null = null;

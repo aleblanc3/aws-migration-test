@@ -1,96 +1,80 @@
-<div><h1>Translation assistnat</h1></div>
-<div class="card pt-2">
-  <div class="card-body card-pad pt-2 h-100">
-    <div id="source-upload" class="after-key-unhide justify-content-between">
-      <fieldset class="upload-header">
-        <legend class="legend-flex">
-          <span>Upload source language file</span>
-          <button class="btn-clear" (click)="onClear()">Clear</button>
-        </legend>
-
-        <div id="source-doc-upload">
-          <input
-            type="file"
-            accept=".docx,.pptx"
-            (change)="onFileSelected($event)"
-          />
-          <p class="error-msg" *ngIf="sourceError">{{ sourceError }}</p>
-        </div>
-
-        <div class="upload-btn">
-          <button
-            id="source-upload-provide-btn"
-            (click)="previewSource()"
-            [disabled]="!selectedFile"
-          >
-            Upload file
-          </button>
-        </div>
-      </fieldset>
-
-      <ul class="list-unstyled">
-        <li *ngIf="previewText" id="source-preview-wrapper">
-          <details>
-            <summary class="preview-header">
-              <span class="preview-label">▶ Preview source language file</span>
-              <button
-                type="button"
-                class="copy-all-btn"
-                title="Copy All"
-                (click)="copyAll($event)"
-              >
-                <i class="fa fa-copy"></i>
-              </button>
-            </summary>
-            <pre id="source-text-preview">{{ previewText }}</pre>
-          </details>
-        </li>
-      </ul>
-    </div>
-  </div>
+<div class="p-mb-3">
+  <h1 class="p-text-bold">Translation Assistant</h1>
 </div>
 
-<div *ngIf="showSecondUpload" class="second-step">
-  <div class="card pt-2">
-    <div class="card-body card-pad pt-2 h-100">
-      <div class="justify-content-between">
-        <fieldset>
-          <legend id="second-upload-legend">
-            Paste target language content
-          </legend>
-
-          <div id="second-text-upload" class="translation-container">
-            <div class="text-box-container">
-              <div class="translation-textarea-container">
-                <textarea
-                  id="second-text"
-                  name="source-text"
-                  placeholder="Enter your translation"
-                  class="inputbox-translation"
-                ></textarea>
-                <p id="second-text-error" class="error-msg hidden">
-                  Text cannot be empty.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div id="second-doc-upload" class="hidden">
-            <div id="second-file-container">
-              <input type="file" id="second-file" />
-              <p id="second-multiple-msg" class="error-msg hidden">
-                Please upload one document at a time.
-              </p>
-              <p id="second-doc-error" class="error-msg hidden">
-                You must upload a .docx, .pptx or .xlsx file to proceed.
-              </p>
-              <p id="second-doc-mismatch-msg" class="error-msg hidden">
-                Both documents appear to be in the same language.
-              </p>
-            </div>
-          </div>
-          <button id="second-upload-btn">Format target language content</button>
-        </fieldset>
-      </div>
-    </div>
+<!-- Upload Source File Card -->
+<p-card class="p-mb-4">
+  <div class="p-d-flex p-jc-between p-ai-center p-mb-3">
+    <span class="p-text-bold">Upload source language file</span>
+    <button
+      pButton
+      type="button"
+      label="Clear"
+      class="p-button-text p-button-sm"
+      (click)="onClear()"
+    ></button>
   </div>
+
+  <div class="p-mb-3">
+    <input
+      type="file"
+      accept=".docx,.pptx"
+      class="p-inputtext"
+      (change)="onFileSelected($event)"
+    />
+    <p-message
+      severity="error"
+      *ngIf="sourceError"
+      text="{{ sourceError }}"
+    ></p-message>
+  </div>
+
+  <button
+    pButton
+    type="button"
+    label="Upload file"
+    icon="pi pi-upload"
+    class="p-button-success"
+    [disabled]="!selectedFile"
+    (click)="previewSource()"
+  ></button>
+
+  <div *ngIf="previewText" class="p-mt-4">
+    <p-panel header="Preview source language file" toggleable>
+      <div class="p-d-flex p-jc-between p-ai-center">
+        <span>{{ previewText }}</span>
+        <button
+          pButton
+          type="button"
+          icon="pi pi-copy"
+          class="p-button-text"
+          title="Copy All"
+          (click)="copyAll($event)"
+        ></button>
+      </div>
+    </p-panel>
+  </div>
+</p-card>
+
+<!-- Target Language Content Card -->
+<div *ngIf="showSecondUpload" class="p-mt-5">
+  <p-card>
+    <h3 class="p-mb-3">Paste target language content</h3>
+
+    <textarea
+      pInputTextarea
+      rows="8"
+      cols="50"
+      placeholder="Enter your translation"
+      class="p-inputtext p-mb-3"
+    ></textarea>
+
+    <button
+      pButton
+      type="button"
+      label="Format target language content"
+      icon="pi pi-align-left"
+      class="p-button-primary"
+    ></button>
+  </p-card>
 </div>
