@@ -86,7 +86,7 @@
 	"inventory.meta-prvw.instructions": "<p>Saisissez une liste de pages d'aperçu pour récupérer les métadonnées de description et de mots-clés trouvés du dernier <strong>gcPageReport</strong>. Par exemple :</p><ul><li>https://canada-preview.adobecqms.net/en/services/taxes.html</li><li>https://canada-preview.adobecqms.net/en/revenue-agency/services/tax/businesses/topics/gst-hst-businesses.html</li></ul>",
   "inventory.meta.watermark": "Saisissez une URL par ligne",
   "inventory.meta.radioLabel1": "Récupérer les métadonnées de Canada.ca ou GitHub",
-  "inventory.meta.radioLabel2": "Récupérer les métadonnées de l'aperçu",
+  "inventory.meta.radioLabel2": "Récupérer les métadonnées de pages d'aperçu (gcPageReport)",
   "inventory.meta.fetch-button": "Récupérer les métadonnées",
   "inventory.meta.keywords": "Mots clés",
   "--------ABOUT US---------------------": "--------------------------------ABOUT US---------------------------------------------",

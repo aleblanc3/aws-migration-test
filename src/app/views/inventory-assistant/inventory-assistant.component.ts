@@ -1,4 +1,4 @@
-import { Component, Injectable, inject } from '@angular/core';
+import { Component, Injectable } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -18,6 +18,9 @@ interface MetadataResult {
   source: string;
 }
 
+// Global cache for loaded CSV data
+let csvCache: Record<string, any[]> = {};
+
 @Injectable({
   providedIn: 'root'
 })
@@ -31,12 +34,12 @@ interface MetadataResult {
 
 export class InventoryAssistantComponent {
 
-  // Component state
+  // Component state variables
   results: MetadataResult[] = [];
   loading = false;
   errorMessage = '';
   urlsInput = '';
-  selectedSourceOption: string = 'canadaOrGithub'; // Default selection
+  selectedSourceOption: string = 'canadaOrGithub'; // Default radio button selection
   previewInput: string = '';
 
 
@@ -168,14 +171,157 @@ export class InventoryAssistantComponent {
     }
   }
 
-  fetchPreviewMetadata(urls: string): void {
-    // New logic for preview sources
+  /**
+   * Extract metadata for preview URLs using local CSV data.
+   */
+  async fetchPreviewMetadata(input: string): Promise<void> {
+    const urls = this.getCleanUrls(input);
+    if (!urls.length) return;
+
+    this.loading = true;
+    this.results = [];
+
+    // Load both CSVs if not already cached
+    if (!csvCache['en'] || !csvCache['fr']) {
+      [csvCache['en'], csvCache['fr']] = await Promise.all([
+        this.loadCsv('/gcPage-report/sanitized_cra_gcPageReport_en.csv'),
+        this.loadCsv('/gcPage-report/sanitized_cra_gcPageReport_fr.csv'),
+      ]);
+    }
+
+    const metadataResults: MetadataResult[] = [];
+
+    for (const url of urls) {
+      let result: MetadataResult;
+
+      if (!this.isValidUrl(url)) {
+        result = this.buildErrorResult(url, 'Invalid URL', 'N/A', 'N/A');
+      } else if (!url.includes('canada-preview.adobecqms.net')) {
+        result = this.buildErrorResult(url, 'Not a preview URL', 'N/A', 'N/A');
+      } else {
+        const path = this.extractPreviewPath(url);
+        console.log('Normalized preview path:', path);
+
+        // Try matching against English then French report
+        const found = this.searchCsvForPath(path, csvCache['en']) || this.searchCsvForPath(path, csvCache['fr']);
+
+        if (found) {
+          console.log('Found:', found);
+
+          result = {
+            url,
+            title: found['H1'] || found['Page title'] || 'Untitled',
+            description: found['Description'] || 'No Description',
+            keywords: found['Keywords'] || 'No Keywords',
+            source: 'AEM Preview'
+          };
+        } else {
+          result = this.buildErrorResult(url, 'Not found in the report', 'N/A', 'N/A');
+        }
+      }
+
+      metadataResults.push(result);
+    }
+
+    this.results = metadataResults;
+    this.loading = false;
   }
 
-onSourceChange(): void {
-  this.results = [];
-  this.loading = false;
-  this.urlsInput = '';
-  this.previewInput = '';
-}
+  /**
+   * Load and parse CSV file from a path.
+   */
+  private async loadCsv(path: string): Promise<any[]> {
+    const response = await fetch(path);
+    const text = await response.text();
+    return this.parseCsv(text);
+  }
+
+  /**
+   * Parse CSV string into an array of objects (rows).
+   */
+  private parseCsv(csvText: string): any[] {
+    const rows: any[] = [];
+    const lines = csvText.split('\n').filter(line => line.trim().length > 0);
+    const headers = this.splitCsvLine(lines[0]);
+
+    for (const line of lines.slice(1)) {
+      const values = this.splitCsvLine(line);
+      const row: any = {};
+      headers.forEach((header, i) => {
+        row[header] = values[i] || '';
+      });
+      rows.push(row);
+    }
+
+    return rows;
+  }
+
+  /**
+   * Split a CSV line into values, handling quoted commas.
+   */
+  private splitCsvLine(line: string): string[] {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current);
+    return result.map(v => v.trim());
+  }
+
+  /**
+   * Extract the path (and search params) from a preview URL.
+   */
+  private extractPreviewPath(url: string): string {
+    try {
+      const parsed = new URL(url);
+      return (parsed.pathname + parsed.search).toLowerCase().replace(/\/$/, '');
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * Search CSV array for a row matching the normalized preview path.
+   */
+  private searchCsvForPath(previewPath: string, data: any[]): any | undefined {
+    const normalizedPreviewPath = previewPath.toLowerCase().replace(/\/$/, '');
+
+    return data.find(row => {
+      const publicPath = row['Public path'];
+      if (!publicPath) return false;
+
+      try {
+        const normalizedCsvPath = new URL(publicPath).pathname.toLowerCase().replace(/\/$/, '');
+        return normalizedCsvPath === normalizedPreviewPath;
+      } catch {
+        return false;
+      }
+    });
+  }
+
+  /**
+   * Clear inputs and results when radio option changes.
+   */
+  onSourceChange(): void {
+    this.results = [];
+    this.loading = false;
+    this.urlsInput = '';
+    this.previewInput = '';
+  }
 }
