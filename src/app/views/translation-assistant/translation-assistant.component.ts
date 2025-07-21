@@ -8,10 +8,7 @@ import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { PanelModule } from 'primeng/panel';
 import { MessageModule } from 'primeng/message';
-import { FileUploadModule } from 'primeng/fileupload'; 
-
-
-
+import { FileUploadModule } from 'primeng/fileupload';
 
 //services
 import { ApiKeyService } from '../../services/api-key.service';
@@ -22,16 +19,17 @@ import { FileParseService } from '../../services/file-parse.service';
   imports: [
     CommonModule, // *ngIf / <ng-template>
     RouterModule,
-    ButtonModule, 
-    CardModule, 
+    ButtonModule,
+    CardModule,
     PanelModule,
-    MessageModule, 
-    FileUploadModule, 
+    MessageModule,
+    FileUploadModule,
   ],
   templateUrl: './translation-assistant.component.html',
   styles: ``,
 })
 export class TranslationAssistantComponent implements OnInit {
+  isExpanded = false;
   selectedFile: File | null = null;
   previewText = '';
   previewVisible = false;
@@ -42,7 +40,7 @@ export class TranslationAssistantComponent implements OnInit {
     public apiKeyService: ApiKeyService,
     private router: Router,
     private route: ActivatedRoute,
-    private parseSrv: FileParseService
+    private parseSrv: FileParseService,
   ) {}
 
   onClear(): void {
@@ -67,6 +65,21 @@ export class TranslationAssistantComponent implements OnInit {
     this.sourceError = '';
     const input = event.target as HTMLInputElement;
     this.selectedFile = input.files?.[0] ?? null;
+    console.log('Selected file:', this.selectedFile);
+    if (this.selectedFile) {
+      console.log('File name:', this.selectedFile.name);
+      console.log('Is DOCX?', this.isDocx(this.selectedFile));
+      console.log('Is PPTX?', this.isPptx(this.selectedFile));
+    } else {
+      console.warn('No file selected!');
+    }
+  }
+  isDocx(file: File): boolean {
+    return file.name.toLowerCase().endsWith('.docx');
+  }
+
+  isPptx(file: File): boolean {
+    return file.name.toLowerCase().endsWith('.pptx');
   }
 
   async previewSource() {
