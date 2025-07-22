@@ -82,7 +82,7 @@ footer {
 
 .nav_link:hover {
     color: var(--first-color-light);
-    background-color: #173d77;
+    background-color: #a96ddd;
     border-radius: .25rem;
     padding-bottom: .5rem;
     margin-bottom: 0rem
@@ -93,14 +93,14 @@ footer {
 }
 
 .nav_link.active {
-    background-color: #a7a72e;
+    background-color: #6e2ea7;
     border-radius: .25rem;
     padding-bottom: .5rem;
     margin-bottom: .1rem
 }
 
 .nav_link.active-hide {
-    background-color: #a7a72e;
+    background-color: #6e2ea7;
     border-radius: .25rem;
     padding-bottom: .5rem;
     width: 2.8rem
@@ -143,11 +143,11 @@ footer {
         padding: 1rem 1rem 0
     }
     .show-n {
-    width: calc(var(--nav-width) + 66px)
+    width: calc(var(--nav-width) + 120px)
     }
-    .show-n:hover {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                /*.show-n:hover {
         width: calc(var(--nav-width) + 176px)
-    }
+    */
 }
 
 /*Not used
