@@ -6,7 +6,7 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { ButtonModule } from 'primeng/button';
 import { ToggleButtonModule } from 'primeng/togglebutton';
 
-import { ApiResetComponent } from '../common/api-reset.component';
+import { ApiResetComponent } from './api-reset.component';
 import { LocalStorageService } from '../services/local-storage.service';
 
 @Component({
@@ -71,9 +71,11 @@ export class HeaderComponent {
 
   // constructor(public langToggle: LangToggleService){} //putting the code below into a service works but we aren't calling it anywhere else
   constructor(private translate: TranslateService, public localStore: LocalStorageService) {
+    var curLang = this.localStore.getData('lang') || this.translate.getBrowserLang() || 'en';
+    console.log(this.translate.getBrowserLang());
     this.translate.addLangs(['en', 'fr']);
     this.translate.setDefaultLang('en');
-    this.translate.use(this.translate.getBrowserLang() || "en");
+    this.translate.use(curLang);
   }
 
   selectLanguage(): void {
@@ -81,6 +83,7 @@ export class HeaderComponent {
     if (this.translate.currentLang == "en") { oppLang = "fr" }
     else { oppLang = "en" }
     this.translate.use(oppLang);
+    this.localStore.saveData('lang', oppLang);
   }
 
   toggleDarkMode() {
