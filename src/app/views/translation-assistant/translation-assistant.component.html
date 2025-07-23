@@ -12,8 +12,11 @@
     <!-- Upload Section -->
     <div
       class="flex flex-column align-items-center justify-content-center p-3 border-dashed border-round border-200 surface-100 hover:surface-200 hover:border-primary-400 transition-colors transition-duration-300 cursor-pointer"
-      style="width: 640px; height: 250px"
+      class="flex flex-column align-items-center justify-content-center p-3 border-dashed border-round border-200 surface-100 hover:surface-200 hover:border-primary-400 transition-colors transition-duration-300 cursor-pointer w-full max-w-30rem min-h-12rem"
       (click)="fileInput.click()"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onDrop($event)"
     >
       <input
         type="file"
@@ -122,10 +125,13 @@
     <textarea
       pInputTextarea
       rows="15"
-      cols="100"
+      cols="70"
       placeholder="Paste your translation"
-      class="p-inputtext p-mb-3"
+      class="p-inputtext p-mb-3 w-full"
+      style="min-height: 10rem; resize: vertical"
+      [(ngModel)]="frenchText"
     ></textarea>
+
     <div class="flex gap-2 mt-3">
       <button
         pButton
@@ -133,6 +139,34 @@
         label="Format target language content"
         icon="pi pi-align-left"
         class="p-button-primary"
+        (click)="onFormatTargetLanguageContent()"
+      ></button>
+    </div>
+  </p-card>
+</div>
+
+<!-- Spinner and Generating Files Message -->
+<div *ngIf="isProcessing" class="p-mt-4 text-center">
+  <p-progressSpinner styleClass="p-mt-3"></p-progressSpinner>
+  <p class="p-mt-2 font-bold">Generating files...</p>
+</div>
+
+<div
+  *ngIf="showDownloadSection"
+  class="surface-100 border-round shadow-3"
+  style="border: 2px solid #00000000; padding: 1rem"
+>
+  <p-card>
+    <h2 class="p-mb-3">Formatting complete</h2>
+    <p>The formatted target language file is ready for download.</p>
+    <div class="flex gap-2 mt-3">
+      <button
+        pButton
+        type="button"
+        label="Download file"
+        icon="pi pi-download"
+        class="p-button-primary"
+        (click)="onDownloadFile()"
       ></button>
     </div>
   </p-card>
