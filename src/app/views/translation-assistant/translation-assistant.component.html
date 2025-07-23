@@ -1,2 +1,139 @@
-<h1 id="wb-cont">{{ 'title.translation' | translate}}</h1>
-<p>{{'translation.content' | translate }}</p> 
+<div class="p-mb-3">
+  <h1 class="p-text-bold">Translation Assistant</h1>
+</div>
+
+<div
+  class="surface-100 border-round shadow-3"
+  style="border: 2px solid #00000000; padding: 1rem"
+>
+  <p-card class="p-mb-4">
+    <h2 class="p-m-0 p-text-bold p-text-2xl">Upload source language file</h2>
+
+    <!-- Upload Section -->
+    <div
+      class="flex flex-column align-items-center justify-content-center p-3 border-dashed border-round border-200 surface-100 hover:surface-200 hover:border-primary-400 transition-colors transition-duration-300 cursor-pointer"
+      style="width: 640px; height: 250px"
+      (click)="fileInput.click()"
+    >
+      <input
+        type="file"
+        accept=".docx,.pptx"
+        #fileInput
+        style="display: none"
+        (change)="onFileSelected($event)"
+      />
+      <ng-container *ngIf="selectedFile; else dragArea">
+        <p class="text-xl text-center">
+          <i
+            *ngIf="isDocx(selectedFile)"
+            class="pi pi-file-word text-blue-500 text-2xl mr-1"
+          ></i>
+          <i
+            *ngIf="isPptx(selectedFile)"
+            class="fas fa-file-powerpoint text-orange-500 text-2xl mr-1"
+          ></i>
+          {{ selectedFile.name }}
+        </p>
+      </ng-container>
+      <ng-template #dragArea>
+        <i
+          class="pi pi-upload border-2 border-circle border-300 p-3 text-3xl text-color-secondary mb-2 hover:bg-primary hover:text-white transition-colors transition-duration-300"
+        ></i>
+        <p class="m-0 text-center text-sm">
+          Drag and drop .docx or .pptx source language file here.
+        </p>
+      </ng-template>
+    </div>
+
+    <div class="flex gap-2 mt-3">
+      <button
+        pButton
+        type="button"
+        label="Upload file"
+        icon="pi pi-upload"
+        class="p-button p-component p-button-primary"
+        [disabled]="!selectedFile"
+        (click)="previewSource()"
+      ></button>
+    </div>
+
+    <!-- Preview Panel -->
+    <div *ngIf="previewText" class="mt-3">
+      <div
+        class="p-panel p-component border-1 border-round surface-100"
+        style="border-color: #00000023; font-size: 1.2rem"
+      >
+        <div
+          class="p-panel-header d-flex justify-content-between align-items-center cursor-pointer"
+          style="
+            height: 4rem;
+            padding: 0 1rem;
+            display: flex;
+            font-size: 1.2rem;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: nowrap;
+            gap: 0.5rem;
+            width: 100%;
+          "
+          (click)="isExpanded = !isExpanded"
+        >
+          <div class="d-flex align-items-center">
+            <i
+              class="pi"
+              [ngClass]="{
+                'pi-plus': !isExpanded,
+                'pi-minus': isExpanded,
+              }"
+              style="margin-right: 0.5rem"
+            ></i>
+            <span class="p-panel-title">Preview source language file</span>
+          </div>
+
+          <button
+            pButton
+            type="button"
+            class="p-button-text p-button-icon-only flex-shrink-0"
+            title="Copy All"
+            (click)="copyAll($event)"
+            style="width: 3rem; height: 3rem"
+          >
+            <span class="pi pi-copy" style="font-size: 1.8rem"></span>
+          </button>
+        </div>
+
+        <div *ngIf="isExpanded" class="p-panel-content p-mt-2">
+          <span>{{ previewText }}</span>
+        </div>
+      </div>
+    </div>
+  </p-card>
+</div>
+
+<!-- Target Language Content Card -->
+<div
+  *ngIf="showSecondUpload"
+  class="surface-100 border-round shadow-3"
+  style="border: 2px solid #00000000; padding: 1rem"
+>
+  <p-card>
+    <h2 class="p-mb-3">Paste target language content</h2>
+
+    <textarea
+      pInputTextarea
+      rows="15"
+      cols="100"
+      placeholder="Paste your translation"
+      class="p-inputtext p-mb-3"
+    ></textarea>
+    <div class="flex gap-2 mt-3">
+      <button
+        pButton
+        type="button"
+        label="Format target language content"
+        icon="pi pi-align-left"
+        class="p-button-primary"
+      ></button>
+    </div>
+  </p-card>
+</div>
