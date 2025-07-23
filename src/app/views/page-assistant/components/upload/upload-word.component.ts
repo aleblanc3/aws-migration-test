@@ -1,16 +1,16 @@
-import { Component, Output, EventEmitter } from '@angular/core';
+import { Component, Output, EventEmitter, Input } from '@angular/core';
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { PrimeNG } from 'primeng/config';
 
 //primeNG
 import { ButtonModule } from 'primeng/button';
 import { FileUploadModule } from 'primeng/fileupload';
+import { Message } from 'primeng/message';
 
 //Page assistant
-import { sampleHtmlA, sampleHtmlB } from './sample-data';
 import { UrlDataService } from '../url-data.service';
+import { UploadData, ModifiedData } from '../../../../common/data.types'
 import * as mammoth from 'mammoth';
 
 @Component({
@@ -18,7 +18,7 @@ import * as mammoth from 'mammoth';
   imports: [CommonModule,
     TranslateModule,
     FormsModule,
-    FileUploadModule, ButtonModule],
+    FileUploadModule, ButtonModule, Message],
   templateUrl: './upload-word.component.html',
   styles: `
     :host {
@@ -50,32 +50,32 @@ import * as mammoth from 'mammoth';
 })
 export class UploadWordComponent {
 
+  //Import data from parent component
+  @Input() mode: 'original' | 'prototype' = 'original';
+  @Input() showSampleDataButton = true;
+
   //Export data to parent component
-  @Output() uploadData = new EventEmitter<{ originalUrl: string, originalHtml: string, modifiedUrl: string, modifiedHtml: string }>();
+  @Output() modifiedData = new EventEmitter<ModifiedData>();
+  @Output() uploadData = new EventEmitter<UploadData>();
 
   constructor(private urlDataService: UrlDataService, private translate: TranslateService) { }
 
   //Initialize stuff
-  originalUrl: string = '';
-  originalHtml: string = '';
-  modifiedUrl: string = '';
-  modifiedHtml: string = '';
-  wordInput: string = '';
   error: string = '';
   loading = false;
-  uploadedFileName: string = '';
-  totalSize: number = 0;
-  totalSizePercent: number = 0;
+  extractedHtml: string = ''; //only needed if emit is a separate step
+  uploadedFileName: string = ''; //only needed if emit is a separate step
 
 
   formatSize(bytes: number): string {
     const k = 1024;
     const dm = 1; //decimal points
     const sizes = this.translate.instant('fileSizeTypes') as string[];
+    const sizesWarning = this.translate.instant('fileSizeTypes.warning');
 
     //Error handling
     if (!sizes || !Array.isArray(sizes)) {
-      console.warn('Missing or invalid fileSizeTypes translation');
+      console.warn(sizesWarning);
       return `${bytes} B`;
     }
     if (bytes === 0) {
@@ -84,15 +84,23 @@ export class UploadWordComponent {
 
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     const formattedSize = parseFloat((bytes / Math.pow(k, i)).toFixed(dm));
+    const index = Math.min(i, sizes.length - 1);
 
-    return `${formattedSize} ${sizes[i]}`;
+    return `${formattedSize} ${sizes[index]}`;
   }
 
   getWordContent(event: any): void {
-    console.log('Upload event received:', event);
+    this.loading = true;
+    const uploadError = this.translate.instant('page.upload.word.error.upload');
+    const docError = this.translate.instant('page.upload.word.error.doc');
+    const unknownError = this.translate.instant('page.upload.word.error.unknown');
+    const tryError = this.translate.instant('page.upload.word.error.try');
+
+    //console.log('Upload event received:', event);
     const file: File = event.files?.[0];
     if (!file) {
-      console.warn('No file found in upload event');
+      this.error = uploadError;
+      this.loading = false;
       return;
     }
     //console.log('File:', file.name);
@@ -104,25 +112,26 @@ export class UploadWordComponent {
       try {
         const result = await mammoth.convertToHtml({ arrayBuffer });
         const html = result.value.trim();
-        console.log(html);
         if (!html) {
-          console.warn('The document is empty or could not be read.');
+          this.error = docError;
           return;
         }
 
         //Emit original data & set modified to same (no changes)
-        //  this.uploadData.emit({
-        //   originalUrl: file.name,
-        //    originalHtml: html,
-        //   modifiedUrl: file.name,
-        //    modifiedHtml: html
-        //  });
+        /* this.uploadData.emit({
+              originalUrl: file.name,
+              originalHtml: html,
+              modifiedUrl: file.name,
+              modifiedHtml: html
+              }); */
 
         //Remove this line if we want to emit during the upload step
-        this.originalHtml = html;
+        this.extractedHtml = html;
 
-      } catch (err) {
-        console.error("Error extracting text:", err);
+      } catch (err: any) {
+        this.error = `${tryError} ${err.message || err || unknownError}`;
+      } finally {
+        this.loading = false;
       }
     };
 
@@ -131,13 +140,20 @@ export class UploadWordComponent {
 
   //Remove this fxn if we want to emit during upload step
   emitData() {
-    this.uploadData.emit({
-      originalUrl: this.uploadedFileName,
-      originalHtml: this.originalHtml,
-      modifiedUrl: this.uploadedFileName,
-      modifiedHtml: this.originalHtml
-
-    });
+    if (this.mode === 'original') {
+      this.uploadData.emit({
+        originalUrl: this.uploadedFileName,
+        originalHtml: this.extractedHtml,
+        modifiedUrl: this.uploadedFileName,
+        modifiedHtml: this.extractedHtml
+      });
+    }
+    if (this.mode === 'prototype') {
+      this.modifiedData.emit({
+        modifiedUrl: this.uploadedFileName,
+        modifiedHtml: this.extractedHtml
+      });
+    }
   }
   //Emit sample data
   async loadSampleData() {

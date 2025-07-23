@@ -1,3 +1,6 @@
+/**
+ * @deprecated This service is deprecated. Please use localStorage.setItem(key, value), localStorage.getItem(key), and localStorage.removeItem(key) instead.
+ */
 import { Injectable } from '@angular/core';
 
 @Injectable({

@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter } from '@angular/core'; 
+import { Component, Output, EventEmitter, Input } from '@angular/core';
 import { TranslateModule } from "@ngx-translate/core";
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -8,19 +8,18 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputGroupModule } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
-import { CardModule } from 'primeng/card';
 import { Message } from 'primeng/message';
 
 //Page assistant
-import { sampleHtmlA, sampleHtmlB } from './sample-data';
 import { UrlDataService } from '../url-data.service';
+import { UploadData, ModifiedData } from '../../../../common/data.types'
 
 @Component({
   selector: 'ca-upload-url',
-  imports: [CommonModule, 
-            TranslateModule, 
-            FormsModule, 
-            ButtonModule, InputTextModule, InputGroupModule, InputGroupAddonModule, CardModule, Message],
+  imports: [CommonModule,
+    TranslateModule,
+    FormsModule,
+    ButtonModule, InputTextModule, InputGroupModule, InputGroupAddonModule, Message],
   templateUrl: './upload-url.component.html',
   styles: `
     :host {
@@ -30,17 +29,23 @@ import { UrlDataService } from '../url-data.service';
 })
 export class UploadUrlComponent {
 
+  //Import data from parent component
+  @Input() mode: 'original' | 'prototype' = 'original';
+  @Input() showSampleDataButton = true;
+
+  get labelKey(): string {
+    return this.mode === 'prototype' ? 'page.upload.url.modified' : 'page.upload.url.original';
+  }
+
   //Export data to parent component
-   @Output() uploadData = new EventEmitter<{ originalUrl: string, originalHtml: string, modifiedUrl: string, modifiedHtml: string }>();
+  @Output() modifiedData = new EventEmitter<ModifiedData>();
+  @Output() uploadData = new EventEmitter<UploadData>();
 
   //Initialize stuff
-  originalUrl: string = '';
-  originalHtml: string = '';
-  modifiedUrl: string = '';
-  modifiedHtml: string = '';
-  urlInput: string = '';
+  userInput: string = '';
   error: string = '';
   loading = false;
+  showHelp: boolean = false;
 
   //This runs first, use it to inject services & other dependencies (delete if not needed)
   constructor(private urlDataService: UrlDataService) { }
@@ -50,25 +55,33 @@ export class UploadUrlComponent {
     this.error = '';
 
     try {
-      const mainHTML = await this.urlDataService.fetchAndProcess(this.urlInput);
+      const mainHTML = await this.urlDataService.fetchAndProcess(this.userInput);
 
       //Emit original data & set modified to same (no changes)
-      this.uploadData.emit({
-        originalUrl: this.urlInput,
-        originalHtml: mainHTML,
-        modifiedUrl: this.urlInput,
-        modifiedHtml: mainHTML
-      });
+      if (this.mode === 'original') {
+        this.uploadData.emit({
+          originalUrl: this.userInput,
+          originalHtml: mainHTML,
+          modifiedUrl: this.userInput,
+          modifiedHtml: mainHTML
+        });
+      }
+      if (this.mode === 'prototype') {
+        this.modifiedData.emit({
+          modifiedUrl: this.userInput,
+          modifiedHtml: mainHTML
+        });
+      }
 
     } catch (err: any) {
-      this.error = `Failed to fetch page: ${err.message}`;
+      this.error = `Failed to fetch page: ${err.message || err || 'Unknown error'}`;
     } finally {
       this.loading = false;
     }
   }
-    //Emit sample data
-    async loadSampleData() {
-      const uploadData = await this.urlDataService.loadSampleDataset('webpage');
-      this.uploadData.emit(uploadData);
+  //Emit sample data
+  async loadSampleData() {
+    const uploadData = await this.urlDataService.loadSampleDataset('webpage');
+    this.uploadData.emit(uploadData);
   }
 }

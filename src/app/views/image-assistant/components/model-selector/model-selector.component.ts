@@ -1,7 +1,7 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { DropdownModule } from 'primeng/dropdown';
 
 interface VisionModel {
@@ -30,14 +30,20 @@ interface VisionModel {
     }
   `]
 })
-export class ModelSelectorComponent {
+export class ModelSelectorComponent implements OnInit {
   @Input() selectedModel = 'qwen/qwen2.5-vl-32b-instruct:free';
   @Output() modelChange = new EventEmitter<string>();
   
-  visionModels: VisionModel[] = [
-    { name: 'Qwen2.5 VL 32B (Free)', value: 'qwen/qwen2.5-vl-32b-instruct:free' },
-    { name: 'Google Gemma 3 27B (Free)', value: 'google/gemma-3-27b-it:free' }
-  ];
+  visionModels: VisionModel[] = [];
+
+  constructor(private translate: TranslateService) {}
+
+  ngOnInit(): void {
+    this.visionModels = [
+      { name: this.translate.instant('image.model.qwen'), value: 'qwen/qwen2.5-vl-32b-instruct:free' },
+      { name: this.translate.instant('image.model.gemma'), value: 'google/gemma-3-27b-it:free' }
+    ];
+  }
 
   onModelChange(event: any): void {
     this.modelChange.emit(event.value);

@@ -1,24 +1,27 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { ButtonModule } from 'primeng/button';
 import { FileProcessingResult } from '../../../../services/image-assistant-state.service';
 
 @Component({
   selector: 'ca-csv-download',
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [CommonModule, TranslateModule, ButtonModule],
   templateUrl: './csv-download.component.html',
   styles: [`
     .csv-download-container {
       margin-top: 2rem;
       padding: 1rem;
-      background-color: #f8f9fa;
+      background-color: var(--surface-100);
       border-radius: 8px;
     }
   `]
 })
 export class CsvDownloadComponent {
   @Input() results: { [fileName: string]: FileProcessingResult } = {};
+  
+  constructor(private translate: TranslateService) {}
   
   hasResults(): boolean {
     return Object.keys(this.results).length > 0;
@@ -29,7 +32,7 @@ export class CsvDownloadComponent {
   }
   
   downloadCsv(): void {
-    let csvContent = "File/Page,English Description,French Description\n";
+    let csvContent = this.translate.instant('image.csv.header') + "\n";
     
     // Get sorted keys for consistent CSV output
     const sortedFileNames = Object.keys(this.results).sort();
@@ -50,7 +53,7 @@ export class CsvDownloadComponent {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = "image_descriptions.csv";
+    link.download = this.translate.instant('image.csv.fileName');
     link.click();
     URL.revokeObjectURL(url);
   }

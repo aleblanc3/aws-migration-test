@@ -175,7 +175,7 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
           // Don't add the PDF filename as a result and don't increment count (PDFs aren't counted)
           this.processNextFile();
         } else {
-          throw new Error('PDF has no pages');
+          throw new Error(this.translate.instant('image.error.pdfNoPages'));
         }
       } else if (file.type.startsWith('image/')) {
         // Process regular images (including PDF pages)
@@ -184,17 +184,7 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
             // Check for specific error types and translate them
             let errorMessage = result.error;
             if (errorMessage === 'KEY_LIMIT_EXCEEDED') {
-              // Ensure translation is loaded before using instant
-              const translatedMsg = this.translate.instant('image.error.paidModel');
-              // Fallback if translation not loaded - check current language
-              if (translatedMsg === 'image.error.paidModel') {
-                const currentLang = this.translate.currentLang || 'en';
-                errorMessage = currentLang === 'fr' 
-                  ? 'Il s\'agit d\'un modèle payant. Veuillez ajouter des crédits à votre clé API.'
-                  : 'This is a paid model. Please add credits to your API key.';
-              } else {
-                errorMessage = translatedMsg;
-              }
+              errorMessage = this.translate.instant('image.error.paidModel');
             }
             
             this.stateService.updateResult(displayName, {
@@ -216,16 +206,7 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
             // Check for specific error types
             let errorMessage = err.message || this.translate.instant('image.error.unknown');
             if (err.message === 'KEY_LIMIT_EXCEEDED' || (err.message && err.message.includes('KEY_LIMIT_EXCEEDED'))) {
-              const translatedMsg = this.translate.instant('image.error.paidModel');
-              // Fallback if translation not loaded - check current language
-              if (translatedMsg === 'image.error.paidModel') {
-                const currentLang = this.translate.currentLang || 'en';
-                errorMessage = currentLang === 'fr' 
-                  ? 'Il s\'agit d\'un modèle payant. Veuillez ajouter des crédits à votre clé API.'
-                  : 'This is a paid model. Please add credits to your API key.';
-              } else {
-                errorMessage = translatedMsg;
-              }
+              errorMessage = this.translate.instant('image.error.paidModel');
             }
             
             this.stateService.updateResult(displayName, {
@@ -250,7 +231,7 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
             imageBase64: null,
             english: null,
             french: null,
-            error: 'Unsupported file type. Please upload images (PNG, JPG, JPEG) or PDF files.'
+            error: this.translate.instant('image.error.unsupportedFileType')
           }
         });
         this.stateService.incrementProcessedCount();
@@ -267,7 +248,7 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
             imageBase64: null,
             english: null,
             french: null,
-            error: error.message || 'Failed to process file'
+            error: error.message || this.translate.instant('image.error.failedToProcess')
           }
         });
         this.stateService.incrementProcessedCount();
