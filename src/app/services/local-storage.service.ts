@@ -1,3 +1,6 @@
+/**
+ * @deprecated This service is deprecated. Please use setItem(key, value), getItem(key), and removeItem(key) instead.
+ */
 import { Injectable } from '@angular/core';
 
 @Injectable({
