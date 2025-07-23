@@ -1,10 +1,11 @@
 <div class="csv-download-container" *ngIf="hasResults()">
-  <button 
+  <p-button 
     *ngIf="hasCompletedResults()"
-    (click)="downloadCsv()"
-    class="my-2">
-    {{ 'image.csv.download' | translate }}
-  </button>
+    (onClick)="downloadCsv()"
+    [label]="'image.csv.download' | translate"
+    icon="pi pi-download"
+    styleClass="my-2">
+  </p-button>
   
   <p *ngIf="!hasCompletedResults()">
     {{ 'image.csv.noData' | translate }}

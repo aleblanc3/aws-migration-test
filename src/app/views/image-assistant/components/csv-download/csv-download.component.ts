@@ -1,18 +1,19 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
+import { ButtonModule } from 'primeng/button';
 import { FileProcessingResult } from '../../../../services/image-assistant-state.service';
 
 @Component({
   selector: 'ca-csv-download',
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [CommonModule, TranslateModule, ButtonModule],
   templateUrl: './csv-download.component.html',
   styles: [`
     .csv-download-container {
       margin-top: 2rem;
       padding: 1rem;
-      background-color: #f8f9fa;
+      background-color: var(--surface-100);
       border-radius: 8px;
     }
   `]
