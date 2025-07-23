@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core'; 
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { TranslateModule } from "@ngx-translate/core";
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -112,16 +112,16 @@ export class UploadContentComponent {
       this.error = `Failed to fetch page: ${err.message}`;
     }
   }
-    //Emit sample data
-    loadSampleData() {
-      this.uploadData.emit({
-        sourceURL: "Sample data A",
-        sourceHTML: sampleHtmlA,
-        prototypeURL: "Sample data B",
-        prototypeHTML: sampleHtmlB
-      });
-      //Set variables to display
-      this.mySource = "Sample data A";
-      this.myPrototype = "Sample data B";
+  //Emit sample data
+  loadSampleData() {
+    this.uploadData.emit({
+      sourceURL: "Sample data A",
+      sourceHTML: sampleHtmlA,
+      prototypeURL: "Sample data B",
+      prototypeHTML: sampleHtmlB
+    });
+    //Set variables to display
+    this.mySource = "Sample data A";
+    this.myPrototype = "Sample data B";
   }
 }
