@@ -1,13 +1,13 @@
 .section {
-  border: var(--first-color-light)  1px solid;
-  border-radius: .25rem;
+  /*border-left: var(--first-color-light) 1px solid;
+        border-radius: .25rem;*/
   padding: .1rem;
 }
-.section-body {
+.nav_section_body {
   padding-left: .7rem;
 }
 
-.section-body.hidden {
+.nav_section_body.hidden {
   display: none;
 }
 
@@ -16,7 +16,7 @@
 }
 
 .nav_header {
-  color: #6e2ea7;
+  color: var(--p-button-primary-background);
   background-color: var(--first-color-light);
   border-radius: .25rem;
   display: flex;
@@ -35,23 +35,46 @@
 }
 
 .nav_header.active {
-  background-color: #6e2ea7;
+  background-color: var(--p-button-primary-background);
   border-radius: .25rem;
   padding-bottom: .5rem;
   margin-bottom: .1rem
 }
 
 .nav_header.active-hide {
-  background-color: #6e2ea7;
+  background-color: var(--p-button-primary-background);
   border-radius: .25rem;
   padding-bottom: .5rem;
   width: 2.8rem
 }
 
 .toggle-icon {
-  margin-left: 2.4rem;
+  margin-left: auto;
 }
 
-.nav_icon {
+.nav_icon,
+.section_text {
   margin-left: .5rem;
+}
+/* Hide overflowed text with ellipsis */
+.section,
+.section-body,
+.nav_header,
+.nav_link_text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+}
+
+@media (max-width: 600px) {
+  .nav_header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .toggle-icon {
+    margin-left: 0;
+    margin-top: 0.5rem;
+    align-self: flex-end;
+  }
 }
