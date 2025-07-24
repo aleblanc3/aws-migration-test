@@ -66,7 +66,7 @@
               ],
               "outputHashing": "all",
               "allowedCommonJsDependencies": [
-                "diff2html/lib/ui/js/diff2html-ui",
+                "diff2html/lib/ui/js/diff2html-ui-slim",
                 "mammoth",
                 "prettier/parser-html"
               ]
