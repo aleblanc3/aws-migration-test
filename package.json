@@ -12,7 +12,8 @@
     "deploydev": "npx angular-cli-ghpages --dir=dist/content-assistant/browser --branch=gh-pages-dev",
     "i18n:init": "ngx-translate-extract --input ./src --output ./public/i18n/template.json --key-as-default-value --replace --format json",
     "i18n:extract": "ngx-translate-extract --input ./src --output ./public/i18n/en.json ./public/i18n/fr.json --format json",
-    "i18n:new": "ngx-translate-extract --input ./src --output ./public/i18n/en-new.json ./public/i18n/fr-new.json --clean --sort --format json"
+    "i18n:new": "ngx-translate-extract --input ./src --output ./public/i18n/en-new.json ./public/i18n/fr-new.json --clean --sort --format json",
+    "checksize": "ng build --configuration production --base-href /content-assistant/ --stats-json && node scripts/check-size.js"
   },
   "private": true,
   "dependencies": {
