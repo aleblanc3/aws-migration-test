@@ -1,50 +1,67 @@
 <div class="l-navbar show-n" id="nav-bar">
   <nav class="nav">
+    <!-- App Title -->
     <div>
       <a [routerLink]="['/']">
-        <img [src]="'app.logo' | translate" [alt]="'app.title' | translate" />
+        <img [src]="'app.logo' | translate" [alt]="'app.landing' | translate" />
       </a>
-      <div class="nav_list mt-5">
-        <a [routerLink]="['/page-assistant']" [routerLinkActive]="['active']" class="nav_link" aria-current="page"
-          id="active">
-          <span class="material-icons nav_icon" aria-hidden="true">article</span>
-          <span class="nav_name">{{ 'menu.page' | translate }}</span>
-        </a>
-        <a [routerLink]="['/image-assistant']" [routerLinkActive]="['active']" class="nav_link" aria-current="page"
-          id="active">
-          <span class="material-icons nav_icon" aria-hidden="true">photo</span>
-          <span class="nav_name">{{ 'menu.image' | translate }}</span>
-        </a>
-        <a [routerLink]="['/translation-assistant']" [routerLinkActive]="['active']" class="nav_link" aria-current="page"
-          id="active">
-          <span class="material-icons nav_icon" aria-hidden="true">language</span>
-          <span class="nav_name">{{ 'menu.translation' | translate }}</span>
-        </a>
-      </div>
-      </div>
+    </div>
 
-      <div>
-        <a [routerLink]="['/project-assistant']">
-          <img [src]="'app.logo-proj' | translate" [alt]="'app.title-proj' | translate" />
+    <!-- Main Tools -->
+    <div class="section">
+      <div class="nav_header nav_link" (click)="toggleSection('main')">
+        <span class="material-icons nav_icon">edit</span>
+        <span>{{ 'menu.content' | translate }}</span>
+        <span class="material-icons toggle-icon">{{ isExpanded.main ? 'expand_less' : 'expand_more' }}</span>
+      </div>
+      <div class="section-body" [class.hidden]="!isExpanded.main">
+        <a [routerLink]="['/page-assistant']" routerLinkActive="active" class="nav_link">
+          <span class="material-icons nav_icon">article</span>
+          <span class="nav_link_text">{{ 'menu.page' | translate }}</span>
         </a>
-        <div class="nav_list mt-5">
-          <a [routerLink]="['/inventory-assistant']" [routerLinkActive]="['active']" class="nav_link" aria-current="page"
-            id="active">
-            <span class="material-icons nav_icon" aria-hidden="true">inventory</span>
-            <span class="nav_name">{{ 'menu.inventory' | translate }}</span>
+        <a [routerLink]="['/image-assistant']" routerLinkActive="active" class="nav_link">
+          <span class="material-icons nav_icon">photo</span>
+          <span class="nav_link_text">{{ 'menu.image' | translate }}</span>
+        </a>
+        <a [routerLink]="['/translation-assistant']" routerLinkActive="active" class="nav_link">
+          <span class="material-icons nav_icon">language</span>
+          <span class="nav_link_text">{{ 'menu.translation' | translate }}</span>
         </a>
       </div>
     </div>
 
-    <div class="nav_list mb-4">
-      <a [routerLink]="['/about-us']" [routerLinkActive]="['active']" class="nav_link">
-        <span class="material-icons nav_icon" aria-hidden="true">web_asset</span>
-        <span class="nav_name">{{ 'menu.about' | translate }}</span>
-      </a>
-      <a [href]="'feedback.email' | translate" class="nav_link">
-        <span class="material-icons nav_icon" aria-hidden="true">feedback</span>
-        <span class="nav_name">{{ 'menu.feedback' | translate }}</span>
-      </a>
+    <!-- Project Tools -->
+    <div class="section">
+      <div class="nav_header nav_link" (click)="toggleSection('project')">
+        <span class="material-icons nav_icon">folder</span>
+        <span>{{ 'menu.project' | translate }}</span>
+        <span class="material-icons toggle-icon">{{ isExpanded.project ? 'expand_less' : 'expand_more' }}</span>
+      </div>
+      <div class="section-body" [class.hidden]="!isExpanded.project">
+        <a [routerLink]="['/inventory-assistant']" routerLinkActive="active" class="nav_link">
+          <span class="material-icons nav_icon">inventory</span>
+          <span class="nav_link_text">{{ 'menu.inventory' | translate }}</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- App Info -->
+    <div class="section">
+      <div class="nav_header nav_link" (click)="toggleSection('info')">
+        <span class="material-icons nav_icon">info</span>
+        <span>{{ 'menu.appInfo' | translate }}</span>
+        <span class="material-icons toggle-icon">{{ isExpanded.info ? 'expand_less' : 'expand_more' }}</span>
+      </div>
+      <div class="section-body" [class.hidden]="!isExpanded.info">
+        <a [routerLink]="['/about-us']" routerLinkActive="active" class="nav_link">
+          <span class="material-icons">web_asset</span>
+          <span class="nav_link_text">{{ 'menu.about' | translate }}</span>
+        </a>
+        <a [href]="'feedback.email' | translate" class="nav_link">
+          <span class="material-icons">feedback</span>
+          <span class="nav_link_text">{{ 'menu.feedback' | translate }}</span>
+          </a>
+      </div>
     </div>
 
   </nav>

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import * as JSZip from 'jszip';
+import JSZip from 'jszip';
 
 @Injectable({ providedIn: 'root' })
 export class FileParseService {
@@ -25,7 +25,7 @@ export class FileParseService {
     const zip = await JSZip.loadAsync(arrayBuffer);
 
     const slideEntries = Object.keys(zip.files).filter((f) =>
-      /^ppt\/slides\/slide\d+\.xml$/i.test(f)
+      /^ppt\/slides\/slide\d+\.xml$/i.test(f),
     );
 
     const allParagraphs: string[] = [];
@@ -73,7 +73,7 @@ export class FileParseService {
   }
 
   async extractDocxTextXmlWithId(
-    arrayBuffer: ArrayBuffer
+    arrayBuffer: ArrayBuffer,
   ): Promise<{ id: string; text: string }[]> {
     const zip = await JSZip.loadAsync(arrayBuffer);
     const xml = await zip.file('word/document.xml')!.async('string');
@@ -83,7 +83,7 @@ export class FileParseService {
     let pCount = 1;
     for (const p of paras) {
       const texts = Array.from(p.getElementsByTagName('w:t')).map((t) =>
-        (t.textContent || '').trim()
+        (t.textContent || '').trim(),
       );
       if (!texts.join('').trim()) {
         pCount++;
@@ -100,11 +100,11 @@ export class FileParseService {
   }
 
   async extractPptxTextXmlWithId(
-    arrayBuffer: ArrayBuffer
+    arrayBuffer: ArrayBuffer,
   ): Promise<{ id: string; text: string }[]> {
     const zip = await JSZip.loadAsync(arrayBuffer);
     const slides = Object.keys(zip.files).filter((f) =>
-      /^ppt\/slides\/slide(\d+)\.xml$/.test(f)
+      /^ppt\/slides\/slide(\d+)\.xml$/.test(f),
     );
     const out: { id: string; text: string }[] = [];
     for (const f of slides) {
@@ -112,7 +112,7 @@ export class FileParseService {
       const xml = await zip.file(f)!.async('string');
       const doc = new DOMParser().parseFromString(xml, 'application/xml');
       const runs = Array.from(doc.getElementsByTagName('a:r')).filter(
-        (r) => r.getElementsByTagName('a:t').length
+        (r) => r.getElementsByTagName('a:t').length,
       );
       runs.forEach((r, idx) => {
         const t = r.getElementsByTagName('a:t')[0].textContent || '';
