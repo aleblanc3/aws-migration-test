@@ -38,7 +38,6 @@
             "styles": [
               "node_modules/primeflex/primeflex.css",
               "node_modules/primeicons/primeicons.css",
-              "node_modules/@fortawesome/fontawesome-free/css/all.min.css",
               "src/styles.css",
               "diff2html/bundles/css/diff2html.min.css"
             ],
@@ -68,7 +67,8 @@
               "allowedCommonJsDependencies": [
                 "diff2html/lib/ui/js/diff2html-ui-slim",
                 "mammoth",
-                "prettier/parser-html"
+                "prettier/parser-html",
+                "jszip"
               ]
             },
             "development": {

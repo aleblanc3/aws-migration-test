@@ -34,10 +34,12 @@
             *ngIf="isDocx(selectedFile)"
             class="pi pi-file-word text-blue-500 text-2xl mr-1"
           ></i>
-          <i
+          <fa-icon
             *ngIf="isPptx(selectedFile)"
-            class="fas fa-file-powerpoint text-orange-500 text-2xl mr-1"
-          ></i>
+            [icon]="faFilePowerpoint"
+            class="text-orange-500 text-2xl mr-1"
+          ></fa-icon>
+
           {{ selectedFile.name }}
         </p>
       </ng-container>
