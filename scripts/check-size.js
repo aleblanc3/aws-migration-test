@@ -11,7 +11,7 @@ const manualGroups = {
   'angular and subdependencies': ['@angular', 'rxjs', 'zone.js', 'tslib'],
   'prime and subdependencies': ['primeng', 'primeflex', '@primeng', '@primeuix', 'primeicons'],
   'diff and subdependencies': ['highlight.js', 'prettier', 'diff2html', 'diff', 'hogan.js', '@ali-tas' ],
-  'mammoth and subdependencies': ['bluebird', 'jszip', '@xmldom', 'dingbat-to-unicode', 'mammoth', 'xmlbuilder', 'underscore', 'lop', 'base64-js', 'option', ],
+  'mammoth and subdependencies': ['bluebird', '@xmldom', 'dingbat-to-unicode', 'mammoth', 'xmlbuilder', 'underscore', 'lop', 'base64-js', 'option', ],
 };
 
 // Build flat size map
