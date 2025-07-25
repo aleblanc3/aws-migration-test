@@ -1,10 +1,6 @@
 import { Injectable } from '@angular/core';
-//import {
-//  Diff2HtmlUIConfig,
-//  Diff2HtmlUI,
-//} from 'diff2html/lib/ui/js/diff2html-ui-slim';
-//import { createPatch } from 'diff';
-
+import { Diff2HtmlUI } from 'diff2html/lib/ui/js/diff2html-ui-slim';
+import { createPatch } from 'diff';
 import type { Diff2HtmlUIConfig } from 'diff2html/lib/ui/js/diff2html-ui-slim';
 
 
@@ -26,10 +22,10 @@ export class SourceDiffService {
   ): Promise<void> {
     try {
       //Import diff modules
-      const [{ createPatch }, { Diff2HtmlUI }] = await Promise.all([
-        import('diff'),
-        import('diff2html/lib/ui/js/diff2html-ui-slim'),
-      ]);
+      //const [{ createPatch }, { default: Diff2HtmlUI }] = await Promise.all([
+      //  import('diff'),
+      //  import('diff2html/lib/ui/js/diff2html-ui-slim'),
+      //]);
 
       // Create unified diff patch
       const patch = createPatch(

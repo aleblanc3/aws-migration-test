@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { sampleHtmlO, sampleHtmlM, sampleSnippetO, sampleSnippetM, sampleWordO, sampleWordM } from '../components/upload/sample-data';
 import { UploadData } from '../../../common/data.types'
 //import prettier from 'prettier/standalone';
-//import * as parserHtml from 'prettier/parser-html';
+import * as parserHtml from 'prettier/parser-html';
 
 @Injectable({
   providedIn: 'root'
@@ -75,10 +75,11 @@ export class UrlDataService {
   //Prettier HTML
   async formatHtml(html: string): Promise<string> {
     try {
-      const [{ default: prettier }, parserHtml] = await Promise.all([
-        import('prettier/standalone'),
-        import('prettier/parser-html'),
-      ]);
+      const { default: prettier } = await import('prettier/standalone');
+      //const [{ default: prettier }, parserHtml] = await Promise.all([
+      //  import('prettier/standalone'),
+      //  import('prettier/parser-html'),
+      //]);
       const formatted = prettier.format(html, {
         parser: 'html',
         plugins: [parserHtml],

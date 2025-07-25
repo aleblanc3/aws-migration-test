@@ -109,8 +109,9 @@ export class UploadWordComponent {
       const arrayBuffer = reader.result as ArrayBuffer;
 
       try {
-        const { convertToHtml } = await import('mammoth');
-        const result = await convertToHtml({ arrayBuffer });
+        //const { convertToHtml } = await import('mammoth');
+        const mammoth = await import('mammoth/mammoth.browser');
+        const result = await mammoth.convertToHtml({ arrayBuffer });
         const html = result.value.trim();
         if (!html) {
           this.error = docError;

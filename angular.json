@@ -44,7 +44,9 @@
               "src/styles.css",
               "diff2html/bundles/css/diff2html.min.css"
             ],
-            "scripts": []
+            "scripts": [
+              "node_modules/underscore/underscore-min.js"
+            ]
           },
           "configurations": {
             "production": {
@@ -57,7 +59,7 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "1MB",
+                  "maximumWarning": "2.4MB",
                   "maximumError": "3MB"
                 },
                 {
@@ -124,7 +126,9 @@
             "styles": [
               "src/styles.css"
             ],
-            "scripts": []
+            "scripts": [
+              "node_modules/underscore/underscore-min.js"
+            ]
           }
         }
       }
