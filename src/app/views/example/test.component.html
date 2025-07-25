@@ -3,4 +3,17 @@
 <h1 id="wb-cont">{{ 'title.test' | translate}}</h1>
 <p>{{'test.text' | translate }}</p>
 <p [innerHTML]="'test.html' | translate"></p>
-
+<h2>Horizontal radio button component</h2>
+<p>This component accepts:</p>
+<ul>
+    <li>label="your.translation.key" to set the label above the buttons</li>
+    <li>name="unique-name" in case you use it more than once on a page</li>
+    <li>[options]="yourArray" with your array of radio button labels, values, and icons
+    </li>
+    <li>[(selected)]="yourSelectedButton" to define which button is currently selected</li>
+    <li>(selectedChange)="yourFunction($event) to define what happens when the buttons are clicked</li>
+</ul>
+<p>The component emits the value of the selected radio button.</p>
+<ca-horizontal-radio-buttons label="your.translation.key" name="unique-name" [options]="yourArray"
+    [(selected)]="yourSelectedButton" (selectedChange)="yourFunction($event)">
+</ca-horizontal-radio-buttons>

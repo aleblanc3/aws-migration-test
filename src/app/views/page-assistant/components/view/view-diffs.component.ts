@@ -25,7 +25,7 @@ import { WebDiffService } from '../../services/web-diff.service';
 import { SourceDiffService } from '../../services/source-diff.service';
 import { ShadowDomService } from '../../services/shadowdom.service';
 
-import { HorizontalRadioButtonsComponent } from '../horizontal-radio-buttons.component';
+import { HorizontalRadioButtonsComponent } from '../../../../components/horizontal-radio-buttons/horizontal-radio-buttons.component';
 import { ViewOption, WebViewType, SourceViewType } from '../../../../common/data.types';
 
 @Component({
