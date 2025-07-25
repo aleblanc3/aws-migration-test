@@ -11,7 +11,6 @@ import { Message } from 'primeng/message';
 //Page assistant
 import { UrlDataService } from '../url-data.service';
 import { UploadData, ModifiedData } from '../../../../common/data.types'
-import * as mammoth from 'mammoth';
 
 @Component({
   selector: 'ca-upload-word',
@@ -93,7 +92,7 @@ export class UploadWordComponent {
     this.loading = true;
     const uploadError = this.translate.instant('page.upload.word.error.upload');
     const docError = this.translate.instant('page.upload.word.error.doc');
-    const unknownError = this.translate.instant('page.upload.word.error.unknown');
+    const unknownError = this.translate.instant('page.upload.error.unknown');
     const tryError = this.translate.instant('page.upload.word.error.try');
 
     //console.log('Upload event received:', event);
@@ -110,7 +109,8 @@ export class UploadWordComponent {
       const arrayBuffer = reader.result as ArrayBuffer;
 
       try {
-        const result = await mammoth.convertToHtml({ arrayBuffer });
+        const { convertToHtml } = await import('mammoth');
+        const result = await convertToHtml({ arrayBuffer });
         const html = result.value.trim();
         if (!html) {
           this.error = docError;
