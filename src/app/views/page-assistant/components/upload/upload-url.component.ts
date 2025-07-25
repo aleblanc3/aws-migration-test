@@ -1,5 +1,5 @@
 import { Component, Output, EventEmitter, Input } from '@angular/core';
-import { TranslateModule } from "@ngx-translate/core";
+import { TranslateModule, TranslateService } from "@ngx-translate/core";
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -8,7 +8,10 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputGroupModule } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
-import { Message } from 'primeng/message';
+import { MessageModule } from 'primeng/message';
+
+//Amimations
+import { trigger, state, style, transition, animate } from '@angular/animations';
 
 //Page assistant
 import { UrlDataService } from '../url-data.service';
@@ -19,13 +22,21 @@ import { UploadData, ModifiedData } from '../../../../common/data.types'
   imports: [CommonModule,
     TranslateModule,
     FormsModule,
-    ButtonModule, InputTextModule, InputGroupModule, InputGroupAddonModule, Message],
+    ButtonModule, InputTextModule, InputGroupModule, InputGroupAddonModule, MessageModule],
   templateUrl: './upload-url.component.html',
   styles: `
     :host {
       display: block;
     }
-  `
+  `,
+  animations: [
+    trigger('slideDown', [
+      state('void', style({ opacity: 0, transform: 'translateY(-20px)' })),
+      state('*', style({ opacity: 1, transform: 'translateY(0)' })),
+      transition(':enter', animate('200ms ease-out')),
+      transition(':leave', animate('100ms ease-in', style({ opacity: 0, transform: 'translateY(-10px)' })))
+    ])
+  ]
 })
 export class UploadUrlComponent {
 
@@ -48,9 +59,11 @@ export class UploadUrlComponent {
   showHelp: boolean = false;
 
   //This runs first, use it to inject services & other dependencies (delete if not needed)
-  constructor(private urlDataService: UrlDataService) { }
+  constructor(private urlDataService: UrlDataService, private translate: TranslateService) { }
 
   async getHtmlContent() {
+    const unknownError = this.translate.instant('page.upload.error.unknown');
+    const tryError = this.translate.instant('page.upload.url.error.try');
     this.loading = true;
     this.error = '';
 
@@ -74,7 +87,7 @@ export class UploadUrlComponent {
       }
 
     } catch (err: any) {
-      this.error = `Failed to fetch page: ${err.message || err || 'Unknown error'}`;
+      this.error = `${tryError} ${err.message || err || unknownError}`;
     } finally {
       this.loading = false;
     }

@@ -2,10 +2,10 @@
   <fieldset class="border-none p-0 m-0">
 
     <legend class="font-bold p-0">
-      {{ 'page.upload.url.legend' | translate }} <i class="pi pi-question-circle text-primary cursor-pointer" (click)="showHelp = !showHelp"></i>
+      {{ 'page.upload.url.legend' | translate }} <i class="pi pi-question-circle text-primary cursor-pointer" (click)="showHelp = !showHelp" [ariaLabel]="'page.upload.url.toggleHelp' | translate"></i>
     </legend>
 
-    <div *ngIf="showHelp" class="text-sm mt-2" [innerHTML]="'page.upload.url.example' | translate"></div>
+    <div *ngIf="showHelp" @slideDown class="text-sm mt-2" [innerHTML]="'page.upload.url.example' | translate"></div>
 
     <!-- URL input -->
     <div class="mt-3">
