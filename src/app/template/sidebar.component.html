@@ -9,22 +9,21 @@
 
     <!-- Main Tools -->
     <div class="section">
-      <div class="nav_header nav_link" (click)="toggleSection('main')">
-        <span class="material-icons nav_icon">edit</span>
-        <span>{{ 'menu.content' | translate }}</span>
+      <div class="nav_header" (click)="toggleSection('main')">
+        <span class="section_text">{{ 'menu.content' | translate }}</span>
         <span class="material-icons toggle-icon">{{ isExpanded.main ? 'expand_less' : 'expand_more' }}</span>
       </div>
-      <div class="section-body" [class.hidden]="!isExpanded.main">
+      <div class="nav_section_body" [class.hidden]="!isExpanded.main">
         <a [routerLink]="['/page-assistant']" routerLinkActive="active" class="nav_link">
-          <span class="material-icons nav_icon">article</span>
+          <span class="material-icons">article</span>
           <span class="nav_link_text">{{ 'menu.page' | translate }}</span>
         </a>
         <a [routerLink]="['/image-assistant']" routerLinkActive="active" class="nav_link">
-          <span class="material-icons nav_icon">photo</span>
+          <span class="material-icons">photo</span>
           <span class="nav_link_text">{{ 'menu.image' | translate }}</span>
         </a>
         <a [routerLink]="['/translation-assistant']" routerLinkActive="active" class="nav_link">
-          <span class="material-icons nav_icon">language</span>
+          <span class="material-icons">language</span>
           <span class="nav_link_text">{{ 'menu.translation' | translate }}</span>
         </a>
       </div>
@@ -32,14 +31,13 @@
 
     <!-- Project Tools -->
     <div class="section">
-      <div class="nav_header nav_link" (click)="toggleSection('project')">
-        <span class="material-icons nav_icon">folder</span>
-        <span>{{ 'menu.project' | translate }}</span>
+      <div class="nav_header" (click)="toggleSection('project')">
+        <span class="section_text">{{ 'menu.project' | translate }}</span>
         <span class="material-icons toggle-icon">{{ isExpanded.project ? 'expand_less' : 'expand_more' }}</span>
       </div>
-      <div class="section-body" [class.hidden]="!isExpanded.project">
+      <div class="nav_section_body" [class.hidden]="!isExpanded.project">
         <a [routerLink]="['/inventory-assistant']" routerLinkActive="active" class="nav_link">
-          <span class="material-icons nav_icon">inventory</span>
+          <span class="material-icons">inventory</span>
           <span class="nav_link_text">{{ 'menu.inventory' | translate }}</span>
         </a>
       </div>
@@ -47,12 +45,11 @@
 
     <!-- App Info -->
     <div class="section">
-      <div class="nav_header nav_link" (click)="toggleSection('info')">
-        <span class="material-icons nav_icon">info</span>
-        <span>{{ 'menu.appInfo' | translate }}</span>
+      <div class="nav_header" (click)="toggleSection('info')">
+        <span class="section_text">{{ 'menu.appInfo' | translate }}</span>
         <span class="material-icons toggle-icon">{{ isExpanded.info ? 'expand_less' : 'expand_more' }}</span>
       </div>
-      <div class="section-body" [class.hidden]="!isExpanded.info">
+      <div class="nav_section_body" [class.hidden]="!isExpanded.info">
         <a [routerLink]="['/about-us']" routerLinkActive="active" class="nav_link">
           <span class="material-icons">web_asset</span>
           <span class="nav_link_text">{{ 'menu.about' | translate }}</span>

@@ -3,7 +3,7 @@
 
 :root {
   --header-height: 3rem;
-    --nav-width: 5rem;
+    --nav-width: 6rem;
     --first-color: #1b1c1e;
     --first-color-light: #efefef;
     --body-font: "Noto Sans", sans-serif;
@@ -82,25 +82,26 @@ footer {
 
 .nav_link:hover {
   color: var(--first-color-light);
-    background-color: #a96ddd;
+    background-color: var(--p-primary-hover-color);
     border-radius: .25rem;
     padding-bottom: .5rem;
     margin-bottom: 0rem
 }
 
 .nav_link.active:hover {
-  color: #fff
+  color: #fff;
+    background-color: var(--p-primary-hover-color);
 }
 
 .nav_link.active {
-  background-color: #6e2ea7;
+  background-color: var(--p-button-primary-background);
     border-radius: .25rem;
     padding-bottom: .5rem;
     margin-bottom: .1rem
 }
 
 .nav_link.active-hide {
-  background-color: #6e2ea7;
+  background-color: var(--p-primary-hover-color);
     border-radius: .25rem;
     padding-bottom: .5rem;
     width: 2.8rem
@@ -143,7 +144,7 @@ footer {
         padding: 1rem 1rem 0
     }
     .show-n {
-    width: calc(var(--nav-width) + 160px)
+    width: calc(var(--nav-width) + 110px)
     }
         /*
         .show-n:hover {
