@@ -23,7 +23,7 @@ export interface OpenRouterResponse {
 export class OpenRouterService {
   private readonly apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   sendChat(
     model: string,
@@ -31,7 +31,7 @@ export class OpenRouterService {
     temperature: number = 0
   ): Observable<string> {
     const apiKey = localStorage.getItem('apiKey');
-    console.log(`API KEY USED: `+apiKey);
+    console.log(`API KEY USED: ` + apiKey);
     if (!apiKey) {
       return throwError(() => new Error('API key is missing from local storage.'));
     }
@@ -48,10 +48,10 @@ export class OpenRouterService {
     };
 
     console.log('Sending to OpenRouter:', {
-  model,
-  messages,
-  temperature
-});
+      model,
+      messages,
+      temperature
+    });
 
     return this.http.post<OpenRouterResponse>(this.apiUrl, body, { headers }).pipe(
       map(res => res.choices?.[0]?.message?.content || ''),
