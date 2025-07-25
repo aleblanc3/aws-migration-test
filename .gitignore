@@ -40,6 +40,8 @@ testem.log
 # Test files
 /code-to-integrate
 /src/app/views/my-test
+/public/i18n/en-new.json
+/public/i18n/fr-new.json
 
 # System files
 .DS_Store
