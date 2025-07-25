@@ -1,16 +1,32 @@
 import { Injectable } from '@angular/core';
-import * as pdfjsLib from 'pdfjs-dist';
-import { GlobalWorkerOptions } from 'pdfjs-dist';
-
-// Set worker path to local file
-GlobalWorkerOptions.workerSrc = '/content-assistant/pdfjs/pdf.worker.min.mjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PdfConverterService {
+  private pdfjsLib: any;
+  private isInitialized = false;
   
   constructor() {}
+
+  /**
+   * Lazy load and initialize pdfjs-dist
+   */
+  private async initializePdfJs(): Promise<void> {
+    if (this.isInitialized) {
+      return;
+    }
+
+    // Dynamically import pdfjs-dist
+    const pdfjs = await import('pdfjs-dist');
+    this.pdfjsLib = pdfjs;
+    
+    // Set worker path
+    const { GlobalWorkerOptions } = await import('pdfjs-dist');
+    GlobalWorkerOptions.workerSrc = '/content-assistant/pdfjs/pdf.worker.min.mjs';
+    
+    this.isInitialized = true;
+  }
 
   /**
    * Converts a PDF file to an array of image data URLs (one per page)
@@ -18,8 +34,11 @@ export class PdfConverterService {
    * @returns Promise with array of base64 image data URLs
    */
   async convertPdfToImages(file: File): Promise<string[]> {
+    // Ensure pdfjs is loaded
+    await this.initializePdfJs();
+    
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const pdf = await this.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     const images: string[] = [];
     
     // Convert each page to an image
