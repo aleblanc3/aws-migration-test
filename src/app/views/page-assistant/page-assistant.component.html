@@ -10,11 +10,11 @@
  Build dropdown to select an iteration
  Add option to submit feedback-->
 
-<!--TEST SPACE-->
 <p-stepper class="basis-[50rem]" [(value)]="activeStep" [linear]="false">
     <p-step-list>
         <p-step [value]="1">Upload</p-step>
-        <p-step [value]="2">View</p-step>
+        <!--p-step [value]="3">View</p-step-->
+        <p-step [value]="2">New View</p-step>
     </p-step-list>
     <p-step-panels>
         <p-step-panel [value]="1">
@@ -33,18 +33,21 @@
                                 <div class="flex flex-column gap-3">
                                     <label class="flex align-items-center">
                                         <p-radioButton name="uploadType" value="url"
+                                            (onClick)="onUploadTypeChange('url')"
                                             [(ngModel)]="selectedUploadType"></p-radioButton>
                                         <span class="ml-2">URL</span>
                                     </label>
 
                                     <label class="flex align-items-center">
                                         <p-radioButton name="uploadType" value="paste"
+                                            (onClick)="onUploadTypeChange('paste')"
                                             [(ngModel)]="selectedUploadType"></p-radioButton>
                                         <span class="ml-2">Copy & Paste</span>
                                     </label>
 
                                     <label class="flex align-items-center">
                                         <p-radioButton name="uploadType" value="word"
+                                            (onClick)="onUploadTypeChange('word')"
                                             [(ngModel)]="selectedUploadType"></p-radioButton>
                                         <span class="ml-2">Word doc (converts to HTML)</span>
                                     </label>
@@ -72,6 +75,23 @@
             </ng-template>
         </p-step-panel>
 
+        <!--p-step-panel [value]="3">
+            <ng-template #content let-activateCallback="activateCallback">
+                <div class="border-2 border-dashed rounded">
+
+                    
+                    <div *ngIf=receivedUploadData>
+                        <div class="p-3" *ngIf="receivedUploadData; else noData">
+                            <ca-page-compare [uploadData]="receivedUploadData"></ca-page-compare>
+                        </div>
+                        <ng-template #noData>
+                            <p-message severity="danger" text="Did not receive upload data" />
+                        </ng-template>
+                    </div>
+                </div>
+
+            </ng-template>
+        </p-step-panel-->
         <p-step-panel [value]="2">
             <ng-template #content let-activateCallback="activateCallback">
                 <div class="border-2 border-dashed rounded">
@@ -79,7 +99,7 @@
                     <!--VIEW CONTENT-->
                     <div *ngIf=receivedUploadData>
                         <div class="p-3" *ngIf="receivedUploadData; else noData">
-                            <ca-page-compare [uploadData]="receivedUploadData"></ca-page-compare>
+                            <ca-view-diffs [uploadData]="receivedUploadData"></ca-view-diffs>
                         </div>
                         <ng-template #noData>
                             <p-message severity="danger" text="Did not receive upload data" />

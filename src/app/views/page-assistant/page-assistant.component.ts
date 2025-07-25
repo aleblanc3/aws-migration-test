@@ -18,25 +18,28 @@ import { CardModule } from 'primeng/card';
 import { UploadUrlComponent } from './components/upload/upload-url.component';
 import { UploadPasteComponent } from './components/upload/upload-paste.component';
 import { UploadWordComponent } from './components/upload/upload-word.component';
-import { PageCompareComponent } from './components/page-compare.component';
+//import { PageCompareComponent } from './components/page-compare.component';
+import { ViewDiffsComponent } from './components/view/view-diffs.component';
+//import { ViewPageComponent } from './components/view/view-page.component';
 
 //Services
 import { OpenRouterService, OpenRouterMessage } from './components/openrouter.service';
+import { UploadSettingsService } from './services/upload-settings.service';
 import { UploadData } from '../../common/data.types'
 
 @Component({
   selector: 'ca-page-assistant',
-  imports: [TranslateModule, CommonModule, FormsModule, RadioButtonModule, CheckboxModule, ButtonModule, StepperModule, UploadUrlComponent, UploadPasteComponent, UploadWordComponent, PageCompareComponent, PanelModule, MessageModule, CardModule],
+  imports: [ TranslateModule, CommonModule, FormsModule, RadioButtonModule, CheckboxModule, ButtonModule, StepperModule, UploadUrlComponent, UploadPasteComponent, UploadWordComponent, ViewDiffsComponent, PanelModule, MessageModule, CardModule],
   templateUrl: './page-assistant.component.html',
   styles: ``
 })
 export class PageAssistantComponent {
 
-
-
-
-
   selectedUploadType: string = 'url';  // Default to first radio button
+  onUploadTypeChange(value: 'url' | 'paste' | 'word') { // Set variable in service
+    this.selectedUploadType = value;
+    this.uploadSettings.setUploadType(value);
+  }
   activeStep = 1;
 
   //Test
@@ -53,7 +56,7 @@ export class PageAssistantComponent {
 
   sourceURL: any;
 
-  constructor(public localStore: LocalStorageService, private translate: TranslateService, private route: ActivatedRoute, private openRouterService: OpenRouterService) { }
+  constructor(public localStore: LocalStorageService, private translate: TranslateService, private route: ActivatedRoute, private openRouterService: OpenRouterService, private uploadSettings: UploadSettingsService) { }
 
   /*Test continued
  ngOnInit() {
