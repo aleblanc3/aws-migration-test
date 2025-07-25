@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Diff } from '@ali-tas/htmldiff-js';
+//import { Diff } from '@ali-tas/htmldiff-js';
 import { DiffOptions } from '../../../common/data.types';
 
 @Injectable({
@@ -11,7 +11,7 @@ export class WebDiffService {
   /**
    * Generate HTML diff using htmldiff-js
    */
-  generateHtmlDiff(originalHtml: string, modifiedHtml: string): string {
+  async generateHtmlDiff(originalHtml: string, modifiedHtml: string): Promise<string> {
     const options: DiffOptions = {
       repeatingWordsAccuracy: 0,
       ignoreWhiteSpaceDifferences: true,
@@ -19,6 +19,8 @@ export class WebDiffService {
       matchGranularity: 4,
       combineWords: true,
     };
+
+    const { Diff } = await import('@ali-tas/htmldiff-js');
 
     const diffResult = Diff.execute(
       originalHtml,
@@ -44,8 +46,8 @@ export class WebDiffService {
   /**
    * Generate rendered diff HTML for shadow DOM
    */
-  generateRenderedDiff(originalHtml: string, modifiedHtml: string): string {
-    const diffResult = this.generateHtmlDiff(originalHtml, modifiedHtml);
+  async generateRenderedDiff(originalHtml: string, modifiedHtml: string): Promise<string> {
+    const diffResult = await this.generateHtmlDiff(originalHtml, modifiedHtml);
     return this.parseHtmlContent(diffResult);
   }
 

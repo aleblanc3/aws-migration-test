@@ -1,9 +1,11 @@
 import { Injectable } from '@angular/core';
-import {
-  Diff2HtmlUIConfig,
-  Diff2HtmlUI,
-} from 'diff2html/lib/ui/js/diff2html-ui-slim';
-import { createPatch } from 'diff';
+//import {
+//  Diff2HtmlUIConfig,
+//  Diff2HtmlUI,
+//} from 'diff2html/lib/ui/js/diff2html-ui-slim';
+//import { createPatch } from 'diff';
+
+import type { Diff2HtmlUIConfig } from 'diff2html/lib/ui/js/diff2html-ui-slim';
 
 
 @Injectable({
@@ -15,14 +17,20 @@ export class SourceDiffService {
   /**
    * Generate diff2html UI in the provided container
    */
-  generateDiff2HtmlDiff(
+  async generateDiff2HtmlDiff(
     container: HTMLElement,
     originalHtml: string,
     modifiedHtml: string,
     originalUrl: string,
     modifiedUrl: string
-  ): void {
+  ): Promise<void> {
     try {
+      //Import diff modules
+      const [{ createPatch }, { Diff2HtmlUI }] = await Promise.all([
+        import('diff'),
+        import('diff2html/lib/ui/js/diff2html-ui-slim'),
+      ]);
+
       // Create unified diff patch
       const patch = createPatch(
         'test.html',
@@ -49,12 +57,7 @@ export class SourceDiffService {
       container.innerHTML = '';
 
       // Create diff2html UI
-      const diff2htmlUi = new Diff2HtmlUI(
-        container,
-        patch,
-        configuration
-      );
-
+      const diff2htmlUi = new Diff2HtmlUI(container, patch, configuration);
       diff2htmlUi.draw();
       diff2htmlUi.highlightCode();
     } catch (error) {

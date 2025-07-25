@@ -74,11 +74,11 @@ export class ShadowDomService {
   /**
    * Generate shadow DOM diff (legacy method for backward compatibility)
    */
-  generateShadowDOMDiff(
+  async generateShadowDOMDiff(
     shadowRoot: ShadowRoot,
     originalHtml: string,
     modifiedHtml: string
-  ): void {
+  ): Promise<void> {
     if (!shadowRoot) {
       console.error('Shadow DOM failed to initialize');
       return;
@@ -98,7 +98,7 @@ export class ShadowDomService {
     renderedContent.className = 'rendered-content';
 
     // Use htmldiff-js to get the diff with HTML highlighting
-    const diffResult = this.webDiffService.generateHtmlDiff(originalHtml, modifiedHtml);
+    const diffResult = await this.webDiffService.generateHtmlDiff(originalHtml, modifiedHtml);
 
     // Parse the diff result and render it
     const diffDoc = parser.parseFromString(diffResult, 'text/html');
@@ -138,8 +138,8 @@ export class ShadowDomService {
     container.innerHTML = modifiedDoc.body ? modifiedDoc.body.innerHTML : modifiedHtml;
   }
 
-  private renderDiffHtml(container: HTMLElement, originalHtml: string, modifiedHtml: string): void {
-    const diffResult = this.webDiffService.generateRenderedDiff(originalHtml, modifiedHtml);
+  private async renderDiffHtml(container: HTMLElement, originalHtml: string, modifiedHtml: string): Promise<void> {
+    const diffResult = await this.webDiffService.generateRenderedDiff(originalHtml, modifiedHtml);
 
     container.className = 'rendered-content diff-content';
     container.innerHTML = diffResult;
