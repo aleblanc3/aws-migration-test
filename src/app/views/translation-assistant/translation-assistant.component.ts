@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import JSZip from 'jszip';
 
 //primeNG
 import { CardModule } from 'primeng/card';
@@ -235,7 +234,8 @@ export class TranslationAssistantComponent implements OnInit {
         throw new Error('Failed to read the source file.');
       }
 
-      const zip = await JSZip.loadAsync(arrayBuffer);
+      const JSZipModule = await import('jszip');
+      const zip = await JSZipModule.default.loadAsync(arrayBuffer);
 
       if (fileExtension === 'docx') {
         const docXml = await zip.file('word/document.xml')?.async('string');
@@ -287,7 +287,9 @@ export class TranslationAssistantComponent implements OnInit {
   }
 
   private async extractDocxTextXmlWithId(arrayBuffer: ArrayBuffer) {
-    const zip = await JSZip.loadAsync(arrayBuffer);
+    const JSZipModule = await import('jszip');
+    const zip = await JSZipModule.default.loadAsync(arrayBuffer);
+
     const docXmlStr = await zip.file('word/document.xml')?.async('string');
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(docXmlStr!, 'application/xml');

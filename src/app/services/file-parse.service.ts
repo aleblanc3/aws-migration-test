@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
-import JSZip from 'jszip';
 
 @Injectable({ providedIn: 'root' })
 export class FileParseService {
   async extractDocxParagraphs(arrayBuffer: ArrayBuffer): Promise<string> {
-    const zip = await JSZip.loadAsync(arrayBuffer);
+    const JSZipModule = await import('jszip');
+    const zip = await JSZipModule.default.loadAsync(arrayBuffer);
     const xmlStr = await zip.file('word/document.xml')!.async('string');
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlStr, 'application/xml');
@@ -22,7 +22,8 @@ export class FileParseService {
   }
 
   async extractPptxText(arrayBuffer: ArrayBuffer): Promise<string> {
-    const zip = await JSZip.loadAsync(arrayBuffer);
+    const JSZipModule = await import('jszip');
+    const zip = await JSZipModule.default.loadAsync(arrayBuffer);
 
     const slideEntries = Object.keys(zip.files).filter((f) =>
       /^ppt\/slides\/slide\d+\.xml$/i.test(f),
@@ -75,7 +76,8 @@ export class FileParseService {
   async extractDocxTextXmlWithId(
     arrayBuffer: ArrayBuffer,
   ): Promise<{ id: string; text: string }[]> {
-    const zip = await JSZip.loadAsync(arrayBuffer);
+    const JSZipModule = await import('jszip');
+    const zip = await JSZipModule.default.loadAsync(arrayBuffer);
     const xml = await zip.file('word/document.xml')!.async('string');
     const doc = new DOMParser().parseFromString(xml, 'application/xml');
     const paras = Array.from(doc.getElementsByTagName('w:p'));
@@ -102,7 +104,8 @@ export class FileParseService {
   async extractPptxTextXmlWithId(
     arrayBuffer: ArrayBuffer,
   ): Promise<{ id: string; text: string }[]> {
-    const zip = await JSZip.loadAsync(arrayBuffer);
+    const JSZipModule = await import('jszip');
+    const zip = await JSZipModule.default.loadAsync(arrayBuffer);
     const slides = Object.keys(zip.files).filter((f) =>
       /^ppt\/slides\/slide(\d+)\.xml$/.test(f),
     );
