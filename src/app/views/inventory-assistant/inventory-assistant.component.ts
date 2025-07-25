@@ -184,8 +184,8 @@ export class InventoryAssistantComponent {
     // Load both CSVs if not already cached
     if (!csvCache['en'] || !csvCache['fr']) {
       [csvCache['en'], csvCache['fr']] = await Promise.all([
-        this.loadCsv('/gcPage-report/sanitized_cra_gcPageReport_en.csv'),
-        this.loadCsv('/gcPage-report/sanitized_cra_gcPageReport_fr.csv'),
+        this.loadCsv('gcPage-report/sanitized_cra_gcPageReport_en.csv'),
+        this.loadCsv('gcPage-report/sanitized_cra_gcPageReport_fr.csv'),
       ]);
     }
 
