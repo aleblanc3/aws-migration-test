@@ -3,27 +3,30 @@
     <!-- App Title -->
     <div class="nav_logo">
       <a [routerLink]="['/']">
-        <span class="material-icons">design_services</span>
+        <span class="material-icons text-primary-200">design_services</span>
         <span class="logo_text">{{ 'title.landing' | translate }}</span>
       </a>
     </div>
 
     <!-- Main Tools -->
     <div class="nav_section">
-      <div class="nav_header" (click)="toggleSection('main')">
+      <div class="nav_header text-primary-200 hover:text-primary-400" (click)="toggleSection('main')">
         <span class="nav_section_text">{{ 'menu.content' | translate }}</span>
         <span class="material-icons toggle-icon">{{ isExpanded.main ? 'expand_less' : 'expand_more' }}</span>
       </div>
       <div class="nav_section_body" [class.hidden]="!isExpanded.main">
-        <a [routerLink]="['/page-assistant']" routerLinkActive="active" class="nav_link">
+        <a [routerLink]="['/page-assistant']" routerLinkActive="active"
+          class="nav_link flex hover:bg-primary-600 border-round ">
           <span class="material-icons">article</span>
           <span class="nav_link_text">{{ 'menu.page' | translate }}</span>
         </a>
-        <a [routerLink]="['/image-assistant']" routerLinkActive="active" class="nav_link">
+        <a [routerLink]="['/image-assistant']" routerLinkActive="active"
+          class="nav_link flex hover:bg-primary-600 border-round">
           <span class="material-icons">photo</span>
           <span class="nav_link_text">{{ 'menu.image' | translate }}</span>
         </a>
-        <a [routerLink]="['/translation-assistant']" routerLinkActive="active" class="nav_link">
+        <a [routerLink]="['/translation-assistant']" routerLinkActive="active"
+          class="nav_link flex hover:bg-primary-600 border-round">
           <span class="material-icons">language</span>
           <span class="nav_link_text">{{ 'menu.translation' | translate }}</span>
         </a>
@@ -32,12 +35,13 @@
 
     <!-- Project Tools -->
     <div class="section">
-      <div class="nav_header" (click)="toggleSection('project')">
+      <div class="nav_header text-primary-200 hover:text-primary-400 hover:font-bold" (click)="toggleSection('project')">
         <span class="nav_section_text">{{ 'menu.project' | translate }}</span>
         <span class="material-icons toggle-icon">{{ isExpanded.project ? 'expand_less' : 'expand_more' }}</span>
       </div>
       <div class="nav_section_body" [class.hidden]="!isExpanded.project">
-        <a [routerLink]="['/inventory-assistant']" routerLinkActive="active" class="nav_link">
+        <a [routerLink]="['/inventory-assistant']" routerLinkActive="active"
+          class="nav_link flex hover:bg-primary-600 border-round">
           <span class="material-icons">inventory</span>
           <span class="nav_link_text">{{ 'menu.inventory' | translate }}</span>
         </a>
@@ -46,16 +50,16 @@
 
     <!-- App Info -->
     <div class="section">
-      <div class="nav_header" (click)="toggleSection('info')">
+      <div class="nav_header text-primary-200 hover:text-primary-400" (click)="toggleSection('info')">
         <span class="nav_section_text">{{ 'menu.appInfo' | translate }}</span>
         <span class="material-icons toggle-icon">{{ isExpanded.info ? 'expand_less' : 'expand_more' }}</span>
       </div>
       <div class="nav_section_body" [class.hidden]="!isExpanded.info">
-        <a [routerLink]="['/about-us']" routerLinkActive="active" class="nav_link">
+        <a [routerLink]="['/about-us']" routerLinkActive="active" class="nav_link flex hover:bg-primary-600 border-round">
           <span class="material-icons">web_asset</span>
           <span class="nav_link_text">{{ 'menu.about' | translate }}</span>
         </a>
-        <a [href]="'feedback.email' | translate" class="nav_link">
+        <a [href]="'feedback.email' | translate" class="nav_link flex hover:bg-primary-600 border-round">
           <span class="material-icons">feedback</span>
           <span class="nav_link_text">{{ 'menu.feedback' | translate }}</span>
         </a>
