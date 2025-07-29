@@ -3,12 +3,12 @@
 
 :root {
   --header-height: 3rem;
-    --nav-width: 6rem;
+    --nav-width: 4.8rem;
     --first-color: #1b1c1e;
     --first-color-light: #efefef;
     --body-font: "Noto Sans", sans-serif;
     --z-fixed: 100
-}
+    }
 
 *,
 :before,
@@ -27,7 +27,7 @@ body {
     padding: 0 1rem;
     font-family: var(--body-font);
     font-size: var(--font-size);
-    transition: .5s;
+    transition: .3s;
 }
 
 body.container {
@@ -45,7 +45,7 @@ footer {
 }
 
 
-@media screen and (min-width: 768px) {
+@media screen and (min-width: 600px) {
   body {
       margin: calc(var(--header-height) + 1rem) 0 0 0;
       padding-left: calc(var(--nav-width) + 2rem)
