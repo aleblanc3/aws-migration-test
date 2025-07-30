@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { PageAssistantUploadComponent } from './page-assistant-upload.component';
+import { PageAssistantUploadComponent } from './upload.component';
 
 describe('PageAssistantUploadComponent', () => {
   let component: PageAssistantUploadComponent;
