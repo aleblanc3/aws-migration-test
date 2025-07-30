@@ -3,6 +3,27 @@
 <h1 id="wb-cont">{{ 'title.test' | translate}}</h1>
 <p>{{'test.text' | translate }}</p>
 <p [innerHTML]="'test.html' | translate"></p>
+<h2>Table of links that drop you into page compare tool</h2>
+<p-table [value]="links">
+  <ng-template pTemplate="header">
+    <tr>
+      <th>Title</th>
+      <th>Link</th>
+    </tr>
+  </ng-template>
+  <ng-template pTemplate="body" let-link>
+    <tr>
+      <td>{{ link.title }}</td>
+      <td>
+        <p-button
+          variant="text" severity="info"
+          (onClick)="fetchAndGoToCompare(link.url)">
+          {{ link.url }}
+        </p-button>
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
 <h2>Horizontal radio button component</h2>
 <p>This component accepts:</p>
 <ul>
@@ -17,3 +38,4 @@
 <ca-horizontal-radio-buttons label="your.translation.key" name="unique-name" [options]="yourArray"
     [(selected)]="yourSelectedButton" (selectedChange)="yourFunction($event)">
 </ca-horizontal-radio-buttons>
+
