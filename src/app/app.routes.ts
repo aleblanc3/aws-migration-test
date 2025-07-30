@@ -2,7 +2,7 @@ import { Routes, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { LandingComponent } from './views/static/landing.component';
 import { NotFoundComponent } from './views/static/not-found.component';
-import { PageAssistantUploadComponent } from './views/page-assistant/components/page-assistant-upload.component';
+import { PageAssistantUploadComponent } from './views/page-assistant/components/upload.component';
 import { UploadStateService } from './views/page-assistant/services/upload-state.service';
 import { ImageAssistantComponent } from './views/image-assistant/image-assistant.component';
 import { TranslationAssistantComponent } from './views/translation-assistant/translation-assistant.component';
@@ -16,13 +16,6 @@ export const routes: Routes = [
         path: '',
         component: LandingComponent,
         title: 'title.landing',
-        data: { lang: 'en' },
-    },
-    {
-        path: 'fr',
-        component: LandingComponent,
-        title: 'title.landing',
-        data: { lang: 'fr' },
     },
     {
         path: 'page-assistant/compare',
@@ -46,43 +39,36 @@ export const routes: Routes = [
         path: 'page-assistant',
         component: PageAssistantUploadComponent,
         title: 'title.page',
-        data: { lang: 'en' },
     },
     {
         path: 'image-assistant',
         component: ImageAssistantComponent,
         title: 'title.image',
-        data: { lang: 'en' },
     },
     {
         path: 'translation-assistant',
         component: TranslationAssistantComponent,
         title: 'title.translation',
-        data: { lang: 'en' },
     },
     {
         path: 'project-assistant',
         component: ProjectAssistantComponent,
         title: 'title.project',
-        data: { lang: 'en' },
     },
     {
         path: 'inventory-assistant',
         component: InventoryAssistantComponent,
         title: 'title.inventory',
-        data: { lang: 'en' },
     },
     {
         path: 'about-us',
         component: AboutComponent,
         title: 'title.about',
-        data: { lang: 'en' },
     },
     {
         path: 'test',
         component: TestComponent,
         title: 'title.test',
-        data: { lang: 'en' },
     },
     {
         path: '**',
