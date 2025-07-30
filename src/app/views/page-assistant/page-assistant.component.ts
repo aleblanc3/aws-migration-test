@@ -6,6 +6,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 //Translation
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
@@ -40,7 +41,7 @@ import { HorizontalRadioButtonsComponent } from '../../components/horizontal-rad
 })
 export class PageAssistantCompareComponent implements OnInit {
 
-  constructor(private translate: TranslateService, private uploadState: UploadStateService, private sourceDiffService: SourceDiffService, private shadowDomService: ShadowDomService, private openRouterService: OpenRouterService) {
+  constructor(private translate: TranslateService, private uploadState: UploadStateService, private sourceDiffService: SourceDiffService, private shadowDomService: ShadowDomService, private openRouterService: OpenRouterService, private router: Router) {
     effect(() => {
       const data = this.uploadState.getUploadData();
       const viewType = this.webSelectedView();
@@ -150,17 +151,46 @@ export class PageAssistantCompareComponent implements OnInit {
     }
   }
 
+  clearAll(): void {
+    this.uploadState.resetUploadFlow();
+    this.router.navigate(['page-assistant']);
+  }
+
   //AI interaction
   aiResponse: string = '';
   isLoading = false;
 
   sendToAI(): void {
+    this.isLoading = true;
+    const data = this.uploadState.getUploadData();
+    const html = data!.originalHtml;
+    const prompt = "You are an expert web content writer with 10 years of experience in the public service. Your primary function is to help web publishers rewrite technical content to be easy to understand for the general public. Please review the included HTML code and update only the words. Return only the updated HTML code with no explanations. "
+
+    if (!html) return;
+    const messages: OpenRouterMessage[] = [
+      { role: 'system', content: prompt },
+      { role: 'user', content: html }
+    ];
+
+    this.openRouterService.sendChat('deepseek/deepseek-chat-v3-0324:free', messages).subscribe({
+      next: (response) => {
+        this.aiResponse = response;        
+        this.uploadState.mergeModifiedData({
+          modifiedUrl: "AI generated",
+          modifiedHtml: this.aiResponse
+        })
+        this.isLoading = false;
+      },
+        error: (err) => {
+        console.error('Error getting AI response:', err);
+        this.aiResponse = 'An error occurred while contacting the AI.';
+        this.isLoading = false;
+      }
+    });
 
   }
 
-  clearAll(): void {
 
-  }
 
 
 }

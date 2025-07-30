@@ -17,10 +17,10 @@
         <p-tab value="1"><i class="pi pi-code mr-1"></i>Page source</p-tab>
     </p-tablist>
     <!-- Rendered page -->
-    <p-tabpanels>
+    <p-tabpanels class="shadow-1">
 
         <p-tabpanel value="0">
-            <p-card>
+           
                 <!--Switch view -->
                 <ca-horizontal-radio-buttons label="page.compare.view" [name]="'webView'" [options]="webViewOptions"
                     [(selected)]="webSelectedView" (selectedChange)="onWebViewChange($event)">
@@ -41,12 +41,11 @@
                 </div>
                 <!--Shadow Dom-->
                 <div #liveContainer class="live-container p-0" [ngClass]="webSelectedView()"></div>
-            </p-card>
 
         </p-tabpanel>
         <!-- Source code -->
         <p-tabpanel value="1">
-            <p-card>
+           
                 <!--Switch view -->
                 <ca-horizontal-radio-buttons label="page.compare.view" [name]="'sourceView'"
                     [options]="sourceViewOptions" [(selected)]="sourceSelectedView"
@@ -54,7 +53,7 @@
                 </ca-horizontal-radio-buttons>
                 <!--Source view-->
                 <div #sourceContainer class="source-container"></div>
-            </p-card>
+           
         </p-tabpanel>
 
     </p-tabpanels>
