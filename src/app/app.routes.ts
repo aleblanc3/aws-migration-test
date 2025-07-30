@@ -4,10 +4,12 @@ import { NotFoundComponent } from './views/static/not-found.component';
 import { PageAssistantComponent } from './views/page-assistant/page-assistant.component';
 import { ImageAssistantComponent } from './views/image-assistant/image-assistant.component';
 import { TranslationAssistantComponent } from './views/translation-assistant/translation-assistant.component';
+import { ProjectAssistantComponent } from './views/project-assistant/project-assistant.component';
+import { InventoryAssistantComponent } from './views/inventory-assistant/inventory-assistant.component';
 import { AboutComponent } from './views/static/about.component';
 import { TestComponent } from './views/my-test/test.component';
 
-export const routes: Routes = [    
+export const routes: Routes = [
     {
         path: '',
         component: LandingComponent,
@@ -39,6 +41,18 @@ export const routes: Routes = [
         data: { lang: 'en' },
     },
     {
+        path: 'project-assistant',
+        component: ProjectAssistantComponent,
+        title: 'title.project',
+        data: { lang: 'en' },
+    },
+    {
+    path: 'inventory-assistant',
+    component: InventoryAssistantComponent,
+    title: 'title.inventory',
+    data: { lang: 'en' },
+  },
+  {
         path: 'about-us',
         component: AboutComponent,
         title: 'title.about',

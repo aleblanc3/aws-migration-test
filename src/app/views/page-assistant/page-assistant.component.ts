@@ -1,116 +1,154 @@
-import { Component, inject } from '@angular/core';
+import { Component, signal } from '@angular/core';
+import { TranslateModule, TranslateService } from "@ngx-translate/core";
+import { LocalStorageService } from '../../services/local-storage.service'; //Delete if you aren't using anything from local storage
 import { CommonModule } from '@angular/common';
-import { TranslateModule } from "@ngx-translate/core";
-import { FormsModule, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { DomSanitizer, SafeResourceUrl, SafeHtml } from '@angular/platform-browser';
-import { HttpClient } from '@angular/common/http';
-import { InputTextModule } from 'primeng/inputtext';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+
+//primeNG
+import { RadioButtonModule } from 'primeng/radiobutton';
+import { CheckboxModule } from 'primeng/checkbox';
 import { ButtonModule } from 'primeng/button';
+import { StepperModule } from 'primeng/stepper';
+import { PanelModule } from 'primeng/panel';
 import { MessageModule } from 'primeng/message';
+import { CardModule } from 'primeng/card';
+
+//Components
+import { UploadUrlComponent } from './components/upload/upload-url.component';
+import { UploadPasteComponent } from './components/upload/upload-paste.component';
+import { UploadWordComponent } from './components/upload/upload-word.component';
+//import { PageCompareComponent } from './components/page-compare.component';
+import { ViewDiffsComponent } from './components/view/view-diffs.component';
+//import { ViewPageComponent } from './components/view/view-page.component';
+
+//Services
+import { OpenRouterService, OpenRouterMessage } from './components/openrouter.service';
+import { UploadSettingsService } from './services/upload-settings.service';
+import { UploadData } from '../../common/data.types'
 
 @Component({
   selector: 'ca-page-assistant',
-  imports: [CommonModule, TranslateModule, FormsModule, ReactiveFormsModule, InputTextModule, ButtonModule, MessageModule],
+  imports: [ TranslateModule, CommonModule, FormsModule, RadioButtonModule, CheckboxModule, ButtonModule, StepperModule, UploadUrlComponent, UploadPasteComponent, UploadWordComponent, ViewDiffsComponent, PanelModule, MessageModule, CardModule],
   templateUrl: './page-assistant.component.html',
   styles: ``
 })
 export class PageAssistantComponent {
 
-  //Initialize stuff
-  source: string = '';
-  prototype: string = '';
-  iframeContentA: SafeHtml | null = null;
-  iframeContentB: SafeHtml | null = null;
-  error: string = '';
+  selectedUploadType: string = 'url';  // Default to first radio button
+  onUploadTypeChange(value: 'url' | 'paste' | 'word') { // Set variable in service
+    this.selectedUploadType = value;
+    this.uploadSettings.setUploadType(value);
+  }
+  activeStep = 1;
 
-  //This runs first, use it to inject services & other dependencies
-  constructor(private sanitizer: DomSanitizer, private http: HttpClient) {
+  //Test
+  activeStepIndex = 0;           // current step index: 0 (Upload) or 1 (View)
+  preloadedUrl?: string;         // if coming from direct URL
+  finalUrl?: string;             // URL to pass to View step
+  //End test
+
+
+
+  // cancelUpload() {
+  //  this.selectedUploadType = null;
+  // }
+
+  sourceURL: any;
+
+  constructor(public localStore: LocalStorageService, private translate: TranslateService, private route: ActivatedRoute, private openRouterService: OpenRouterService, private uploadSettings: UploadSettingsService) { }
+
+  /*Test continued
+ ngOnInit() {
+    // Check if arriving via /stepper/view?url=...
+    this.route.queryParamMap.subscribe(params => {
+      const directUrl = params.get('url');
+      if (directUrl) {
+        this.preloadedUrl = directUrl;
+        this.finalUrl = directUrl;
+        this.activeStepIndex = 1; // jump directly to View step
+      }
+    });
   }
 
-  //Loads content into iframe (used by updateIframeFromURL)
-  loadIntoIframe(frame: string, content: string): void {
-    const iframeContent = this.sanitizer.bypassSecurityTrustHtml(content);
-    if (frame === 'A') {
-      this.iframeContentA = iframeContent;
-    } else if (frame === 'B') {
-      this.iframeContentB = iframeContent;
-    } else {
-      console.warn('Unknown frame:', frame);
-    }
-  }
-
-  //Gets HTML content from URL (used by updateIframeFromURL)
-  async fetchHtml(url: string, label: string): Promise<string> {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`${label} fetch failed: HTTP ${response.status}`);
-    console.warn(`Response code: ${response.status}`);
-    return response.text();
-  }
-
-  //Updates iframe using both fetchHtml() and loadIntoIframe()
-  async updateIframeFromURL() {
-    this.error = '';
-    this.iframeContentA = null;
-    this.iframeContentB = null;
-
-    try {
-      //Block unknown hosts
-      const allowedHosts = new Set([
-        "cra-design.github.io",
-        "cra-proto.github.io",
-        "gc-proto.github.io",
-        "test.canada.ca",
-        "www.canada.ca"
-      ]);
-      
-      const sourceInput = new URL(this.source);    
-      if (!allowedHosts.has(sourceInput.host)) {
-        throw new Error(`${sourceInput.host} is blocked`);
-      }
-      
-      const prototypeInput = new URL(this.prototype);
-      if (!allowedHosts.has(prototypeInput.host)) {
-        throw new Error(`${prototypeInput.host} is blocked`);
-      }
-
-      //Get HTML content
-      var htmlA = await this.fetchHtml(this.source, "Source");
-      var htmlB = await this.fetchHtml(this.prototype, "Prototype");
-
-      //Fix Canada.ca pages
-      if(sourceInput.host == "www.canada.ca"){
-        htmlA = htmlA.replace(/=("|')\//g,'="https://www.canada.ca/')
-      }
-      if(prototypeInput.host == "www.canada.ca"){
-        htmlB = htmlB.replace(/=("|')\//g,'="https://www.canada.ca/')
-      }
-      
-      //Load into iframe
-      this.loadIntoIframe("A", htmlA);
-      this.loadIntoIframe("B", htmlB);
-
-    }
-    catch (err: any) {
-      this.error = `Failed to fetch page: ${err.message}`;
-    }
+  onUploadCompleted(uploadedUrl: string) {
+    this.finalUrl = uploadedUrl;
+    this.activeStepIndex = 1; // advance to View step
   }
 
 
 
+  //End test*/
+
+  //Step 1 radio buttons to select task
+  selectedTask: any = null;
+
+  tasks: any[] = [
+    { name: 'my content with an AI optimized version', key: 'taskContentAndAI', unavailable: 'false' },
+    { name: 'two webpages', key: 'task2Contents', unavailable: 'false' },
+    { name: 'two AI models', key: 'task2Models', unavailable: 'false' },
+    { name: 'two AI prompts', key: 'task2Prompts', unavailable: 'true' }
+  ];
+
+  //Step 2 radio buttons to select upload type
+  selectedUpload: any = null;
+
+  uploads: any[] = [
+    { name: 'URL', key: 'url', unavailable: 'false' },
+    { name: 'Copy & paste', key: 'paste', unavailable: 'false' },
+    { name: 'Word doc (converts to HTML)', key: 'word', unavailable: 'true' }
+  ];
+  //Step 2 get upload data from child component
+  public receivedUploadData: UploadData | null = null;
+
+  public handleUpload(uploadData: UploadData | null = null): void {
+    this.receivedUploadData = uploadData;
+    this.activeStep = 2;  // move to step 2
+  }
+
+  //Interaction with AI
 
 
-  //Switch to reactive forms if I need a more complex form (currently using template driven form)
- // urlForm = new FormGroup({
-//    source: new FormControl(''),
- //   prototype: new FormControl(''),
- // });
-//  submitURL() {
- //   this.pageAssistantService.submitURL(
- //     this.urlForm.value.source ?? '',
- //     this.urlForm.value.prototype ?? '',
- //   );
- // }
-  //End of reactive form code
+  aiResponse: string = '';
+  isLoading = false;
 
+  sendToAI(): void {
+    const html = this.receivedUploadData?.originalHtml;
+    const prompt = "You are an expert web content writer with 10 years of experience in the public service. Your primary function is to help web publishers rewrite technical content to be easy to understand for the general public. Please review the included HTML code and update only the words. Return only the updated HTML code with no explanations. "
+
+    if (!html) return;
+    const messages: OpenRouterMessage[] = [
+      { role: 'system', content: prompt },
+      { role: 'user', content: html }
+    ];
+
+    this.isLoading = true;
+    setTimeout(() => {
+      this.openRouterService.sendChat('deepseek/deepseek-chat-v3-0324:free', messages).subscribe({
+        next: (response) => {
+          this.aiResponse = response;
+          this.isLoading = false;
+        },
+        error: (err) => {
+          console.error('Error getting AI response:', err);
+          this.aiResponse = 'An error occurred while contacting the AI.';
+          this.isLoading = false;
+        }
+      });
+    }, 1000); // 1 second delay
+  }
+
+  get modifiedHtml(): string {
+    return this.aiResponse || this.receivedUploadData?.modifiedHtml || '';
+  }
+
+  //TEST FOR RIGHT DRAWER
+  drawerVisible = false;
+  parentData = 'Some input from parent';
+
+  handleDrawerMessage(data: string) {
+    console.log('Drawer says:', data);
+  }
+  //END TEST
 
 }

@@ -1,0 +1,68 @@
+<h1 id="wb-cont">{{ 'title.inventory' | translate }}</h1>
+<p>{{ 'inventory.intro' | translate }}</p>
+
+<!-- PrimeNG Radio Buttons -->
+<div class="p-formgroup-inline">
+  <div class="p-field-radiobutton">
+    <p-radioButton name="sourceOption" value="canadaOrGithub" [(ngModel)]="selectedSourceOption"
+      inputId="canadaGithubOption" (onClick)="onSourceChange()">
+    </p-radioButton>
+    <label for="canadaGithubOption">{{ 'inventory.meta.radioLabel1' | translate }}</label>
+  </div>
+
+  <div class="p-field-last-radiobutton">
+    <p-radioButton name="sourceOption" value="preview" [(ngModel)]="selectedSourceOption" inputId="previewOption"
+      (onClick)="onSourceChange()">
+    </p-radioButton>
+    <label for="previewOption">{{ 'inventory.meta.radioLabel2' | translate }}</label>
+  </div>
+</div>
+
+<br />
+
+<!-- Input for Canada.ca or GitHub -->
+<div *ngIf="selectedSourceOption === 'canadaOrGithub'">
+  <p [innerHTML]="'inventory.meta.instructions' | translate"></p>
+  <textarea pTextarea id="prjct_pgs" [(ngModel)]="urlsInput" rows="5" style="width: 100%;"
+    placeholder="{{ 'inventory.meta.watermark' | translate }}">
+  </textarea>
+  <br /><br />
+  <button pButton type="button" label="{{ 'inventory.meta.fetch-button' | translate }}"
+    (click)="fetchMetadata(urlsInput)">
+  </button>
+</div>
+
+<!-- Input for Preview -->
+<div *ngIf="selectedSourceOption === 'preview'">
+  <p [innerHTML]="'inventory.meta-prvw.instructions' | translate"></p>
+  <textarea pTextarea id="preview_pgs" [(ngModel)]="previewInput" rows="5" style="width: 100%;"
+    placeholder="{{ 'inventory.meta.watermark' | translate }}">
+      </textarea>
+  <br /><br />
+  <button pButton type="button" label="Fetch Preview Metadata" (click)="fetchPreviewMetadata(previewInput)">
+  </button>
+  </div>
+
+<!-- Loading Indicator -->
+<div *ngIf="loading">Loading...</div>
+<br /><br />
+
+<!-- Results Table -->
+<p-table [value]="results" *ngIf="results.length > 0">
+  <ng-template pTemplate="header">
+    <tr>
+      <th>Page (h1)</th>
+      <th>Source</th>
+      <th>Description</th>
+      <th>{{ 'inventory.meta.keywords' | translate }}</th>
+    </tr>
+  </ng-template>
+  <ng-template pTemplate="body" let-row>
+    <tr>
+      <td><a [href]="row.url" target="_blank">{{ row.title }}</a></td>
+      <td>{{ row.source }}</td>
+      <td>{{ row.description }}</td>
+      <td>{{ row.keywords }}</td>
+    </tr>
+  </ng-template>
+</p-table>

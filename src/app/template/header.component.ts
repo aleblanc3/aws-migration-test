@@ -1,80 +1,81 @@
-import { Component } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
 
+import { ToolbarModule } from 'primeng/toolbar';
+import { ButtonModule } from 'primeng/button';
+import { ToggleButtonModule } from 'primeng/togglebutton';
+
+import { ApiResetComponent } from './api-reset.component';
+import { LocalStorageService } from '../services/local-storage.service';
+
 @Component({
   selector: 'ca-header',
-  imports: [CommonModule, TranslateModule],
+  imports: [CommonModule, TranslateModule, ToolbarModule, ButtonModule, ToggleButtonModule, ApiResetComponent],
   template: `
-  <header id="header">
-  <div class="row">
-    <div class="col-lg-3 col-md-4 col-sm-6 col-6 text-start">
+  <header id="header" class="pb-2">
+  <p-toolbar>
+    <div class="flex align-items-center hidden md:block">
       <img
-        class="img-fluid fip-colour"
-        src="cra-logo.png"
-        width="471"
-        height="38"
-        alt="Government of Canada"
+        id="cra-logo"
+        class="img-fluid fip-colour w-28rem"
+        [src]="logoSrc"
+        [alt]="'CRA' | translate"
         priority="true"
       />
     </div>
-    <div class="col-lg-9 col-md-8 col-sm-6 col-6 text-end lang-toggle">
-      <div class="language-picker-area">
-        <div class="picker-label"></div>
-        <!--a
-          style="cursor: pointer"
-          class="langs"
-          tabindex="0"
-          (click)="this.langToggle.selectLanguage()"> 
-          {{ 'opp.lang' | translate }}
-        </a-->
-        <a
-          style="cursor: pointer"
-          class="langs"
-          tabindex="0"
-          (click)="selectLanguage()"> 
-          {{ 'opp.lang' | translate }}
-        </a>
-      </div>
+    <div class="flex align-items-end gap-3">
+      <ca-api-reset
+        *ngIf="this.localStore.getData('apiKey') != null">
+      </ca-api-reset>
+
+      <p-togglebutton
+        offIcon="pi pi-moon"
+        offLabel=""
+        onIcon="pi pi-sun"
+        onLabel=""
+        class="p-button-rounded p-button-secondary p-button-outlined p-button-sm pr-0"
+        (click)="toggleDarkMode()">
+      </p-togglebutton>
+
+      <a
+        class="cursor-pointer underline font-medium text-blue-600 hover:text-blue-800"
+        tabindex="0"
+        (click)="selectLanguage()">
+        {{ 'opp.lang' | translate }}
+      </a>
     </div>
-  </div>
+  </p-toolbar>
 </header>
   `,
   styles: `
-    :host {
-      display: block;
+  ::ng-deep .p-toolbar {
+      background-color: transparent !important;
+      border: none !important;
+       
     }
-    .lang-toggle a:link {
-      text-color: black
+    header {
+      border-bottom-style: solid;
+      border-bottom-color: #c4c4c4;
+      border-width: 1px;
+      margin-top: -4rem;
     }
-    .lang-toggle a:visited {
-      color: #000
-    }
-    .lang-toggle a:hover {
-      color: #00f
-    }
-    .language-picker-area {
-      display: flex;
-      justify-content: flex-end;
-    }
-    .picker-label {
-      margin-right: 20px;
-    }
-    .language-picker {
-      width: 100px;
-    }
-    .langs, .langs:hover, .langs:visited {
-      text-decoration: underline;
-      color: #2e5ea7;
-    }
-  `
+    `
 })
 export class HeaderComponent {
+  @Output() darkModeToggled = new EventEmitter<void>();
+  @Input() darkMode = false;
+  get logoSrc() {
+    return this.darkMode ? 'cra-logo-dark.png' : 'cra-logo.png';
+  }
+
   // constructor(public langToggle: LangToggleService){} //putting the code below into a service works but we aren't calling it anywhere else
-  constructor(private translate: TranslateService) {
+  constructor(private translate: TranslateService, public localStore: LocalStorageService) {
+    var curLang = this.localStore.getData('lang') || this.translate.getBrowserLang() || 'en';
+    console.log(this.translate.getBrowserLang());
     this.translate.addLangs(['en', 'fr']);
     this.translate.setDefaultLang('en');
-    this.translate.use(this.translate.getBrowserLang() || "en");
+    this.translate.use(curLang);
   }
 
   selectLanguage(): void {
@@ -82,7 +83,12 @@ export class HeaderComponent {
     if (this.translate.currentLang == "en") { oppLang = "fr" }
     else { oppLang = "en" }
     this.translate.use(oppLang);
-    //console.log(`The opp lang is: ${oppLang}`);
+    this.localStore.saveData('lang', oppLang);
   }
 
+  toggleDarkMode() {
+    this.darkModeToggled.emit();
+    const element = document.querySelector('html');
+    if (element) { element.classList.toggle('dark-mode'); }
+  }
 }

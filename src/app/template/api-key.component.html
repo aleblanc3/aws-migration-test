@@ -1,0 +1,21 @@
+<p-card [header]="'title.apiKey' | translate">
+  <div class="flex flex-column gap-3">
+
+    <p class="m-0">
+      {{'apiKey.intro' | translate}}
+    </p>
+
+    <p-inputGroup>
+      <input pInputText [placeholder]="'apiKey.placeholder' | translate" [(ngModel)]="api" #apiField="ngModel" #apiKey required />
+      <button pButton icon="pi pi-key" [label]="'apiKey.save' | translate" [raised]="true" severity="success"
+              (click)="this.localStore.saveData('apiKey', api)"></button>
+    </p-inputGroup>
+
+    <div *ngIf="apiField.invalid && apiField.touched" class="text-danger small">
+      <ng-container *ngIf="apiField.errors?.['required']">
+        <p class="m-0">{{'apiKey.error' | translate}}</p>
+      </ng-container>
+    </div>
+<div [innerHTML]="'apiKey.instructions' | translate"></div>
+</div>
+</p-card>

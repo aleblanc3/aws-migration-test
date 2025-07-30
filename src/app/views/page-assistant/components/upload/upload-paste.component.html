@@ -1,0 +1,38 @@
+<form #form="ngForm" (ngSubmit)="getPasteContent()" novalidate>
+  <fieldset class="border-none p-0 m-0">
+
+    <legend class="font-bold p-0">
+      {{ 'page.upload.paste.legend' | translate }}
+    </legend>
+
+    <!-- Copy/paste input -->
+    <div class="mt-3">
+      <label for="source" class="font-semibold">{{ labelKey | translate }}</label>
+
+      <textarea type="text" id="source" pTextarea rows="3" name="userInput" [(ngModel)]="userInput" required
+        #inputField="ngModel" class="w-full" fluid></textarea>
+
+      <!--Validation error-->
+      <div *ngIf="inputField.invalid && inputField.touched" class="text-red-500 text-xs mt-0">
+        <div *ngIf="inputField.errors?.['required']">
+          {{ 'page.upload.paste.error.required' | translate }}
+        </div>
+      </div>
+
+    </div>
+
+    <!--Upload Error -->
+    <p-message *ngIf="error" severity="error" [text]="error"></p-message>
+
+    <!-- Buttons -->
+    <div class="flex gap-2 flex-wrap mt-3">
+      <p-button type="submit" icon="pi pi-save" [label]="'page.upload.continue' | translate" [loading]="loading"
+        [disabled]="form.invalid" severity="primary">
+      </p-button>
+      <p-button [label]="'page.upload.sample' | translate" icon="pi pi-file" (onClick)="loadSampleData()" severity="secondary"
+        *ngIf="showSampleDataButton">
+      </p-button>
+    </div>
+
+  </fieldset>
+</form>

@@ -1,0 +1,49 @@
+<form #form="ngForm" (ngSubmit)="getHtmlContent()" novalidate>
+  <fieldset class="border-none p-0 m-0">
+
+    <legend class="font-bold p-0">
+      {{ 'page.upload.url.legend' | translate }} <i class="pi pi-question-circle text-primary cursor-pointer" (click)="showHelp = !showHelp" [ariaLabel]="'page.upload.url.toggleHelp' | translate"></i>
+    </legend>
+
+    <div *ngIf="showHelp" @slideDown class="text-sm mt-2" [innerHTML]="'page.upload.url.example' | translate"></div>
+
+    <!-- URL input -->
+    <div class="mt-3">
+      <label for="userInput" class="font-semibold">{{ labelKey | translate }}</label>
+
+      <p-inputGroup>
+        <p-inputgroup-addon>
+          <i class="pi pi-globe"></i>
+        </p-inputgroup-addon>
+        <input id="userInput" pInputText type="url" name="userInput" [(ngModel)]="userInput" required
+          pattern="https?://.+" #urlField="ngModel" class="w-full" autocomplete="url" [placeholder]="'page.upload.url.placeholder' | translate"
+          fluid />
+      </p-inputGroup>
+
+      <!--Validation errors-->
+      <div *ngIf="urlField.invalid && urlField.touched" class="text-red-500 text-xs mt-0">
+        <div *ngIf="urlField.errors?.['required']">
+          {{ 'page.upload.url.error.required' | translate }}.
+        </div>
+        <div *ngIf="urlField.errors?.['pattern']">
+          {{ 'page.upload.url.error.pattern' | translate }}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Upload error -->
+    <p-message *ngIf="error" severity="error" [text]="error"></p-message>
+
+    <!-- Buttons -->
+    <div class="flex gap-2 flex-wrap mt-3">
+      <p-button type="submit" icon="pi pi-save" [label]="'page.upload.continue' | translate" [loading]="loading"
+        [disabled]="form.invalid" severity="primary">
+      </p-button>
+      <p-button [label]="'page.upload.sample' | translate" icon="pi pi-file" (onClick)="loadSampleData()" severity="secondary"
+        *ngIf="showSampleDataButton">
+      </p-button>
+    </div>
+
+  </fieldset>
+</form>

@@ -1,0 +1,56 @@
+<fieldset class="border-none p-0 m-0">
+
+    <legend class="font-bold mb-3 p-0">
+        {{ 'page.upload.word.legend' | translate }}
+    </legend>
+
+    <!-- File input -->
+    <p-fileupload #fileUploadRef name="word[]" accept=".docx" auto="true" maxFileSize="1000000" [customUpload]="true"
+        (uploadHandler)="getWordContent($event)" mode="advanced" styleClass="border-none">
+        <ng-template #header></ng-template>
+        <ng-template #content></ng-template>
+
+        <!--List of files (only shows when emit fxn is decoupled from upload)-->
+        <ng-template let-file #file>
+            <div class="flex flex-column align-items-center justify-content-center p-3
+                    border-solid border-round border-200 surface-100">
+                <p class="text-xl"><i class="pi pi-file-word text-blue-500 text-2xl mr-1"></i>{{ ( file.name ) }}<br>{{
+                    formatSize(file.size) }}
+                </p>
+            </div>
+            <p-message *ngIf="error" severity="error" [text]="error"></p-message>
+            <!-- Buttons -->
+            <div class="flex gap-2 flex-wrap mt-3">
+                <p-button type="submit" icon="pi pi-save" [label]="'page.upload.continue' | translate"
+                    [loading]="loading" [disabled]="!uploadedFileName" (onClick)="emitData()" severity="primary">
+                </p-button>
+                <p-button [label]="'page.upload.sample' | translate" icon="pi pi-file" (onClick)="loadSampleData()"
+                    severity="secondary">
+                </p-button>
+            </div>
+        </ng-template>
+
+        <!--Drag & drop upload box-->
+        <ng-template #empty>
+            <div class="flex flex-column align-items-center justify-content-center p-3
+                    border-dashed border-round border-200 surface-100
+                    hover:surface-200 hover:border-primary-400 transition-colors transition-duration-500 cursor-pointer"
+                (click)="fileUploadRef.choose()">
+                <i class="pi pi-upload border-2 border-circle border-300 p-4 text-5xl text-color-secondary mb-3"></i>
+                <p class="m-0 mt-4">{{ 'page.upload.word.instruction' | translate }}</p>
+            </div>
+            <p-message *ngIf="error" severity="error" [text]="error"></p-message>
+            <!-- Buttons -->
+            <div class="flex gap-2 flex-wrap mt-3">
+                <p-button type="submit" icon="pi pi-save" [label]="'page.upload.continue' | translate"
+                    [loading]="loading" [disabled]="!uploadedFileName" (onClick)="emitData()" severity="primary">
+                </p-button>
+                <p-button [label]="'page.upload.sample' | translate" icon="pi pi-file" (onClick)="loadSampleData()"
+                    severity="secondary" *ngIf="showSampleDataButton">
+                </p-button>
+            </div>
+        </ng-template>
+
+    </p-fileupload>
+
+</fieldset>

@@ -1,0 +1,89 @@
+<p>SEPARATED FUNCTIONS</p>
+<div class="pb-2">
+  <!-- Control Buttons -->
+  <div class="flex gap-2 flex-wrap">
+    <p-button label="Send to GenAI" [icon]="isLoading ? 'pi pi-spinner pi-spin' : 'pi pi-comments'" severity="primary"
+      (onClick)="sendToAI()" [disabled]="!uploadData.originalHtml || isLoading"></p-button>
+    <p-button label="Compare HTML" icon="pi pi-search" severity="success" (onClick)="compareHtml()"
+      [disabled]="!uploadData.originalHtml || !uploadData.modifiedHtml"></p-button>
+    <ca-ai-options></ca-ai-options>
+    <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="clearAll()" class="md:ml-auto"></p-button>
+  </div>
+
+  <!-- Results Section -->
+  <div *ngIf="showResults" class="mt-4">
+    <p-tabs value="0">
+      <p-tablist>
+        <p-tab value="0"><i class="pi pi-eye mr-1"></i>Web page</p-tab>
+        <p-tab value="1"><i class="pi pi-code mr-1"></i>Page source</p-tab>
+      </p-tablist>
+      <!-- Rendered page -->
+      <p-tabpanels>
+        <p-tabpanel value="0">
+
+          <p-card>
+            <!--Switch view -->
+            <ca-horizontal-radio-buttons label="page.compare.view" [name]="'webView'" [options]="webViewOptions"
+              [(selected)]="webSelectedView" (selectedChange)="onViewChange($event)">
+            </ca-horizontal-radio-buttons>
+
+            <div>
+              <label class="mb-1 font-semibold block">View:</label>
+              <div class="flex flex-wrap gap-3">
+                <div *ngFor="let option of webViewOptions" class="field-radiobutton">
+                  <p-radioButton [inputId]="option.value" name="viewType" [value]="option.value"
+                    [(ngModel)]="webSelectedView" (ngModelChange)="onViewChange($event)">
+                  </p-radioButton>
+                  <label [for]="option.value">
+                    <i [class]="option.icon"></i>
+                    {{ option.label }}
+                  </label>
+                </div>
+              </div>
+            </div>
+            <!--Legend-->
+            <div class="group-legend mb-2">
+              <div *ngFor="let item of legendItems()" class="legend-item">
+                <div class="legend-box" [ngStyle]="{
+                'background-color':
+                  item.style === 'highlight' ? item.colour : 'transparent',
+                border:
+                  item.style === 'line'
+                    ? '2px ' + (item.lineStyle || 'solid') + ' ' + item.colour
+                    : 'none',
+              }"></div>
+                <span class="legend-text">{{ item.text }}</span>
+              </div>
+            </div>
+            <!--Shadow Dom-->
+            <div #liveContainer class="live-container border-1 surface-border border-round p-3"></div>
+
+          </p-card>
+        </p-tabpanel>
+
+        <!-- Source code -->
+        <p-tabpanel value="1">
+
+          <p-card>
+            <!--Switch view -->
+            <!--div>
+              <label class="mb-1 font-semibold block">View:</label>
+              <div class="flex flex-wrap gap-3">
+                <div *ngFor="let option of sourceViewOptions" class="field-radiobutton">
+                  <p-radioButton [inputId]="option.value" name="viewType" [value]="option.value"
+                    [(ngModel)]="sourceSelectedView" (ngModelChange)="onViewChange($event)">
+                  </p-radioButton>
+                  <label [for]="option.value">
+                    <i [class]="option.icon"></i>
+                    {{ option.label }}
+                  </label>
+                </div>
+              </div>
+            </div-->
+            <div #sourceContainer class="source-container"></div>
+          </p-card>
+        </p-tabpanel>
+      </p-tabpanels>
+    </p-tabs>
+  </div>
+</div>

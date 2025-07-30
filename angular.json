@@ -39,11 +39,14 @@
               }
             ],
             "styles": [
-              "node_modules/bootstrap/dist/css/bootstrap.min.css",
-              "node_modules/diff2html/bundles/css/diff2html.min.css",
-              "src/styles.css"
+              "node_modules/primeflex/primeflex.css",
+              "node_modules/primeicons/primeicons.css",
+              "src/styles.css",
+              "diff2html/bundles/css/diff2html.min.css"
             ],
-            "scripts": []
+            "scripts": [
+              "node_modules/underscore/underscore-min.js"
+            ]
           },
           "configurations": {
             "production": {
@@ -56,8 +59,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumWarning": "2.4MB",
+                  "maximumError": "3MB"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -65,7 +68,22 @@
                   "maximumError": "8kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "allowedCommonJsDependencies": [
+                "prettier/parser-html",
+                "diff",
+                "diff2html/lib/ui/js/diff2html-ui-slim",
+                "highlight.js",
+                "hogan.js",
+                "mammoth",
+                "bluebird/js/release/promise",
+                "jszip",
+                "@xmldom",
+                "dingbat-to-unicode",
+                "xmlbuilder",
+                "lop",
+                "base64-js"
+              ]
             },
             "development": {
               "optimization": false,
@@ -108,7 +126,9 @@
             "styles": [
               "src/styles.css"
             ],
-            "scripts": []
+            "scripts": [
+              "node_modules/underscore/underscore-min.js"
+            ]
           }
         }
       }
