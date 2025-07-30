@@ -1,0 +1,40 @@
+<h1 id="wb-cont">{{ 'title.page' | translate}}</h1>
+<p>{{'page.upload.description' | translate }}</p>
+<div class="flex flex-wrap">
+    <!--SELECT UPLOAD TYPE-->
+    <div class="flex mr-4 mb-4">
+        <fieldset class="border-none p-0 m-0">
+            <legend class="font-bold mb-3">Choose upload type:</legend>
+
+            <div class="flex flex-column gap-3">
+                <label class="flex align-items-center">
+                    <p-radioButton name="uploadType" value="url" (onClick)="onUploadTypeChange('url')"
+                        [(ngModel)]="selectedUploadType"></p-radioButton>
+                    <span class="ml-2">URL</span>
+                </label>
+
+                <label class="flex align-items-center">
+                    <p-radioButton name="uploadType" value="paste" (onClick)="onUploadTypeChange('paste')"
+                        [(ngModel)]="selectedUploadType"></p-radioButton>
+                    <span class="ml-2">Copy & Paste</span>
+                </label>
+
+                <label class="flex align-items-center">
+                    <p-radioButton name="uploadType" value="word" (onClick)="onUploadTypeChange('word')"
+                        [(ngModel)]="selectedUploadType"></p-radioButton>
+                    <span class="ml-2">Word doc (converts to HTML)</span>
+                </label>
+            </div>
+        </fieldset>
+    </div>
+    <!--UPLOAD FILE-->
+    <div class="flex">
+        <ng-container [ngSwitch]="selectedUploadType">
+
+            <ca-upload-url *ngSwitchCase="'url'" (uploadComplete)="goToCompare()"></ca-upload-url>
+            <ca-upload-paste *ngSwitchCase="'paste'" (uploadComplete)="goToCompare()"></ca-upload-paste>
+            <ca-upload-word *ngSwitchCase="'word'" (uploadComplete)="goToCompare()"></ca-upload-word>
+
+        </ng-container>
+    </div>
+</div>

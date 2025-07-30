@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { PageAssistantComponent } from './page-assistant.component';
+import { PageAssistantCompareComponent } from './page-assistant.component';
 
-describe('PageAssistantComponent', () => {
-  let component: PageAssistantComponent;
-  let fixture: ComponentFixture<PageAssistantComponent>;
+describe('PageAssistantCompareComponent', () => {
+  let component: PageAssistantCompareComponent;
+  let fixture: ComponentFixture<PageAssistantCompareComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [PageAssistantComponent]
+      imports: [PageAssistantCompareComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(PageAssistantComponent);
+    fixture = TestBed.createComponent(PageAssistantCompareComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

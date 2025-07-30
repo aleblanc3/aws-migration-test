@@ -11,14 +11,14 @@ import { AccordionModule } from 'primeng/accordion';
 import { TranslateModule } from "@ngx-translate/core";
 
 //Services
-import { OpenRouterService, OpenRouterMessage } from '../../components/openrouter.service';
-import { UploadData, ModifiedData, CompareTask, PromptKey, AiModel } from '../../../../common/data.types'
-import { LocalStorageService } from '../../../../services/local-storage.service'; //Delete if you aren't using anything from local storage
-import { UrlDataService } from '../url-data.service';
-import { UploadSettingsService } from '../../services/upload-settings.service';
-import { UploadUrlComponent } from '../upload/upload-url.component';
-import { UploadPasteComponent } from '../upload/upload-paste.component';
-import { UploadWordComponent } from '../upload/upload-word.component';
+import { OpenRouterService, OpenRouterMessage } from '../services/openrouter.service';
+import { UploadData, ModifiedData, CompareTask, PromptKey, AiModel } from '../../../common/data.types'
+import { LocalStorageService } from '../../../services/local-storage.service'; //Delete if you aren't using anything from local storage
+import { UrlDataService } from '../services/url-data.service';
+import { UploadStateService } from '../services/upload-state.service';
+import { UploadUrlComponent } from './upload/upload-url.component';
+import { UploadPasteComponent } from './upload/upload-paste.component';
+import { UploadWordComponent } from './upload/upload-word.component';
 
 @Component({
   selector: 'ca-ai-options',
@@ -40,10 +40,10 @@ export class AiOptionsComponent {
     console.log(this.uploadData);
   }
 
-  constructor(public localStore: LocalStorageService, private openRouterService: OpenRouterService, private urlDataService: UrlDataService, private uploadSettings: UploadSettingsService) { }
+  constructor(public localStore: LocalStorageService, private openRouterService: OpenRouterService, private urlDataService: UrlDataService, private uploadState: UploadStateService) { }
 
   get uploadType(): 'url' | 'paste' | 'word' {
-    return this.uploadSettings.getSelectedUploadType(); // returns signal().value
+    return this.uploadState.getSelectedUploadType(); // returns signal().value
   }
 
   ngOnChanges(): void {
