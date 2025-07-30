@@ -7,9 +7,8 @@ import { WebDiffService } from './web-diff.service';
 export class ShadowDomService {
   constructor(private webDiffService: WebDiffService) { }
 
-  /**
-   * Initialize shadow DOM on an element
-   */
+
+  //Initialize shadowDOM on an element
   initializeShadowDOM(element: HTMLElement): ShadowRoot | null {
     if (element && !element.shadowRoot) {
       return element.attachShadow({ mode: 'open' });
@@ -17,24 +16,20 @@ export class ShadowDomService {
     return element?.shadowRoot || null;
   }
 
-  /**
-   * Clear shadow DOM content
-   */
+  //Clear shadowDom content
   clearShadowDOM(shadowRoot: ShadowRoot): void {
     if (shadowRoot) {
       shadowRoot.innerHTML = '';
     }
   }
 
-  /**
-   * Generate shadow DOM content based on view type
-   */
-  generateShadowDOMContent(
+  //Generate shadow DOM content based on view type
+  async generateShadowDOMContent(
     shadowRoot: ShadowRoot,
     viewType: 'original' | 'modified' | 'diff',
     originalHtml: string,
     modifiedHtml: string
-  ): void {
+  ): Promise<void> {
     if (!shadowRoot) {
       console.error('Shadow DOM not available');
       return;
@@ -53,17 +48,18 @@ export class ShadowDomService {
     diffContainer.className = 'rendered-diff-container';
 
     const renderedContent = document.createElement('div');
-    renderedContent.className = 'rendered-content';
+    renderedContent.classList.add('rendered-content');
 
+    //Switch views
     switch (viewType) {
       case 'original':
-        this.renderOriginalHtml(renderedContent, originalHtml);
+        this.renderHtml(renderedContent, originalHtml, 'original-html');
         break;
       case 'modified':
-        this.renderModifiedHtml(renderedContent, modifiedHtml);
+        this.renderHtml(renderedContent, modifiedHtml, 'modified-html');
         break;
       case 'diff':
-        this.renderDiffHtml(renderedContent, originalHtml, modifiedHtml);
+        await this.renderDiffHtml(renderedContent, originalHtml, modifiedHtml, 'diff-content');
         break;
     }
 
@@ -71,77 +67,17 @@ export class ShadowDomService {
     shadowRoot.appendChild(diffContainer);
   }
 
-  /**
-   * Generate shadow DOM diff (legacy method for backward compatibility)
-   */
-  async generateShadowDOMDiff(
-    shadowRoot: ShadowRoot,
-    originalHtml: string,
-    modifiedHtml: string
-  ): Promise<void> {
-    if (!shadowRoot) {
-      console.error('Shadow DOM failed to initialize');
-      return;
-    }
+  //Render HTML
+  private renderHtml(container: HTMLElement, html: string, className: string): void {
+    container.classList.add(className);
+    container.innerHTML = html;
+  }
 
-    // Parse HTML using DOMParser
-    const parser = new DOMParser();
-    const originalDoc = parser.parseFromString(originalHtml, 'text/html');
-    const modifiedDoc = parser.parseFromString(modifiedHtml, 'text/html');
-
-    // Create diff container to render the HTML
-    const diffContainer = document.createElement('div');
-    diffContainer.className = 'rendered-diff-container';
-
-    // Create the rendered content container
-    const renderedContent = document.createElement('div');
-    renderedContent.className = 'rendered-content';
-
-    // Use htmldiff-js to get the diff with HTML highlighting
+  //Render Diff
+  private async renderDiffHtml(container: HTMLElement, originalHtml: string, modifiedHtml: string, className: string): Promise<void> {
     const diffResult = await this.webDiffService.generateHtmlDiff(originalHtml, modifiedHtml);
 
-    // Parse the diff result and render it
-    const diffDoc = parser.parseFromString(diffResult, 'text/html');
-
-    // Clone the body content from the diff result
-    if (diffDoc.body) {
-      renderedContent.innerHTML = diffDoc.body.innerHTML;
-    } else {
-      renderedContent.innerHTML = diffResult;
-    }
-
-    diffContainer.appendChild(renderedContent);
-
-    // Clear previous content and add new diff
-    this.clearShadowDOM(shadowRoot);
-    shadowRoot.appendChild(diffContainer);
-
-    // Add enhanced styles for rendered content
-    const style = document.createElement('style');
-    style.textContent = this.webDiffService.getRenderedDiffStyles();
-    shadowRoot.insertBefore(style, shadowRoot.firstChild);
-  }
-
-  private renderOriginalHtml(container: HTMLElement, originalHtml: string): void {
-    const parser = new DOMParser();
-    const originalDoc = parser.parseFromString(originalHtml, 'text/html');
-
-    container.className = 'rendered-content original-content';
-    container.innerHTML = originalDoc.body ? originalDoc.body.innerHTML : originalHtml;
-  }
-
-  private renderModifiedHtml(container: HTMLElement, modifiedHtml: string): void {
-    const parser = new DOMParser();
-    const modifiedDoc = parser.parseFromString(modifiedHtml, 'text/html');
-
-    container.className = 'rendered-content modified-content';
-    container.innerHTML = modifiedDoc.body ? modifiedDoc.body.innerHTML : modifiedHtml;
-  }
-
-  private async renderDiffHtml(container: HTMLElement, originalHtml: string, modifiedHtml: string): Promise<void> {
-    const diffResult = await this.webDiffService.generateRenderedDiff(originalHtml, modifiedHtml);
-
-    container.className = 'rendered-content diff-content';
+    container.classList.add(className);
     container.innerHTML = diffResult;
   }
 }

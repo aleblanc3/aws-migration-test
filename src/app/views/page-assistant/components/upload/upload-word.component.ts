@@ -9,7 +9,8 @@ import { FileUploadModule } from 'primeng/fileupload';
 import { Message } from 'primeng/message';
 
 //Page assistant
-import { UrlDataService } from '../url-data.service';
+import { UrlDataService } from '../../services/url-data.service';
+import { UploadStateService } from '../../services/upload-state.service';
 import { UploadData, ModifiedData } from '../../../../common/data.types'
 
 @Component({
@@ -53,11 +54,10 @@ export class UploadWordComponent {
   @Input() mode: 'original' | 'prototype' = 'original';
   @Input() showSampleDataButton = true;
 
-  //Export data to parent component
-  @Output() modifiedData = new EventEmitter<ModifiedData>();
-  @Output() uploadData = new EventEmitter<UploadData>();
+  //Export upload complete
+  @Output() uploadComplete = new EventEmitter<void>();
 
-  constructor(private urlDataService: UrlDataService, private translate: TranslateService) { }
+  constructor(private urlDataService: UrlDataService, private uploadState: UploadStateService, private translate: TranslateService) { }
 
   //Initialize stuff
   error: string = '';
@@ -119,12 +119,22 @@ export class UploadWordComponent {
         }
 
         //Emit original data & set modified to same (no changes)
-        /* this.uploadData.emit({
-              originalUrl: file.name,
-              originalHtml: html,
-              modifiedUrl: file.name,
-              modifiedHtml: html
-              }); */
+        /* if (this.mode === 'original') {
+        this.uploadState.setUploadData({
+          originalUrl: this.uploadedFileName,
+          originalHtml: this.extractedHtml,
+          modifiedUrl: this.uploadedFileName,
+          modifiedHtml: this.extractedHtml
+        });
+      }
+      if (this.mode === 'prototype') {
+        this.uploadState.mergeModifiedData({
+          modifiedUrl: this.uploadedFileName,
+          modifiedHtml: this.extractedHtml
+        });
+      }
+      
+      this.uploadComplete.emit(); */
 
         //Remove this line if we want to emit during the upload step
         this.extractedHtml = html;
@@ -142,7 +152,7 @@ export class UploadWordComponent {
   //Remove this fxn if we want to emit during upload step
   emitData() {
     if (this.mode === 'original') {
-      this.uploadData.emit({
+      this.uploadState.setUploadData({
         originalUrl: this.uploadedFileName,
         originalHtml: this.extractedHtml,
         modifiedUrl: this.uploadedFileName,
@@ -150,16 +160,19 @@ export class UploadWordComponent {
       });
     }
     if (this.mode === 'prototype') {
-      this.modifiedData.emit({
+      this.uploadState.mergeModifiedData({
         modifiedUrl: this.uploadedFileName,
         modifiedHtml: this.extractedHtml
       });
     }
+
+    this.uploadComplete.emit();
+
   }
   //Emit sample data
   async loadSampleData() {
-    const uploadData = await this.urlDataService.loadSampleDataset('word');
-    this.uploadData.emit(uploadData);
+    await this.urlDataService.loadSampleDataset('word');
+    this.uploadComplete.emit();
   }
 
 }

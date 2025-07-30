@@ -36,8 +36,8 @@
                     border-dashed border-round border-200 surface-100
                     hover:surface-200 hover:border-primary-400 transition-colors transition-duration-500 cursor-pointer"
                 (click)="fileUploadRef.choose()">
-                <i class="pi pi-upload border-2 border-circle border-300 p-4 text-5xl text-color-secondary mb-3"></i>
-                <p class="m-0 mt-4">{{ 'page.upload.word.instruction' | translate }}</p>
+                <i class="pi pi-upload border-2 border-circle border-300 p-4 text-5xl text-color-secondary"></i>
+                <p class="m-0 mt-3">{{ 'page.upload.word.instruction' | translate }}</p>
             </div>
             <p-message *ngIf="error" severity="error" [text]="error"></p-message>
             <!-- Buttons -->

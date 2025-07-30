@@ -1,5 +1,6 @@
 <p-button label="Options" icon="pi pi-bars" (click)="visible=true" severity="info" />
-<p-drawer [(visible)]="visible" [header]="'page.ai-options.header' | translate" position="right" [style]="{ width: '30rem'}">
+<p-drawer [(visible)]="visible" [header]="'page.ai-options.header' | translate" position="right"
+  [style]="{ width: '30rem'}">
   <p-accordion value="1">
     <!--TASK OPTIONS-->
     <p-accordion-panel value="0">
@@ -83,18 +84,15 @@
     </p-accordion-panel>
   </p-accordion>
 
-  <p-button *ngIf="!isPrototype" [label]="'page.compare.button.genai' | translate" [icon]="isLoading ? 'pi pi-spinner pi-spin' : 'pi pi-comments'"
-    severity="primary" (click)="sendToAI()" [disabled]="isLoading"></p-button>
+  <p-button *ngIf="!isPrototype" [label]="'page.compare.button.genai' | translate"
+    [icon]="isLoading ? 'pi pi-spinner pi-spin' : 'pi pi-comments'" severity="primary" (click)="sendToAI()"
+    [disabled]="isLoading"></p-button>
 
   <!--FROM UPLOAD URL COMPONENT - REFACTOR COMPONENT FOR BOTH USE CASES-->
   <ng-container [ngSwitch]="uploadType" *ngIf="isPrototype">
-    <ca-upload-url *ngSwitchCase="'url'" mode="prototype" [showSampleDataButton]="false"
-      (modifiedData)="handleUpload($event)" />
-    <ca-upload-paste *ngSwitchCase="'paste'" mode="prototype" [showSampleDataButton]="false"
-      (modifiedData)="handleUpload($event)" />
-    <ca-upload-word *ngSwitchCase="'word'" mode="prototype" [showSampleDataButton]="false"
-      (modifiedData)="handleUpload($event)" />
+    <ca-upload-url *ngSwitchCase="'url'" mode="prototype" [showSampleDataButton]="false" />
+    <ca-upload-paste *ngSwitchCase="'paste'" mode="prototype" [showSampleDataButton]="false" />
+    <ca-upload-word *ngSwitchCase="'word'" mode="prototype" [showSampleDataButton]="false" />
   </ng-container>
-
 
 </p-drawer>

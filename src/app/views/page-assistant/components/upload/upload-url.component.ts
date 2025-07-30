@@ -14,7 +14,8 @@ import { MessageModule } from 'primeng/message';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 
 //Page assistant
-import { UrlDataService } from '../url-data.service';
+import { UrlDataService } from '../../services/url-data.service';
+import { UploadStateService } from '../../services/upload-state.service';
 import { UploadData, ModifiedData } from '../../../../common/data.types'
 
 @Component({
@@ -48,9 +49,8 @@ export class UploadUrlComponent {
     return this.mode === 'prototype' ? 'page.upload.url.modified' : 'page.upload.url.original';
   }
 
-  //Export data to parent component
-  @Output() modifiedData = new EventEmitter<ModifiedData>();
-  @Output() uploadData = new EventEmitter<UploadData>();
+  //Export upload complete
+  @Output() uploadComplete = new EventEmitter<void>();
 
   //Initialize stuff
   userInput: string = '';
@@ -59,7 +59,7 @@ export class UploadUrlComponent {
   showHelp: boolean = false;
 
   //This runs first, use it to inject services & other dependencies (delete if not needed)
-  constructor(private urlDataService: UrlDataService, private translate: TranslateService) { }
+  constructor(private urlDataService: UrlDataService, private uploadState: UploadStateService, private translate: TranslateService) { }
 
   async getHtmlContent() {
     const unknownError = this.translate.instant('page.upload.error.unknown');
@@ -72,7 +72,7 @@ export class UploadUrlComponent {
 
       //Emit original data & set modified to same (no changes)
       if (this.mode === 'original') {
-        this.uploadData.emit({
+        this.uploadState.setUploadData({
           originalUrl: this.userInput,
           originalHtml: mainHTML,
           modifiedUrl: this.userInput,
@@ -80,11 +80,14 @@ export class UploadUrlComponent {
         });
       }
       if (this.mode === 'prototype') {
-        this.modifiedData.emit({
+        this.uploadState.mergeModifiedData({
           modifiedUrl: this.userInput,
           modifiedHtml: mainHTML
         });
       }
+
+      this.uploadComplete.emit();
+
 
     } catch (err: any) {
       this.error = `${tryError} ${err.message || err || unknownError}`;
@@ -94,7 +97,7 @@ export class UploadUrlComponent {
   }
   //Emit sample data
   async loadSampleData() {
-    const uploadData = await this.urlDataService.loadSampleDataset('webpage');
-    this.uploadData.emit(uploadData);
+    await this.urlDataService.loadSampleDataset('webpage');
+    this.uploadComplete.emit();
   }
 }

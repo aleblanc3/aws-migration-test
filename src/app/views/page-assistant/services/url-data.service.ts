@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { sampleHtmlO, sampleHtmlM, sampleSnippetO, sampleSnippetM, sampleWordO, sampleWordM } from '../components/upload/sample-data';
+import { sampleHtmlO, sampleHtmlM, sampleSnippetO, sampleSnippetM, sampleWordO, sampleWordM } from '../components/sample-data';
 import { UploadData } from '../../../common/data.types'
+import { UploadStateService } from './upload-state.service';
 //import prettier from 'prettier/standalone';
 import * as parserHtml from 'prettier/parser-html';
 
@@ -8,6 +9,8 @@ import * as parserHtml from 'prettier/parser-html';
   providedIn: 'root'
 })
 export class UrlDataService {
+
+  constructor(private uploadState: UploadStateService) { }
 
   //Block unknown hosts
   private allowedHosts = new Set([
@@ -371,42 +374,34 @@ export class UrlDataService {
   //END OF CLEAN-UP FUNCTIONS
 
   //Start of sample data
-  async loadSampleDataset(name: 'webpage' | 'snippet' | 'word' = 'webpage'): Promise<UploadData> {
+  async loadSampleDataset(name: 'webpage' | 'snippet' | 'word' = 'webpage'): Promise<void> {
     let originalHtml: string;
     let modifiedHtml: string;
 
     switch (name) {
-      case 'snippet':
-        originalHtml = await this.extractContent(sampleSnippetO);
-        modifiedHtml = await this.formatHtml(sampleSnippetM);
-        return {
-          originalUrl: 'Original snippet',
-          originalHtml,
-          modifiedUrl: 'Modified snippet',
-          modifiedHtml,
-        };
+    case 'snippet':
+      originalHtml = await this.extractContent(sampleSnippetO);
+      modifiedHtml = await this.formatHtml(sampleSnippetM);
+      break;
 
-      case 'word':
-        originalHtml = await this.extractContent(sampleWordO);
-        modifiedHtml = await this.formatHtml(sampleWordM);
-        return {
-          originalUrl: 'Original word content',
-          originalHtml,
-          modifiedUrl: 'Modified word content',
-          modifiedHtml,
-        };
+    case 'word':
+      originalHtml = await this.extractContent(sampleWordO);
+      modifiedHtml = await this.formatHtml(sampleWordM);
+      break;
 
-      default:
-        originalHtml = await this.extractContent(sampleHtmlO);
-        modifiedHtml = await this.formatHtml(sampleHtmlM);
-        return {
-          originalUrl: 'Original HTML',
-          originalHtml,
-          modifiedUrl: 'Modified HTML',
-          modifiedHtml,
-        };
-    }
+    default:
+      originalHtml = await this.extractContent(sampleHtmlO);
+      modifiedHtml = await this.formatHtml(sampleHtmlM);
+      break;
   }
+
+  this.uploadState.setUploadData({
+    originalUrl: `Original ${name}`,
+    originalHtml,
+    modifiedUrl: `Modified ${name}`,
+    modifiedHtml,
+  });
+}
 
 }
 

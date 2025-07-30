@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { UploadSettingsService } from './upload-settings.service';
+import { UploadSettingsService } from './upload-state.service';
 
 describe('UploadSettingsService', () => {
   let service: UploadSettingsService;
