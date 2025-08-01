@@ -135,6 +135,8 @@
 	"image.csv.fileName": "image_descriptions.csv",
 	"image.model.qwen": "Qwen2.5 VL 32B (Free)",
 	"image.model.gemma": "Google Gemma 3 27B (Free)",
+	"image.reset.label": "Process New Images",
+	"image.reset.tooltip": "Clear current results and process new images or PDFs",
 	"--------TRANSLATION ASSISTANT--------": "--------------------------------TRANSLATION ASSISTANT--------------------------------",
 	"translation.content": "",
 	"--------PROJECT ASSISTANT--------": "--------------------------------PROJECT ASSISTANT--------------------------------",
