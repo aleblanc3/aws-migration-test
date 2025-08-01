@@ -35,8 +35,10 @@ export enum WebViewType {
 }
 
 export enum SourceViewType {
+  Original = 'original',
+  Modified = 'modified',
   SideBySide = 'side-by-side',
-  Unified = 'unified'
+  LineByLine = 'line-by-line'
 }
 
 export interface ViewOption<T = string> {
