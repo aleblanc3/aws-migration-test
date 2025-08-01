@@ -6,6 +6,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 //Translation
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
@@ -40,30 +41,44 @@ import { HorizontalRadioButtonsComponent } from '../../components/horizontal-rad
 })
 export class PageAssistantCompareComponent implements OnInit {
 
-  constructor(private translate: TranslateService, private uploadState: UploadStateService, private sourceDiffService: SourceDiffService, private shadowDomService: ShadowDomService, private openRouterService: OpenRouterService) {
+  constructor(private translate: TranslateService, private uploadState: UploadStateService, private sourceDiffService: SourceDiffService, private shadowDomService: ShadowDomService, private openRouterService: OpenRouterService, private router: Router) {
     effect(() => {
       const data = this.uploadState.getUploadData();
       const viewType = this.webSelectedView();
       const shadowRoot = this.shadowDOM();
-      console.log("Watch out!");
+      console.log("[Web tab] received new data");
       if (data?.originalHtml && data?.modifiedHtml && shadowRoot) {
-        console.log("It's happening!");
+        console.log("[Web tab] generating diff");
         this.shadowDomService.generateShadowDOMContent(
           shadowRoot,
           viewType,
           data.originalHtml,
           data.modifiedHtml);
-
-        const container = this.sourceContainer?.nativeElement;
-        if (container) {
-          this.sourceDiffService.generateDiff2HtmlDiff(
-            container,
-            data.originalHtml,
-            data.modifiedHtml,
-            data.originalUrl ?? 'Original',
-            data.modifiedUrl ?? 'Modified'
-          );
-        }
+      }
+    });
+    effect(() => {
+      const data = this.uploadState.getUploadData();
+      const viewType = this.sourceSelectedView();
+      const container = this.sourceContainerSignal();
+      console.log("[Source tab] received new data");
+      if (data?.originalHtml && data?.modifiedHtml && container) {
+        console.log("[Source tab] generating diff");
+        this.sourceDiffService.generateSourceContent(
+          container.nativeElement,
+          viewType,
+          data.originalHtml,
+          data.modifiedHtml,
+          data.originalUrl ?? 'Original',
+          data.modifiedUrl ?? 'Modified'
+        );
+        /*this.sourceDiffService.generateDiff2HtmlDiff(
+          container.nativeElement,
+          viewType,
+          data.originalHtml,
+          data.modifiedHtml,
+          data.originalUrl ?? 'Original',
+          data.modifiedUrl ?? 'Modified'
+        );*/
       }
     });
   }
@@ -107,29 +122,31 @@ export class PageAssistantCompareComponent implements OnInit {
   ];
 
   // Source view options
-  sourceSelectedView: SourceViewType = SourceViewType.SideBySide;
+  sourceSelectedView = signal<SourceViewType>(SourceViewType.SideBySide);
 
   sourceViewOptions: ViewOption<SourceViewType>[] = [
+    { label: 'page.compare.view.original', value: SourceViewType.Original, icon: 'pi pi-file' },
+    { label: 'page.compare.view.modified', value: SourceViewType.Modified, icon: 'pi pi-file-edit' },
     { label: 'page.compare.view.sidebyside', value: SourceViewType.SideBySide, icon: 'pi pi-pause' },
-    { label: 'page.compare.view.unified', value: SourceViewType.Unified, icon: 'pi pi-equals' }
+    { label: 'page.compare.view.linebyline', value: SourceViewType.LineByLine, icon: 'pi pi-equals' }
   ];
 
-  //Change view
+  //Change web view
   onWebViewChange(viewType: WebViewType) {
     this.webSelectedView.set(viewType);
   }
 
+  //Change source view
   onSourceViewChange(viewType: SourceViewType) {
-    this.sourceSelectedView = viewType;
-    //do something
+    this.sourceSelectedView.set(viewType);
   }
-
 
   //Get DOM elements from template
   @ViewChild('liveContainer', { static: false }) liveContainer!: ElementRef;
   @ViewChild('sourceContainer', { static: false }) sourceContainer!: ElementRef;
-  //private shadowRoot?: ShadowRoot | null = null;
+
   shadowDOM = signal<ShadowRoot | null>(null);
+  sourceContainerSignal = signal<ElementRef | null>(null);
 
   //Runs when view is initialized
   ngAfterViewInit() {
@@ -138,9 +155,14 @@ export class PageAssistantCompareComponent implements OnInit {
       this.shadowDOM.set(shadowRoot);
       console.log('Shadow DOM is initialized.');
     }
+    if (this.sourceContainer) {
+      this.sourceContainerSignal.set(this.sourceContainer);
+      console.log('Source container is initialized.');
+    }
   }
 
   ngOnInit(): void {
+    this.observeDarkMode();
 
   }
   ngOnDestroy() {
@@ -148,19 +170,69 @@ export class PageAssistantCompareComponent implements OnInit {
       this.shadowDomService.clearShadowDOM(this.shadowDOM()!);
       this.shadowDOM.set(null);
     }
+    this.sourceContainerSignal.set(null);
+    this.darkModeObserver?.disconnect();
   }
+
+  clearAll(): void {
+    this.uploadState.resetUploadFlow();
+    this.router.navigate(['page-assistant']);
+  }
+
+  private darkModeObserver?: MutationObserver;
+  private observeDarkMode(): void {
+    this.darkModeObserver = new MutationObserver(() => {
+      this.sourceDiffService.loadPrismTheme();
+    });
+
+    //Checks for any changes to classes on <html> ie. dark-mode
+    this.darkModeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+  }
+
+
+
+
+
+
 
   //AI interaction
   aiResponse: string = '';
   isLoading = false;
 
   sendToAI(): void {
+    this.isLoading = true;
+    const data = this.uploadState.getUploadData();
+    const html = data!.originalHtml;
+    const prompt = "You are an expert web content writer with 10 years of experience in the public service. Your primary function is to help web publishers rewrite technical content to be easy to understand for the general public. Please review the included HTML code and update only the words. Return only the updated HTML code with no explanations. "
+
+    if (!html) return;
+    const messages: OpenRouterMessage[] = [
+      { role: 'system', content: prompt },
+      { role: 'user', content: html }
+    ];
+
+    this.openRouterService.sendChat('deepseek/deepseek-chat-v3-0324:free', messages).subscribe({
+      next: (response) => {
+        this.aiResponse = response;
+        this.uploadState.mergeModifiedData({
+          modifiedUrl: "AI generated",
+          modifiedHtml: this.aiResponse
+        })
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Error getting AI response:', err);
+        this.aiResponse = 'An error occurred while contacting the AI.';
+        this.isLoading = false;
+      }
+    });
 
   }
 
-  clearAll(): void {
 
-  }
 
 
 }

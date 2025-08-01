@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -20,16 +20,23 @@ import { UploadStateService } from '../services/upload-state.service';
 @Component({
   selector: 'ca-page-assistant-upload',
   imports: [CommonModule, FormsModule,
-            TranslateModule,
-            RadioButtonModule,
-            UploadUrlComponent, UploadPasteComponent, UploadWordComponent
+    TranslateModule,
+    RadioButtonModule,
+    UploadUrlComponent, UploadPasteComponent, UploadWordComponent
   ],
-  templateUrl: './page-assistant-upload.component.html',
+  templateUrl: './upload.component.html',
   styles: ``
 })
-export class PageAssistantUploadComponent {
+export class PageAssistantUploadComponent implements OnInit {
 
   constructor(private uploadState: UploadStateService, private router: Router) { }
+
+  ngOnInit(): void {
+    const data = this.uploadState.getUploadData();
+    if (data) {
+      this.goToCompare();
+    }
+  }
 
   selectedUploadType: string = 'url';  // Default to url radio button
   onUploadTypeChange(value: 'url' | 'paste' | 'word') { // Set variable in service

@@ -25,6 +25,20 @@ export class OpenRouterService {
 
   constructor(private http: HttpClient) { }
 
+  getAIResponse(
+  model: string,
+  userInput: string,
+  prompt: string,
+  temperature: number = 0
+): Observable<string> {
+  const messages: OpenRouterMessage[] = [
+    { role: 'system', content: prompt },
+    { role: 'user', content: userInput }
+  ];
+
+  return this.sendChat(model, messages, temperature);
+}
+
   sendChat(
     model: string,
     messages: OpenRouterMessage[],

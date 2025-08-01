@@ -35,6 +35,23 @@
   border-color: #83d5a8;
 }
 
+.source-container {
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 1rem;
+  overflow-y: scroll;
+  height: 75vh;
+  position: relative;
+}
+
+.source-container.original {
+  border-color: #F3A59D;
+}
+
+.source-container.modified {
+  border-color: #83d5a8;
+}
+
 .slide-content {
   display: flex;
   justify-content: flex-end;
