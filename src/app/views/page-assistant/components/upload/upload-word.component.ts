@@ -11,7 +11,6 @@ import { Message } from 'primeng/message';
 //Page assistant
 import { UrlDataService } from '../../services/url-data.service';
 import { UploadStateService } from '../../services/upload-state.service';
-import { UploadData, ModifiedData } from '../../../../common/data.types'
 
 @Component({
   selector: 'ca-upload-word',
@@ -65,7 +64,6 @@ export class UploadWordComponent {
   extractedHtml: string = ''; //only needed if emit is a separate step
   uploadedFileName: string = ''; //only needed if emit is a separate step
 
-
   formatSize(bytes: number): string {
     const k = 1024;
     const dm = 1; //decimal points
@@ -109,14 +107,16 @@ export class UploadWordComponent {
       const arrayBuffer = reader.result as ArrayBuffer;
 
       try {
-        //const { convertToHtml } = await import('mammoth');
         const mammoth = await import('mammoth/mammoth.browser');
         const result = await mammoth.convertToHtml({ arrayBuffer });
-        const html = result.value.trim();
+        var html = result.value.trim();
         if (!html) {
           this.error = docError;
           return;
         }
+
+        // Format the HTML
+        html = await this.urlDataService.formatHtml(html, 'word');
 
         //Emit original data & set modified to same (no changes)
         /* if (this.mode === 'original') {
