@@ -3,3 +3,5 @@ declare module 'mammoth/mammoth.browser' {
     arrayBuffer: ArrayBuffer
   }): Promise<{ value: string, messages?: any[] }>;
 }
+
+declare module 'prismjs/components/prism-markup';
