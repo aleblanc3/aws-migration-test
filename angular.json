@@ -71,6 +71,7 @@
               "outputHashing": "all",
               "allowedCommonJsDependencies": [
                 "prettier/parser-html",
+                "prismjs",
                 "diff",
                 "diff2html/lib/ui/js/diff2html-ui-slim",
                 "highlight.js",
