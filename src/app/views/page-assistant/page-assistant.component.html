@@ -52,7 +52,7 @@
                     (selectedChange)="onSourceViewChange($event)">
                 </ca-horizontal-radio-buttons>
                 <!--Source view-->
-                <div #sourceContainer class="source-container"></div>
+                <div #sourceContainer class="source-container p-0" [ngClass]="sourceSelectedView()"></div>
            
         </p-tabpanel>
 
