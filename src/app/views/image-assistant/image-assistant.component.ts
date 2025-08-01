@@ -14,7 +14,7 @@ import { PdfConverterService } from '../../services/pdf-converter.service';
 // Components
 import { FileUploadComponent } from './components/file-upload/file-upload.component';
 import { ModelSelectorComponent } from './components/model-selector/model-selector.component';
-import { ProgressIndicatorComponent } from './components/progress-indicator/progress-indicator.component';
+import { ProgressIndicatorComponent } from '../../components/progress-indicator/progress-indicator.component';
 import { ImageResultComponent } from './components/image-result/image-result.component';
 import { CsvDownloadComponent } from './components/csv-download/csv-download.component';
 

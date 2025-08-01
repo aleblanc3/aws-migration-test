@@ -39,6 +39,18 @@ export class ModelSelectorComponent implements OnInit {
   constructor(private translate: TranslateService) {}
 
   ngOnInit(): void {
+    // Wait a tick to ensure translations are loaded
+    setTimeout(() => {
+      this.initializeModels();
+    }, 0);
+    
+    // Re-initialize when language changes
+    this.translate.onLangChange.subscribe(() => {
+      this.initializeModels();
+    });
+  }
+  
+  private initializeModels(): void {
     this.visionModels = [
       { name: this.translate.instant('image.model.qwen'), value: 'qwen/qwen2.5-vl-32b-instruct:free' },
       { name: this.translate.instant('image.model.gemma'), value: 'google/gemma-3-27b-it:free' }
