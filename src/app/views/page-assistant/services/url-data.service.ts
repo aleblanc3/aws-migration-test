@@ -33,18 +33,13 @@ export class UrlDataService {
     }
 
     //Get HTML content
-    const response = await fetch(url);
+    const response = await fetch(`${url}?_=${Date.now()}`);
     if (!response.ok) {
       throw new Error(`Fetch failed: HTTP ${response.status}`);
     }
     console.warn(`Response code: ${response.status}`);
 
     const html = await response.text();
-
-    //Process HTML data
-    //if (parsedUrl.host === 'www.canada.ca') {
-    //  html = html.replace(/=("|')\//g, '="https://www.canada.ca/');
-    //}
 
     //Process HTML and return main element
     return this.extractContent(html);
@@ -69,16 +64,28 @@ export class UrlDataService {
     if (!main) {
       console.warn('No <main> tag found. Using full <body> content instead.');
     }
-    const content = main ? main.innerHTML : doc.body.innerHTML.trim();
+    const content = main ? main.outerHTML : doc.body.innerHTML.trim();
     return await this.formatHtml(content);
   }
 
   //START OF CLEAN-UP FUNCTIONS
 
   //Prettier HTML
-  async formatHtml(html: string): Promise<string> {
+  async formatHtml(html: string, source?: 'url' | 'paste' | 'word'): Promise<string> {
     try {
       const { default: prettier } = await import('prettier/standalone');
+      if (source === 'word') {
+        // Wrap in <main>
+        html = `<main  property="mainContentOfPage" resource="#wb-main" typeof="WebPageElement" class="container">${html}</main>`;
+
+        // Apply replacements
+        html = html
+          .replace('<h1>', '<h1 property="name" id="wb-cont" dir="ltr">')
+          .replace('<table>', '<table class="wb-tables table table-striped">');
+      }
+      // Wrap in <body>
+      html = `<body vocab="http://schema.org/" typeof="WebPage" resource="#wb-webpage" class=" cnt-wdth-lmtd">${html}</body>`;
+
       //const [{ default: prettier }, parserHtml] = await Promise.all([
       //  import('prettier/standalone'),
       //  import('prettier/parser-html'),
@@ -142,7 +149,12 @@ export class UrlDataService {
             const anchorElement = ajaxDoc.querySelector(`#${anchor}`);
             content = anchorElement ? anchorElement.outerHTML : '';
           } else {
-            content = ajaxDoc.documentElement.innerHTML;
+            const isFullDoc = /<html[\s>]/i.test(fetchedHtml) && /<body[\s>]/i.test(fetchedHtml);
+            if (isFullDoc) {
+              console.warn(`Skipping full document injection from: ${fullUrl}`);
+              continue;
+            }
+            content = ajaxDoc.body ? ajaxDoc.body.innerHTML : ajaxDoc.documentElement.innerHTML;
           }
 
           if (!content) continue;
@@ -379,29 +391,29 @@ export class UrlDataService {
     let modifiedHtml: string;
 
     switch (name) {
-    case 'snippet':
-      originalHtml = await this.extractContent(sampleSnippetO);
-      modifiedHtml = await this.formatHtml(sampleSnippetM);
-      break;
+      case 'snippet':
+        originalHtml = await this.extractContent(sampleSnippetO);
+        modifiedHtml = await this.formatHtml(sampleSnippetM);
+        break;
 
-    case 'word':
-      originalHtml = await this.extractContent(sampleWordO);
-      modifiedHtml = await this.formatHtml(sampleWordM);
-      break;
+      case 'word':
+        originalHtml = await this.formatHtml(sampleWordO, 'word');
+        modifiedHtml = await this.formatHtml(sampleWordM, 'word');
+        break;
 
-    default:
-      originalHtml = await this.extractContent(sampleHtmlO);
-      modifiedHtml = await this.formatHtml(sampleHtmlM);
-      break;
+      default:
+        originalHtml = await this.extractContent(sampleHtmlO);
+        modifiedHtml = await this.formatHtml(sampleHtmlM);
+        break;
+    }
+
+    this.uploadState.setUploadData({
+      originalUrl: `Original ${name}`,
+      originalHtml,
+      modifiedUrl: `Modified ${name}`,
+      modifiedHtml,
+    });
   }
-
-  this.uploadState.setUploadData({
-    originalUrl: `Original ${name}`,
-    originalHtml,
-    modifiedUrl: `Modified ${name}`,
-    modifiedHtml,
-  });
-}
 
 }
 
