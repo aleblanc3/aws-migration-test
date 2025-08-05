@@ -8,6 +8,7 @@ import { ImageAssistantComponent } from './views/image-assistant/image-assistant
 import { TranslationAssistantComponent } from './views/translation-assistant/translation-assistant.component';
 import { ProjectAssistantComponent } from './views/project-assistant/project-assistant.component';
 import { InventoryAssistantComponent } from './views/inventory-assistant/inventory-assistant.component';
+import { MetadataAssistantComponent } from './views/metadata-assistant/metadata-assistant.component';
 import { AboutComponent } from './views/static/about.component';
 import { TestComponent } from './views/my-test/test.component';
 
@@ -59,6 +60,11 @@ export const routes: Routes = [
         path: 'inventory-assistant',
         component: InventoryAssistantComponent,
         title: 'title.inventory',
+    },
+    {
+        path: 'metadata-assistant',
+        component: MetadataAssistantComponent,
+        title: 'title.metadata',
     },
     {
         path: 'about-us',

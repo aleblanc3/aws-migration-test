@@ -11,6 +11,7 @@
 	"title.translation": "Assistant de traduction",
 	"title.project": "Assistant de projet",
 	"title.inventory": "Assistant d'inventaire",
+	"title.metadata": "Assistant métadonnées",
 	"title.about": "À propos de nous",
 	"title.apiKey": "Configuration de la clé API GenAI",
 	"title.test": "Zone de test",
@@ -21,6 +22,7 @@
 	"menu.translation": "Traductions",
 	"menu.project": "Projets",
 	"menu.inventory": "Inventaire",
+	"menu.metadata": "Métadonnées",
 	"menu.about": "À propos",
 	"menu.feedback": "Rétroaction",
 	"feedback.email": "mailto:AIPIA-PIAAI@cra-arc.gc.ca?subject=Retour%20pour%20l'assistant%20de%20contenu&body=",
@@ -36,6 +38,7 @@
 		"To"
 	],
 	"fileSizeTypes.warning": "Traduction de fileSizeTypes manquante ou invalide",
+	"common.goTo": "Aller à",
 	"--------API KEY----------------------": "--------------------------------API KEY----------------------------------------------",
 	"apiKey.change": "Changer la clé API",
 	"apiKey.save": "Enregistrer la clé API",
@@ -156,5 +159,10 @@
 	"test.html": "<ul><li>Voici comment</li><li>ajouter du texte</li><li>avec du code HTML</li></ul>",
 	"--------404 PAGE---------------------": "--------------------------------404 PAGE---------------------------------------------",
 	"404.message": "<h1 id=\"wb-cont\">404 : Synergie introuvable</h1><p>Cette page n'a pas réussi à s'aligner avec nos objectifs du T3 et a été désactivée.<br>Nous apprécions votre engagement envers l'innovation en découvrant cette fonctionnalité non documentée.</p><h2 class=\"h4\">Et maintenant ?</h2><ul><li><a href=\"\">Retourner à la page d'accueil</a></li><li>Transférer à la liste de tâches de quelqu'un d'autre</li><li>Ou simplement contempler le vide un instant. On ne vous jugera pas.</li></ul>",
+	"--------METADATA ASSISTANT-----------": "--------------------------------METADATA ASSISTANT-----------------------------------",
+	"metadata.title": "Assistant métadonnées",
+	"metadata.description": "Générer des métadonnées pour les pages web, y compris les titres, descriptions et mots-clés.",
+	"metadata.cardDescription": "Outil alimenté par l'IA pour générer des métadonnées optimisées pour le référencement des pages web.",
+	"metadata.comingSoon": "Bientôt disponible! Cette fonctionnalité est en cours de développement.",
 	"--------NEW--------------------------": "--------------------------------NEW--------------------------------------------------"
 }
