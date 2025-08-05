@@ -23,7 +23,10 @@ export class PdfConverterService {
     
     // Set worker path
     const { GlobalWorkerOptions } = await import('pdfjs-dist');
-    GlobalWorkerOptions.workerSrc = '/content-assistant/pdfjs/pdf.worker.min.mjs';
+    // Get base URL dynamically to work in both dev and production (GitHub Pages)
+    const baseElement = document.querySelector('base');
+    const baseHref = baseElement?.getAttribute('href') || '/';
+    GlobalWorkerOptions.workerSrc = `${baseHref}pdfjs/pdf.worker.min.mjs`.replace(/\/+/g, '/');
     
     this.isInitialized = true;
   }
