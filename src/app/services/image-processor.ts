@@ -2,7 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, from, throwError } from 'rxjs';
-import { catchError, map, switchMap, tap, timeout } from 'rxjs/operators';
+import { catchError, map, switchMap, tap, timeout, retry } from 'rxjs/operators';
 import { ApiKeyService } from './api-key.service';
 
 // Define interfaces for better type safety
@@ -273,7 +273,8 @@ export class ImageProcessorService {
     });
 
     return this.http.post<any>(this.OPENROUTER_API_URL, payload, { headers }).pipe(
-      timeout(45000),
+      timeout(90000), // Increased timeout to 90 seconds for PDF content
+      retry({ count: 1, delay: 2000 }), // Retry once after 2 seconds on failure
       map(response => {
         console.log(`Translation response for ${identifier}:`, response);
         
