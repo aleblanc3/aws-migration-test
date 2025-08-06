@@ -41,6 +41,16 @@
                 "glob": "pdf.worker.min.mjs",
                 "input": "node_modules/pdfjs-dist/build",
                 "output": "pdfjs"
+              },
+              {
+                "glob": "prism-okaidia.min.css",
+                "input": "node_modules/prismjs/themes",
+                "output": "css"
+              },
+              {
+                "glob": "prism.min.css",
+                "input": "node_modules/prismjs/themes",
+                "output": "css"
               }
             ],
             "styles": [

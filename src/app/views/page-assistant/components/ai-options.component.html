@@ -34,7 +34,7 @@
               <ng-container *ngFor="let option of promptOptions; trackBy: trackById">
                 <div class="p-field-radiobutton">
                   <p-radioButton name="promptOptions" [value]="option.id" [(ngModel)]="selectedPrompt"
-                    [inputId]="option.id" [disabled]="option.disabled" />
+                    [inputId]="option.id" [disabled]="option.disabled" (onClick)="onPromptSelect(selectedPrompt)"/>
                   <label [for]="option.id" class="pl-2">{{ option.label | translate }}</label>
                 </div>
               </ng-container>
@@ -65,7 +65,7 @@
               <ng-container *ngFor="let option of aiOptions; trackBy: trackById">
                 <div class="p-field-radiobutton">
                   <p-radioButton name="aiOptions" [value]="option.id" [(ngModel)]="selectedAi" [inputId]="option.id"
-                    [disabled]="option.disabled" />
+                    [disabled]="option.disabled" (onClick)="onAiSelect(selectedAi)"/>
                   <label [for]="option.id" class="pl-2">{{ option.label | translate }}</label>
                 </div>
               </ng-container></ng-container>
@@ -83,12 +83,11 @@
       </p-accordion-content>
     </p-accordion-panel>
   </p-accordion>
+  
+  <!--Close drawer and emit event-->
+  <p-button *ngIf="!isPrototype" [label]="'page.compare.button.genai' | translate" icon="pi pi-comments" severity="primary" (click)="onSubmit()" class="mt-3"></p-button>
 
-  <p-button *ngIf="!isPrototype" [label]="'page.compare.button.genai' | translate"
-    [icon]="isLoading ? 'pi pi-spinner pi-spin' : 'pi pi-comments'" severity="primary" (click)="sendToAI()"
-    [disabled]="isLoading"></p-button>
-
-  <!--FROM UPLOAD URL COMPONENT - REFACTOR COMPONENT FOR BOTH USE CASES-->
+  <!--Upload options if task = compare with prototype-->
   <ng-container [ngSwitch]="uploadType" *ngIf="isPrototype">
     <ca-upload-url *ngSwitchCase="'url'" mode="prototype" [showSampleDataButton]="false" />
     <ca-upload-paste *ngSwitchCase="'paste'" mode="prototype" [showSampleDataButton]="false" />

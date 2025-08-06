@@ -58,29 +58,17 @@ export enum CompareTask {
 export enum PromptKey {
   Headings = 'headings',
   Doormats = 'doormats',
-  PlainLanguage = 'plainLanguage',
-  Banana = 'banana'
+  PlainLanguage = 'plainLanguage'
 }
 
 export enum AiModel {  
-  DeepSeekChatV3 = 'deepseek/deepseek-chat-v3-0324:free',
-  MistralSmall = 'mistralai/mistral-small-3.1-24b-instruct:free',
-  DeepHermes = 'nousresearch/deephermes-3-llama-3-8b-preview:free',
-  Llama3B = 'meta-llama/llama-3.2-3b-instruct:free',
-  Llama11B = 'meta-llama/llama-3.2-11b-vision-instruct:free',
-  Gemini = 'google/gemini-2.0-flash-exp:free',
-  Mai = 'microsoft/mai-ds-r1:free',
-  Qwen = 'qwen/qwen3-235b-a22b:free',  
-  DeepSeek = 'deepseek/deepseek-chat:free',
-  DeepSeekR1 = 'deepseek/deepseek-r1:free',
-  DeepSeekV3 = 'deepseek/deepseek-v3-base:free',
-  MistralNemo = 'mistralai/mistral-nemo:free',
-  DeepSeekR1T2 = 'tngtech/deepseek-r1t2-chimera:free',
-  DeepSeekR1T = 'tngtech/deepseek-r1t-chimera:free',
-  DeepSeekR1May = 'deepseek/deepseek-r1-0528:free',
-  KimiDev = 'moonshotai/kimi-dev-72b:free',
-  KimiVL = 'moonshotai/kimi-vl-a3b-thinking:free',
-  Llama353B = 'nvidia/llama-3.1-nemotron-ultra-253b-v1:free',
-  GeminiPro = 'google/gemini-2.5-pro-exp-03-25',
+  Gemini = 'google/gemini-2.0-flash-exp:free', //1.05M context (saves prompt data)
+  DeepSeekChatV3 = 'deepseek/deepseek-chat-v3-0324:free', //164k context (saves prompt data)
+  Qwen = 'qwen/qwen3-235b-a22b:free', //131k context
+  Llama32 = 'meta-llama/llama-3.2-3b-instruct:free', //131k context = wonky results for some reason
+  Mistral = 'mistralai/mistral-small-3.1-24b-instruct:free', //128k context
+  Kimi = 'moonshotai/kimi-k2:free', //66k context
+  Llama33 = 'meta-llama/llama-3.3-70b-instruct:free', //66k context = too small
+  Llama31 = 'meta-llama/llama-3.1-405b-instruct:free' //66k context = fine???
 }
 
