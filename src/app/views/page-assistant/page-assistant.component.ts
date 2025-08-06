@@ -7,6 +7,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 
 //Translation
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
@@ -20,7 +21,9 @@ import { RadioButtonModule } from 'primeng/radiobutton';
 
 //Services
 import { UploadStateService } from './services/upload-state.service';
-import { UploadData, DiffOptions, ViewOption, WebViewType, SourceViewType } from '../../common/data.types';
+import { UrlDataService } from './services/url-data.service';
+import { UploadData, ViewOption, WebViewType, SourceViewType, PromptKey, AiModel } from '../../common/data.types';
+import { PromptTemplates } from './components/ai-prompts';
 
 import { OpenRouterService, OpenRouterMessage } from './services/openrouter.service';
 import { AiOptionsComponent } from './components/ai-options.component';
@@ -41,7 +44,7 @@ import { HorizontalRadioButtonsComponent } from '../../components/horizontal-rad
 })
 export class PageAssistantCompareComponent implements OnInit {
 
-  constructor(private translate: TranslateService, private uploadState: UploadStateService, private sourceDiffService: SourceDiffService, private shadowDomService: ShadowDomService, private openRouterService: OpenRouterService, private router: Router) {
+  constructor(private translate: TranslateService, private uploadState: UploadStateService, private sourceDiffService: SourceDiffService, private shadowDomService: ShadowDomService, private openRouterService: OpenRouterService, private urlDataService: UrlDataService, private router: Router) {
     effect(() => {
       const data = this.uploadState.getUploadData();
       const viewType = this.webSelectedView();
@@ -71,14 +74,6 @@ export class PageAssistantCompareComponent implements OnInit {
           data.originalUrl ?? 'Original',
           data.modifiedUrl ?? 'Modified'
         );
-        /*this.sourceDiffService.generateDiff2HtmlDiff(
-          container.nativeElement,
-          viewType,
-          data.originalHtml,
-          data.modifiedHtml,
-          data.originalUrl ?? 'Original',
-          data.modifiedUrl ?? 'Modified'
-        );*/
       }
     });
   }
@@ -192,47 +187,145 @@ export class PageAssistantCompareComponent implements OnInit {
     });
   }
 
+  //AI Prompt
+  aiPrompt: string = "";
+  selectedPromptKey: PromptKey = PromptKey.PlainLanguage;
+  get selectedPromptText(): string {
+    return PromptTemplates[this.selectedPromptKey];
+  }
+  onPromptChange(key: PromptKey) {
+    this.selectedPromptKey = key;
+  }
 
+  //AI Model
+  selectedAiModel: AiModel = AiModel.Gemini;
 
-
-
-
+  onAiChange(key: AiModel) {
+    this.selectedAiModel = key;
+  }
 
   //AI interaction
-  aiResponse: string = '';
   isLoading = false;
 
-  sendToAI(): void {
+  async sendToAIold(): Promise<void> {
     this.isLoading = true;
-    const data = this.uploadState.getUploadData();
-    const html = data!.originalHtml;
-    const prompt = "You are an expert web content writer with 10 years of experience in the public service. Your primary function is to help web publishers rewrite technical content to be easy to understand for the general public. Please review the included HTML code and update only the words. Return only the updated HTML code with no explanations. "
+    try {
+      const data = this.uploadState.getUploadData();
+      const html = data!.originalHtml;
+      if (!html) return;
 
-    if (!html) return;
-    const messages: OpenRouterMessage[] = [
-      { role: 'system', content: prompt },
-      { role: 'user', content: html }
-    ];
+      const prompt = this.selectedPromptText;
+      const model = this.selectedAiModel;
 
-    this.openRouterService.sendChat('deepseek/deepseek-chat-v3-0324:free', messages).subscribe({
-      next: (response) => {
-        this.aiResponse = response;
-        this.uploadState.mergeModifiedData({
-          modifiedUrl: "AI generated",
-          modifiedHtml: this.aiResponse
-        })
-        this.isLoading = false;
-      },
-      error: (err) => {
-        console.error('Error getting AI response:', err);
-        this.aiResponse = 'An error occurred while contacting the AI.';
-        this.isLoading = false;
-      }
-    });
+      const messages: OpenRouterMessage[] = [
+        { role: 'system', content: prompt },
+        { role: 'user', content: html }
+      ];
+
+      const response = await firstValueFrom(this.openRouterService.sendChat(model, messages));
+      const formattedResponse = await this.urlDataService.formatHtml(response, 'ai');
+      console.log(formattedResponse)
+      this.uploadState.mergeModifiedData({
+        modifiedUrl: "AI generated",
+        modifiedHtml: formattedResponse
+      });
+    } catch (err: any) {
+      console.error('Error getting AI response:', err);
+    } finally {
+      this.isLoading = false;
+    }
 
   }
 
+  //FROM OPENROUTER REQUEST BUILDER
+  async sendToAI(): Promise<void> {
+    this.isLoading = true;
+    try {
+      const apiKey = localStorage.getItem('apiKey');
+      if (!apiKey) throw new Error('Missing API key');
 
+      const uploadData = this.uploadState.getUploadData();
+      const html = uploadData?.originalHtml
+      if (!html) throw new Error('No HTML to send');
 
+      const prompt = this.selectedPromptText;
+      const model = this.selectedAiModel;
+      const url = "https://openrouter.ai/api/v1/chat/completions";
 
+      const headers = {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      };
+
+      const payload = {
+        "models": [model, AiModel.Mistral, AiModel.Qwen],
+        "messages": [
+          { "role": "system", "content": prompt },
+          { "role": "user", "content": html }
+        ],
+        "temperature": 0,
+        "provider": {
+          "allow_fallbacks": true,
+          //"data_collection": "deny"
+        }
+      };
+
+      //console.log(`Using AI model: `, model);
+      //console.log(prompt);
+      //console.log(html);
+      console.log('Sending to OpenRouter:', {payload});
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload)
+      });
+
+      console.log(`AI response status: `, response.status);
+
+      const data = await response.json();
+
+      //console.log(data);
+
+      if (data.error) {
+        console.info(`400: Bad Request (invalid or missing params, CORS)\n
+                    401: Invalid credentials (OAuth session expired, disabled/invalid API key)\n
+                    402: Your account or API key has insufficient credits. Add more credits and retry the request.\n
+                    403: Your chosen model requires moderation and your input was flagged\n
+                    408: Your request timed out\n
+                    429: You are being rate limited\n
+                    502: Your chosen model is down or we received an invalid response from it\n
+                    503: There is no available model provider that meets your routing requirements`);
+        console.error(data.error?.status);
+        console.error(data.error?.message);
+        throw new Error(`AI error: ${data.error?.message}`);
+      }
+
+      const aiResponse = data.choices?.[0].message.content;
+
+      //console.log(`AI RESPONSE: `, aiResponse);
+      console.log(`AI MODAL: `, data.model);
+      console.log(`PROMPT TOKENS: `, data.usage.prompt_tokens);
+      console.log(`RESPONSE TOKENS: `, data.usage.completion_tokens);
+      console.log(`TOTAL TOKENS: `, data.usage.total_tokens);
+
+      if (model != data.model) { console.warn("A FALLBACK MODEL WAS USED") }
+
+      const formattedResponse = await this.urlDataService.formatHtml(aiResponse, 'ai');
+
+      //console.log(formattedResponse)
+
+      this.uploadState.mergeModifiedData({
+        modifiedUrl: "AI generated",
+        modifiedHtml: formattedResponse
+      });
+
+    } catch (err) {
+      console.error(`sendToAI function failed:`, err);
+      // ADD ERROR MESSAGE & TOAST
+
+    } finally {
+      this.isLoading = false;
+    }
+  }
 }

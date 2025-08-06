@@ -71,7 +71,7 @@ export class UrlDataService {
   //START OF CLEAN-UP FUNCTIONS
 
   //Prettier HTML
-  async formatHtml(html: string, source?: 'url' | 'paste' | 'word'): Promise<string> {
+  async formatHtml(html: string, source?: 'url' | 'paste' | 'word' | 'ai'): Promise<string> {
     try {
       const { default: prettier } = await import('prettier/standalone');
       if (source === 'word') {
@@ -84,7 +84,12 @@ export class UrlDataService {
           .replace('<table>', '<table class="wb-tables table table-striped">');
       }
       // Wrap in <body>
-      html = `<body vocab="http://schema.org/" typeof="WebPage" resource="#wb-webpage" class=" cnt-wdth-lmtd">${html}</body>`;
+      if (source !== 'ai') {
+        html = `<body vocab="http://schema.org/" typeof="WebPage" resource="#wb-webpage" class=" cnt-wdth-lmtd">${html}</body>`;
+      }
+      if (source === 'ai') {
+        html = this.aiCleanup(html);
+      }
 
       //const [{ default: prettier }, parserHtml] = await Promise.all([
       //  import('prettier/standalone'),
@@ -100,6 +105,36 @@ export class UrlDataService {
       console.error('Error formatting HTML:', error);
       return html; // returns unformatted HTML
     }
+  }
+
+  //Clean AI-generated HTML
+  private aiCleanup(html: string): string {
+    // Handle cases where ``` appears inside <p> tags
+    html = html.replace(/<p>```html<\/p>/, '```html\n').replace(/<p>```<\/p>/, '\n```');
+    // Extract content inside triple backticks if they exist
+    const match = html.match(/```(?:html)?\r?\n([\s\S]*?)\r?\n```/);
+    if (match) {
+      html = match[1]; // Capture only the inner content
+    }
+
+    // Trim leading and trailing <p> and </p> tags
+    html = html.replace(/^<p>/, '').replace(/<\/p>$/, '').trim();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll("p").forEach(p => {
+      let children = p.children;
+      // If the <p> only contains one block-level element, unwrap it
+      if (children.length === 1 && children[0].matches("div, section, ul, ol, table, h1, h2, h3, h4, h5, h6")) {
+        p.replaceWith(...p.childNodes);
+      }
+    });
+    // Remove empty <p> tags
+    doc.querySelectorAll("p").forEach(p => {
+      if (p.innerHTML.trim() === "") {
+        p.remove();
+      }
+    });
+    // Return the cleaned-up HTML as a string
+    return doc.body.outerHTML;
   }
 
   //Resolve AJAX-loaded content
