@@ -5,15 +5,15 @@
 <div class="flex gap-2 flex-wrap mb-3">
     <p-button label="Send to GenAI" [icon]="isLoading ? 'pi pi-spinner pi-spin' : 'pi pi-comments'" severity="primary"
         (onClick)="sendToAI()" [disabled]="!uploadData?.originalHtml || isLoading"></p-button>
-        <!--p-button label="Send to GenAI" [icon]="isLoading ? 'pi pi-spinner pi-spin' : 'pi pi-comments'" severity="primary"
-        (onClick)="sendToAIold()" [disabled]="!uploadData?.originalHtml || isLoading"></p-button-->
     <ca-ai-options (promptChange)="onPromptChange($event)" (aiChange)="onAiChange($event)" (aiSubmit)="sendToAI()"></ca-ai-options>
     <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="clearAll()" class="md:ml-auto"></p-button>
 </div>
+<p-toast />
+<p-message *ngIf="statusMessage" [severity]="statusSeverity" [text]="statusMessage" closable></p-message>
 
 <!-- Results Section -->
 
-<p-tabs value="0">
+<p-tabs value="0" class="mt-3">
     <p-tablist>
         <p-tab value="0"><i class="pi pi-eye mr-1"></i>Web page</p-tab>
         <p-tab value="1"><i class="pi pi-code mr-1"></i>Page source</p-tab>
