@@ -7,7 +7,6 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
 
 //Translation
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
@@ -17,34 +16,36 @@ import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { TabsModule } from 'primeng/tabs';
 import { RadioButtonModule } from 'primeng/radiobutton';
-
+import { MessageModule } from 'primeng/message';
+import { MessageService } from 'primeng/api';
+import { Toast } from 'primeng/toast';
 
 //Services
 import { UploadStateService } from './services/upload-state.service';
 import { UrlDataService } from './services/url-data.service';
-import { UploadData, ViewOption, WebViewType, SourceViewType, PromptKey, AiModel } from '../../common/data.types';
-import { PromptTemplates } from './components/ai-prompts';
-
-import { OpenRouterService, OpenRouterMessage } from './services/openrouter.service';
-import { AiOptionsComponent } from './components/ai-options.component';
-import { WebDiffService } from './services/web-diff.service';
 import { SourceDiffService } from './services/source-diff.service';
 import { ShadowDomService } from './services/shadowdom.service';
 
+//Data
+import { UploadData, ViewOption, WebViewType, SourceViewType, PromptKey, AiModel } from '../../common/data.types';
+import { PromptTemplates } from './components/ai-prompts';
+
+//Components
+import { AiOptionsComponent } from './components/ai-options.component';
 import { HorizontalRadioButtonsComponent } from '../../components/horizontal-radio-buttons/horizontal-radio-buttons.component';
 
 @Component({
   selector: 'ca-page-assistant-compare',
   imports: [CommonModule, FormsModule,
     TranslateModule,
-    TabsModule, ButtonModule, RadioButtonModule, CardModule,
+    ButtonModule, MessageModule, Toast, CardModule, TabsModule, RadioButtonModule,
     AiOptionsComponent, HorizontalRadioButtonsComponent],
   templateUrl: './page-assistant.component.html',
   styleUrl: './page-assistant.component.css'
 })
 export class PageAssistantCompareComponent implements OnInit {
 
-  constructor(private translate: TranslateService, private uploadState: UploadStateService, private sourceDiffService: SourceDiffService, private shadowDomService: ShadowDomService, private openRouterService: OpenRouterService, private urlDataService: UrlDataService, private router: Router) {
+  constructor(private translate: TranslateService, private messageService: MessageService, private uploadState: UploadStateService, private sourceDiffService: SourceDiffService, private shadowDomService: ShadowDomService, private urlDataService: UrlDataService, private router: Router) {
     effect(() => {
       const data = this.uploadState.getUploadData();
       const viewType = this.webSelectedView();
@@ -204,42 +205,21 @@ export class PageAssistantCompareComponent implements OnInit {
     this.selectedAiModel = key;
   }
 
+  private getEnumKeyByValue<T extends Record<string, string>>(enumObj: T, value: string): keyof T | undefined {
+  return Object.keys(enumObj).find(k => enumObj[k as keyof T] === value) as keyof T | undefined;
+}  
   //AI interaction
   isLoading = false;
+  statusMessage: string = '';
+  statusSeverity: 'info' | 'warn' | 'error' | 'success' = 'info';
 
-  async sendToAIold(): Promise<void> {
-    this.isLoading = true;
-    try {
-      const data = this.uploadState.getUploadData();
-      const html = data!.originalHtml;
-      if (!html) return;
-
-      const prompt = this.selectedPromptText;
-      const model = this.selectedAiModel;
-
-      const messages: OpenRouterMessage[] = [
-        { role: 'system', content: prompt },
-        { role: 'user', content: html }
-      ];
-
-      const response = await firstValueFrom(this.openRouterService.sendChat(model, messages));
-      const formattedResponse = await this.urlDataService.formatHtml(response, 'ai');
-      console.log(formattedResponse)
-      this.uploadState.mergeModifiedData({
-        modifiedUrl: "AI generated",
-        modifiedHtml: formattedResponse
-      });
-    } catch (err: any) {
-      console.error('Error getting AI response:', err);
-    } finally {
-      this.isLoading = false;
-    }
-
-  }
-
-  //FROM OPENROUTER REQUEST BUILDER
   async sendToAI(): Promise<void> {
+    console.time("Time until AI response");
+    const startTime = performance.now();
     this.isLoading = true;
+    this.statusSeverity = 'info';
+    this.statusMessage = 'Sending content to Open Router.';
+
     try {
       const apiKey = localStorage.getItem('apiKey');
       if (!apiKey) throw new Error('Missing API key');
@@ -270,25 +250,26 @@ export class PageAssistantCompareComponent implements OnInit {
         }
       };
 
-      //console.log(`Using AI model: `, model);
-      //console.log(prompt);
-      //console.log(html);
-      console.log('Sending to OpenRouter:', {payload});
+      console.log('Sending to OpenRouter:', { payload });
 
-      const response = await fetch(url, {
+      const orResponse = await fetch(url, {
         method: "POST",
         headers,
         body: JSON.stringify(payload)
       });
 
-      console.log(`AI response status: `, response.status);
+      console.log(`OpenRouter response status: `, orResponse.status);
+      if (orResponse.status === 200) {
+        console.log("Waiting for AI response")
+        this.statusMessage = 'AI is generating a response.';
+      }
 
-      const data = await response.json();
+      const aiResponse = await orResponse.json();
 
-      //console.log(data);
-
-      if (data.error) {
-        console.info(`400: Bad Request (invalid or missing params, CORS)\n
+      if (aiResponse.error) {
+        console.groupCollapsed("AI Error");
+        console.error(aiResponse.error?.status);
+        console.warn(`400: Bad Request (invalid or missing params, CORS)\n
                     401: Invalid credentials (OAuth session expired, disabled/invalid API key)\n
                     402: Your account or API key has insufficient credits. Add more credits and retry the request.\n
                     403: Your chosen model requires moderation and your input was flagged\n
@@ -296,36 +277,85 @@ export class PageAssistantCompareComponent implements OnInit {
                     429: You are being rate limited\n
                     502: Your chosen model is down or we received an invalid response from it\n
                     503: There is no available model provider that meets your routing requirements`);
-        console.error(data.error?.status);
-        console.error(data.error?.message);
-        throw new Error(`AI error: ${data.error?.message}`);
+        console.error(aiResponse.error?.message);
+        console.groupEnd();
+        this.statusSeverity = 'error';
+        this.statusMessage = 'An error occurred while communicating with the AI.';
+        throw new Error(`AI error: ${aiResponse.error?.message}`);
       }
 
-      const aiResponse = data.choices?.[0].message.content;
 
-      //console.log(`AI RESPONSE: `, aiResponse);
-      console.log(`AI MODAL: `, data.model);
-      console.log(`PROMPT TOKENS: `, data.usage.prompt_tokens);
-      console.log(`RESPONSE TOKENS: `, data.usage.completion_tokens);
-      console.log(`TOTAL TOKENS: `, data.usage.total_tokens);
 
-      if (model != data.model) { console.warn("A FALLBACK MODEL WAS USED") }
+      const aiHtml = aiResponse.choices?.[0].message.content;
 
-      const formattedResponse = await this.urlDataService.formatHtml(aiResponse, 'ai');
+      console.groupCollapsed("AI Response");
+      console.log(`AI model: `, aiResponse.model);
+      console.log(`Prompt tokens: `, aiResponse.usage.prompt_tokens);
+      console.log(`Response tokens: `, aiResponse.usage.completion_tokens);
+      console.log(`Total tokens: `, aiResponse.usage.total_tokens);
+      console.dir(aiResponse);
+      console.groupEnd();
 
-      //console.log(formattedResponse)
+      if (model != aiResponse.model) {
+        console.warn("A FALLBACK MODEL WAS USED");
+        console.groupCollapsed("Fallback model info");
+        console.log(`Requested model: `, model);
+        console.log(`Fallback model: `, aiResponse.model);
+        console.log(`Your requested model may be down or you have exceeded the rate limit`);
+        console.groupEnd();
+        const requestedModelKey = this.getEnumKeyByValue(AiModel, model); 
+        const usedModelKey = this.getEnumKeyByValue(AiModel, aiResponse.model); 
+        const requestedModel = this.translate.instant(`page.ai-options.model.short.${requestedModelKey}`);
+        const usedModel = this.translate.instant(`page.ai-options.model.short.${usedModelKey}`);
+        this.statusSeverity = 'warn';
+        this.statusMessage = `Your selected AI model was unavailable. Used `, usedModel, ` instead.`;
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Fallback Model Used',
+          detail: `"${requestedModel}" was unavailable. Used "${usedModel}" instead.`,
+          life: 10000
+        });
+      }
+
+      const formattedHtml = await this.urlDataService.formatHtml(aiHtml, 'ai');
 
       this.uploadState.mergeModifiedData({
         modifiedUrl: "AI generated",
-        modifiedHtml: formattedResponse
+        modifiedHtml: formattedHtml
+      });
+
+      this.statusSeverity = 'success';
+      this.statusMessage = 'Comparison has been updated with AI response.';
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'AI Response Received',
+        detail: 'Comparison has been updated with AI response.',
+        life: 5000
       });
 
     } catch (err) {
       console.error(`sendToAI function failed:`, err);
-      // ADD ERROR MESSAGE & TOAST
+      this.statusSeverity = 'error';
+      this.statusMessage = 'An error occurred while communicating with Open Router or the seleced AI model.';
+      this.messageService.add({
+        severity: 'error',
+        summary: 'AI Request Failed',
+        detail: err instanceof Error ? err.message : 'Unknown error occurred.',
+        sticky: true
+      });
 
     } finally {
       this.isLoading = false;
+      console.timeEnd("Time until AI response");
+      const endTime = performance.now();
+      const durationInSeconds = ((endTime - startTime) / 1000).toFixed(2);
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Request Complete',
+        detail: `Total time: ${durationInSeconds} seconds.`,
+        sticky: true
+      });
     }
   }
 }
