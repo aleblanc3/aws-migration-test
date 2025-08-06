@@ -5,7 +5,7 @@
 <div class="flex gap-2 flex-wrap mb-3">
     <p-button label="Send to GenAI" [icon]="isLoading ? 'pi pi-spinner pi-spin' : 'pi pi-comments'" severity="primary"
         (onClick)="sendToAI()" [disabled]="!uploadData?.originalHtml || isLoading"></p-button>
-    <ca-ai-options (promptChange)="onPromptChange($event)" (aiChange)="onAiChange($event)" (aiSubmit)="sendToAI()"></ca-ai-options>
+    <ca-ai-options (promptChange)="onPromptChange($event)" (aiChange)="onAiChange($event)" (aiSubmit)="sendToAI()" (customPrompt)="onAppendCustom($event)"></ca-ai-options>
     <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="clearAll()" class="md:ml-auto"></p-button>
 </div>
 <p-toast />
