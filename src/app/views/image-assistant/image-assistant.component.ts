@@ -14,7 +14,7 @@ import { PdfConverterService } from '../../services/pdf-converter.service';
 
 // Components
 import { FileUploadComponent } from './components/file-upload/file-upload.component';
-import { ModelSelectorComponent } from './components/model-selector/model-selector.component';
+import { SharedModelSelectorComponent, ModelOption } from '../../components/model-selector/model-selector.component';
 import { ProgressIndicatorComponent } from '../../components/progress-indicator/progress-indicator.component';
 import { ImageResultComponent } from './components/image-result/image-result.component';
 import { CsvDownloadComponent } from './components/csv-download/csv-download.component';
@@ -28,7 +28,7 @@ import { CsvDownloadComponent } from './components/csv-download/csv-download.com
     ButtonModule,
     TooltipModule,
     FileUploadComponent,
-    ModelSelectorComponent,
+    SharedModelSelectorComponent,
     ProgressIndicatorComponent,
     ImageResultComponent,
     CsvDownloadComponent
@@ -45,6 +45,20 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
   selectedVisionModel: string = 'qwen/qwen2.5-vl-32b-instruct:free';
   filesToProcess: Array<{file: File, displayName: string}> = [];
   state$!: Observable<any>;
+  
+  // Model options for the shared selector
+  visionModels: ModelOption[] = [
+    { 
+      name: 'image.model.qwen', 
+      value: 'qwen/qwen2.5-vl-32b-instruct:free',
+      description: 'image.model.qwenDescription'
+    },
+    { 
+      name: 'image.model.gemma', 
+      value: 'google/gemma-3-27b-it:free',
+      description: 'image.model.gemmaDescription'
+    }
+  ];
   
   private subscriptions: Subscription[] = [];
 

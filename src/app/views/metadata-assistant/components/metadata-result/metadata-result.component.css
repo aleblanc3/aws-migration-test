@@ -1,0 +1,83 @@
+.metadata-results-container {
+  width: 100%;
+  margin-top: 1.5rem;
+}
+
+.results-content {
+  padding: 0;
+}
+
+.result-content {
+  padding: 1rem;
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.content-preview {
+  max-height: 400px;
+  overflow-y: auto;
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+}
+
+.meta-content {
+  font-family: 'Monaco', 'Courier New', monospace;
+  word-break: break-word;
+}
+
+.keywords-container {
+  padding: 0.5rem;
+  background-color: var(--surface-50);
+  border-radius: var(--border-radius);
+}
+
+.translation-section {
+  border-left: 3px solid var(--primary-300);
+}
+
+.text-primary {
+  color: var(--primary-color);
+}
+
+.hover\:underline:hover {
+  text-decoration: underline;
+}
+
+.text-400 {
+  color: var(--text-color-secondary);
+}
+
+.text-500 {
+  color: var(--text-color);
+}
+
+:host ::ng-deep .p-accordion .p-accordion-header-link {
+  padding: 1rem;
+  background: var(--surface-50);
+  border: 1px solid var(--surface-200);
+  transition: all 0.2s;
+}
+
+:host ::ng-deep .p-accordion .p-accordion-header-link:hover {
+  background: var(--surface-100);
+}
+
+:host ::ng-deep .p-accordion .p-accordion-content {
+  padding: 0;
+  border: 1px solid var(--surface-200);
+  border-top: none;
+}
+
+:host ::ng-deep .p-chip {
+  background: var(--primary-100);
+  color: var(--primary-700);
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+}

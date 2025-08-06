@@ -1,0 +1,91 @@
+<div class="url-input-container">
+  <p-card>
+    <ng-template pTemplate="header">
+      <div class="flex align-items-center justify-content-between p-3">
+        <h3 class="m-0">{{ 'metadata.urlInput.title' | translate }}</h3>
+        <div class="flex gap-2">
+          <p-button 
+            [label]="'metadata.urlInput.loadSample' | translate"
+            icon="pi pi-file"
+            severity="info"
+            [text]="true"
+            (onClick)="loadSampleUrls()"
+            [disabled]="disabled">
+          </p-button>
+          <p-button 
+            [label]="'metadata.urlInput.clear' | translate"
+            icon="pi pi-times"
+            severity="secondary"
+            [text]="true"
+            (onClick)="clearInput()"
+            [disabled]="disabled">
+          </p-button>
+        </div>
+      </div>
+    </ng-template>
+
+    <div class="url-input-content">
+      <div class="field">
+        <label for="urls" class="block mb-2">
+          {{ 'metadata.urlInput.label' | translate }}
+        </label>
+        <textarea 
+          pInputTextarea 
+          id="urls"
+          [(ngModel)]="urlText"
+          (ngModelChange)="onTextChange()"
+          [disabled]="disabled"
+          [rows]="8"
+          [placeholder]="'metadata.urlInput.placeholder' | translate"
+          class="w-full">
+        </textarea>
+        <small class="block mt-1 text-500">
+          {{ 'metadata.urlInput.help' | translate }}
+        </small>
+        <small class="block mt-1 text-400">
+          <i class="pi pi-info-circle mr-1"></i>
+          {{ 'metadata.urlInput.allowedDomains' | translate }}: {{ getAllowedDomainsText() }}
+        </small>
+      </div>
+
+      <div class="url-validation mt-3">
+        <div *ngIf="validUrls.length > 0" class="mb-2">
+          <div class="flex align-items-center gap-2 mb-2">
+            <i class="pi pi-check-circle text-green-500"></i>
+            <span class="font-semibold">
+              {{ 'metadata.urlInput.validUrls' | translate }} ({{ validUrls.length }})
+            </span>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <p-chip 
+              *ngFor="let url of validUrls.slice(0, 3)" 
+              [label]="url.length > 50 ? url.substring(0, 50) + '...' : url"
+              styleClass="text-xs">
+            </p-chip>
+            <p-chip 
+              *ngIf="validUrls.length > 3"
+              [label]="'+' + (validUrls.length - 3) + ' ' + ('metadata.urlInput.more' | translate)"
+              styleClass="text-xs surface-200">
+            </p-chip>
+          </div>
+        </div>
+
+        <div *ngIf="invalidUrls.length > 0">
+          <p-message 
+            severity="warn" 
+            [text]="'metadata.urlInput.invalidUrls' | translate"
+            styleClass="w-full">
+          </p-message>
+          <div class="mt-2 text-orange-600">
+            <ul class="m-0 pl-3">
+              <li *ngFor="let url of invalidUrls" class="text-sm">
+                {{ url }}
+                <span class="text-xs text-gray-500 ml-2">({{ getInvalidReason(url) }})</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </p-card>
+</div>

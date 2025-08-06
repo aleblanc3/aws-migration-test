@@ -1,0 +1,24 @@
+.model-selector-container {
+  width: 100%;
+}
+
+.model-selector-content {
+  padding: 0;
+}
+
+.field label {
+  color: var(--text-color);
+}
+
+:host ::ng-deep .p-dropdown {
+  width: 100%;
+  min-width: 300px;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.text-500 {
+  color: var(--text-color-secondary);
+}

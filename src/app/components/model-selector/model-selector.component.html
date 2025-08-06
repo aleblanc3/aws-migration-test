@@ -1,0 +1,58 @@
+<div class="model-selector-container">
+  <p-card *ngIf="showCard">
+    <ng-template pTemplate="header">
+      <div class="flex align-items-center p-3">
+        <i class="pi pi-cog mr-2"></i>
+        <h3 class="m-0">{{ cardTitle | translate }}</h3>
+      </div>
+    </ng-template>
+    
+    <ng-container *ngTemplateOutlet="selectorContent"></ng-container>
+  </p-card>
+  
+  <div *ngIf="!showCard">
+    <ng-container *ngTemplateOutlet="selectorContent"></ng-container>
+  </div>
+</div>
+
+<ng-template #selectorContent>
+  <div class="model-selector-content">
+    <div class="field">
+      <label for="model" class="block mb-2 font-semibold">
+        {{ label | translate }}
+      </label>
+      <p-dropdown 
+        [options]="localModels" 
+        [(ngModel)]="selectedModel"
+        (ngModelChange)="onModelChange($event)"
+        optionLabel="name" 
+        optionValue="value"
+        [disabled]="disabled"
+        styleClass="w-full"
+        [placeholder]="'common.modelSelector.placeholder' | translate">
+      </p-dropdown>
+      <small class="block mt-2 text-500" *ngIf="getModelDescription()">
+        {{ getModelDescription() }}
+      </small>
+    </div>
+
+    <!-- Translation option for metadata assistant -->
+    <div class="field mt-4" *ngIf="showTranslateOption">
+      <div class="flex align-items-center">
+        <p-checkbox 
+          [(ngModel)]="translateToFrench"
+          (ngModelChange)="onTranslateChange($event)"
+          [disabled]="disabled"
+          [binary]="true"
+          inputId="translateToFrench">
+        </p-checkbox>
+        <label for="translateToFrench" class="ml-2 cursor-pointer">
+          {{ 'metadata.modelSelector.translateToFrench' | translate }}
+        </label>
+      </div>
+      <small class="block mt-2 ml-4 text-500">
+        {{ 'metadata.modelSelector.translateDescription' | translate }}
+      </small>
+    </div>
+  </div>
+</ng-template>
