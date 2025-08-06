@@ -1,8 +1,7 @@
 import {
-  Component, Input, ViewChild, ViewEncapsulation, AfterViewInit, OnDestroy, OnChanges, OnInit, SimpleChanges, //decorators & lifecycle
-  ElementRef, Renderer2, //DOM utilities
-  inject, //Dependency injection
-  signal, WritableSignal, Signal, computed, effect //Signals/reactivity
+  Component, ViewChild, OnInit,  //decorators & lifecycle
+  ElementRef, //DOM utilities
+  signal, effect //Signals/reactivity
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -189,13 +188,21 @@ export class PageAssistantCompareComponent implements OnInit {
   }
 
   //AI Prompt
-  aiPrompt: string = "";
   selectedPromptKey: PromptKey = PromptKey.PlainLanguage;
-  get selectedPromptText(): string {
-    return PromptTemplates[this.selectedPromptKey];
-  }
   onPromptChange(key: PromptKey) {
     this.selectedPromptKey = key;
+  }
+
+  customPromptText: string = '';
+  onAppendCustom(prompt: string) {
+    this.customPromptText = prompt;
+  }
+
+  get combinedPrompt(): string {
+    const base = PromptTemplates[this.selectedPromptKey];
+    const custom = this.customPromptText.trim();
+
+    return custom ? `${base}\n\n${custom}` : base; //Note: a heading can be added to the custom instructions here, something like ${base}\n\nPrioritize the following:\n${custom}
   }
 
   //AI Model
@@ -206,8 +213,8 @@ export class PageAssistantCompareComponent implements OnInit {
   }
 
   private getEnumKeyByValue<T extends Record<string, string>>(enumObj: T, value: string): keyof T | undefined {
-  return Object.keys(enumObj).find(k => enumObj[k as keyof T] === value) as keyof T | undefined;
-}  
+    return Object.keys(enumObj).find(k => enumObj[k as keyof T] === value) as keyof T | undefined;
+  }
   //AI interaction
   isLoading = false;
   statusMessage: string = '';
@@ -228,7 +235,7 @@ export class PageAssistantCompareComponent implements OnInit {
       const html = uploadData?.originalHtml
       if (!html) throw new Error('No HTML to send');
 
-      const prompt = this.selectedPromptText;
+      const prompt = this.combinedPrompt;
       const model = this.selectedAiModel;
       const url = "https://openrouter.ai/api/v1/chat/completions";
 
@@ -284,8 +291,6 @@ export class PageAssistantCompareComponent implements OnInit {
         throw new Error(`AI error: ${aiResponse.error?.message}`);
       }
 
-
-
       const aiHtml = aiResponse.choices?.[0].message.content;
 
       console.groupCollapsed("AI Response");
@@ -303,8 +308,8 @@ export class PageAssistantCompareComponent implements OnInit {
         console.log(`Fallback model: `, aiResponse.model);
         console.log(`Your requested model may be down or you have exceeded the rate limit`);
         console.groupEnd();
-        const requestedModelKey = this.getEnumKeyByValue(AiModel, model); 
-        const usedModelKey = this.getEnumKeyByValue(AiModel, aiResponse.model); 
+        const requestedModelKey = this.getEnumKeyByValue(AiModel, model);
+        const usedModelKey = this.getEnumKeyByValue(AiModel, aiResponse.model);
         const requestedModel = this.translate.instant(`page.ai-options.model.short.${requestedModelKey}`);
         const usedModel = this.translate.instant(`page.ai-options.model.short.${usedModelKey}`);
         this.statusSeverity = 'warn';
