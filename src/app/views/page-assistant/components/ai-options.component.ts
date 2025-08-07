@@ -1,12 +1,14 @@
-import { Component, ViewChild, Output, EventEmitter } from '@angular/core';
+import { Component, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { ButtonModule } from 'primeng/button';
-import { DrawerModule, Drawer } from 'primeng/drawer';
+import { DrawerModule } from 'primeng/drawer';
 import { RadioButtonModule } from 'primeng/radiobutton';
 import { CheckboxModule } from 'primeng/checkbox';
 import { AccordionModule } from 'primeng/accordion';
+import { TextareaModule } from 'primeng/textarea';
+import { IftaLabelModule } from 'primeng/iftalabel';
 
 import { TranslateModule } from "@ngx-translate/core";
 
@@ -20,7 +22,7 @@ import { UploadWordComponent } from './upload/upload-word.component';
 @Component({
   selector: 'ca-ai-options',
   imports: [TranslateModule, CommonModule, FormsModule,
-            ButtonModule, DrawerModule, RadioButtonModule, CheckboxModule, AccordionModule,
+            ButtonModule, DrawerModule, RadioButtonModule, CheckboxModule, AccordionModule, TextareaModule, IftaLabelModule,
             UploadUrlComponent, UploadPasteComponent, UploadWordComponent],
   templateUrl: './ai-options.component.html',
   styles: ``,
@@ -28,6 +30,7 @@ import { UploadWordComponent } from './upload/upload-word.component';
 export class AiOptionsComponent {
 
   @Output() promptChange = new EventEmitter<PromptKey>();
+  @Output() customPrompt = new EventEmitter<string>();
   @Output() aiChange = new EventEmitter<AiModel>();
   @Output() aiSubmit = new EventEmitter<void>();
 
@@ -123,4 +126,15 @@ export class AiOptionsComponent {
     this.aiSubmit.emit();
   }
 
+  //Append custom instructions to prompt
+  addCustom: boolean = false;
+  customInstruction: string = '';
+  emitCustomPrompt(prompt: string): void {
+    this.customPrompt.emit(prompt);
+  }
+  resetCustom(): void {
+    if(!this.addCustom){
+    this.customInstruction = '';
+    this.emitCustomPrompt('');
+  }}
 }
