@@ -60,19 +60,14 @@ export class MetadataAssistantComponent implements OnInit, OnDestroy {
       description: 'metadata.models.mistralDescription'
     },
     { 
-      name: 'Qwen 3 30B', 
-      value: 'qwen/qwen3-30b-a3b:free',
-      description: 'metadata.models.qwenDescription'
+      name: 'Meta Llama 3.3 70B', 
+      value: 'meta-llama/llama-3.3-70b-instruct:free',
+      description: 'metadata.models.llamaDescription'
     },
     { 
       name: 'Google Gemma 3 27B', 
       value: 'google/gemma-3-27b-it:free',
       description: 'metadata.models.gemmaDescription'
-    },
-    {
-      name: 'OpenAI GPT-OSS 20B',
-      value: 'openai/gpt-oss-20b:free',
-      description: 'metadata.models.openaiDescription'
     }
   ];
 
