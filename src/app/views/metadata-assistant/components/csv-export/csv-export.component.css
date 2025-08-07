@@ -1,0 +1,70 @@
+.csv-export-container {
+  width: 100%;
+  margin-top: 1.5rem;
+}
+
+.export-content {
+  padding: 0;
+}
+
+.export-stats {
+  background: var(--surface-100);
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.preview-table {
+  overflow-x: auto;
+}
+
+.preview-table table {
+  font-size: 0.75rem;
+  table-layout: fixed;
+}
+
+.preview-table th {
+  font-weight: 600;
+  color: var(--text-color);
+  background: var(--surface-100);
+}
+
+.preview-table td {
+  color: var(--text-color-secondary);
+}
+
+.text-overflow-ellipsis {
+  text-overflow: ellipsis;
+}
+
+.white-space-nowrap {
+  white-space: nowrap;
+}
+
+.overflow-hidden {
+  overflow: hidden;
+}
+
+.export-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.export-note {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--surface-200);
+}
+
+.text-primary {
+  color: var(--primary-color);
+}
+
+.border-bottom-1 {
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+
+.surface-border {
+  border-color: var(--surface-border);
+}

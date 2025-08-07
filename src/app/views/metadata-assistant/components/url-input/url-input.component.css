@@ -1,0 +1,46 @@
+.url-input-container {
+  width: 100%;
+}
+
+.url-input-content {
+  padding: 0;
+}
+
+.field label {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+textarea {
+  font-family: monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.url-validation {
+  padding: 1rem;
+  background-color: var(--surface-50);
+  border-radius: var(--border-radius);
+}
+
+:host ::ng-deep .p-chip {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+}
+
+:host ::ng-deep .p-message {
+  margin: 0;
+}
+
+.text-400 {
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+.text-gray-500 {
+  color: #6b7280;
+}
+
+.text-orange-600 {
+  color: #ea580c;
+}

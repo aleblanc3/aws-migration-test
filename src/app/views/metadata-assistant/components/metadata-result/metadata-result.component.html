@@ -1,0 +1,144 @@
+<div class="metadata-results-container" *ngIf="results && results.length > 0">
+  <p-card>
+    <ng-template pTemplate="header">
+      <div class="flex align-items-center justify-content-between p-3">
+        <div class="flex align-items-center">
+          <i class="pi pi-list mr-2"></i>
+          <h3 class="m-0">{{ 'metadata.results.title' | translate }}</h3>
+        </div>
+        <p-tag [value]="results.length + ' ' + ('metadata.results.items' | translate)" severity="info"></p-tag>
+      </div>
+    </ng-template>
+
+    <div class="results-content">
+      <p-accordion [multiple]="true">
+        <p-accordionTab *ngFor="let result of results; let i = index" [selected]="i === 0">
+          <ng-template pTemplate="header">
+            <div class="flex align-items-center justify-content-between w-full pr-2">
+              <div class="flex align-items-center gap-2">
+                <span class="font-semibold">{{ getDomainFromUrl(result.url) }}</span>
+                <p-tag 
+                  [value]="result.language === 'en' ? 'English' : 'Français'" 
+                  [severity]="result.language === 'en' ? 'success' : 'info'"
+                  [style]="{'font-size': '0.75rem'}">
+                </p-tag>
+              </div>
+            </div>
+          </ng-template>
+
+          <div class="result-content p-3">
+            <!-- URL -->
+            <div class="field mb-3">
+              <label class="font-semibold text-500 text-sm">{{ 'metadata.results.url' | translate }}</label>
+              <div class="flex align-items-center gap-2 mt-1">
+                <a [href]="result.url" target="_blank" class="text-primary hover:underline text-sm">
+                  {{ result.url }}
+                </a>
+                <p-button 
+                  icon="pi pi-external-link" 
+                  [text]="true" 
+                  [rounded]="true"
+                  size="small"
+                  (onClick)="copyToClipboard(result.url)"
+                  [pTooltip]="'metadata.results.openInNewTab' | translate">
+                </p-button>
+              </div>
+            </div>
+
+            <!-- Meta Description -->
+            <div class="field mb-3">
+              <div class="flex align-items-center justify-content-between mb-1">
+                <label class="font-semibold text-500 text-sm">
+                  {{ 'metadata.results.metaDescription' | translate }}
+                  <span class="text-xs text-400 ml-1">({{ result.metaDescription.length }} chars)</span>
+                </label>
+                <p-button 
+                  icon="pi pi-copy" 
+                  [text]="true"
+                  [rounded]="true"
+                  size="small"
+                  (onClick)="copyToClipboard(result.metaDescription)"
+                  [pTooltip]="'metadata.results.copyToClipboard' | translate">
+                </p-button>
+              </div>
+              <div class="meta-content p-2 surface-50 border-round">
+                <code class="text-sm">{{ result.metaDescription }}</code>
+              </div>
+            </div>
+
+            <!-- Meta Keywords -->
+            <div class="field mb-3">
+              <div class="flex align-items-center justify-content-between mb-1">
+                <label class="font-semibold text-500 text-sm">
+                  {{ 'metadata.results.metaKeywords' | translate }}
+                  <span class="text-xs text-400 ml-1">({{ result.metaKeywords.length }} chars)</span>
+                </label>
+                <p-button 
+                  icon="pi pi-copy" 
+                  [text]="true"
+                  [rounded]="true"
+                  size="small"
+                  (onClick)="copyToClipboard(result.metaKeywords)"
+                  [pTooltip]="'metadata.results.copyToClipboard' | translate">
+                </p-button>
+              </div>
+              <div class="meta-content p-2 surface-50 border-round">
+                <code class="text-sm">{{ result.metaKeywords }}</code>
+              </div>
+            </div>
+
+            <!-- French Translations (if available) -->
+            <div *ngIf="showTranslations && result.frenchTranslatedDescription" class="translation-section mt-4 p-3 surface-100 border-round">
+              <h4 class="flex align-items-center gap-2 mb-3">
+                <i class="pi pi-language"></i>
+                {{ 'metadata.results.frenchTranslation' | translate }}
+              </h4>
+
+              <!-- Translated Description -->
+              <div class="field mb-3">
+                <div class="flex align-items-center justify-content-between mb-1">
+                  <label class="font-semibold text-500 text-sm">
+                    {{ 'metadata.results.translatedDescription' | translate }}
+                    <span class="text-xs text-400 ml-1">({{ result.frenchTranslatedDescription.length }} chars)</span>
+                  </label>
+                  <p-button 
+                    icon="pi pi-copy" 
+                    [text]="true"
+                    [rounded]="true"
+                    size="small"
+                    (onClick)="copyToClipboard(result.frenchTranslatedDescription!)"
+                    [pTooltip]="'metadata.results.copyToClipboard' | translate">
+                  </p-button>
+                </div>
+                <div class="meta-content p-2 surface-50 border-round">
+                  <code class="text-sm">{{ result.frenchTranslatedDescription }}</code>
+                </div>
+              </div>
+
+              <!-- Translated Keywords -->
+              <div class="field">
+                <div class="flex align-items-center justify-content-between mb-1">
+                  <label class="font-semibold text-500 text-sm">
+                    {{ 'metadata.results.translatedKeywords' | translate }}
+                    <span class="text-xs text-400 ml-1">({{ result.frenchTranslatedKeywords!.length }} chars)</span>
+                  </label>
+                  <p-button 
+                    icon="pi pi-copy" 
+                    [text]="true"
+                    [rounded]="true"
+                    size="small"
+                    (onClick)="copyToClipboard(result.frenchTranslatedKeywords!)"
+                    [pTooltip]="'metadata.results.copyToClipboard' | translate">
+                  </p-button>
+                </div>
+                <div class="meta-content p-2 surface-50 border-round">
+                  <code class="text-sm">{{ result.frenchTranslatedKeywords }}</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        </p-accordionTab>
+      </p-accordion>
+    </div>
+  </p-card>
+</div>

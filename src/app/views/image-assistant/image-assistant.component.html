@@ -1,3 +1,5 @@
+<p-toast></p-toast>
+
 <h1 id="wb-cont">{{ 'title.image' | translate }}</h1>
 <p>{{ 'image.description' | translate }}</p>
 
@@ -17,10 +19,15 @@
 <!-- Main Tool Area -->
 <section>
   <!-- Model Selector -->
-  <ca-model-selector
+  <ca-shared-model-selector
     [selectedModel]="selectedVisionModel"
+    [models]="visionModels"
+    [label]="'image.model.label'"
+    [cardTitle]="'image.model.title'"
+    [showCard]="true"
+    [showTranslateOption]="false"
     (modelChange)="onModelChange($event)">
-  </ca-model-selector>
+  </ca-shared-model-selector>
   
   <!-- File Upload -->
   <ca-file-upload

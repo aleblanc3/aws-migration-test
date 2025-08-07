@@ -43,6 +43,9 @@ testem.log
 /public/i18n/en-new.json
 /public/i18n/fr-new.json
 
+# Python reference files
+/metadata-python
+
 # System files
 .DS_Store
 Thumbs.db

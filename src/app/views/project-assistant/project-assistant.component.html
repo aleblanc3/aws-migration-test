@@ -1,2 +1,25 @@
-<h1 id="wb-cont">{{ 'title.project' | translate}}</h1>
-<p>{{'project.content' | translate }}</p>
+<div class="container mx-auto px-4 py-6">
+  <h1 id="wb-cont" class="text-4xl font-bold mb-4">{{ 'title.project' | translate}}</h1>
+  <p class="mb-6">{{'project.content' | translate }}</p>
+  
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <p-card>
+      <ng-template pTemplate="header">
+        <div class="p-4">
+          <h3 class="text-xl font-semibold">{{ 'metadata.title' | translate }}</h3>
+        </div>
+      </ng-template>
+      <p class="mb-4">{{ 'metadata.cardDescription' | translate }}</p>
+      <ng-template pTemplate="footer">
+        <div class="flex justify-end">
+          <p-button 
+            [label]="'common.goTo' | translate" 
+            icon="pi pi-arrow-right" 
+            iconPos="right"
+            [routerLink]="['/metadata-assistant']">
+          </p-button>
+        </div>
+      </ng-template>
+    </p-card>
+  </div>
+</div>
