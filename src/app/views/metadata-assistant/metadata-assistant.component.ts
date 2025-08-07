@@ -68,6 +68,11 @@ export class MetadataAssistantComponent implements OnInit, OnDestroy {
       name: 'Google Gemma 3 27B', 
       value: 'google/gemma-3-27b-it:free',
       description: 'metadata.models.gemmaDescription'
+    },
+    {
+      name: 'OpenAI GPT-OSS 20B',
+      value: 'openai/gpt-oss-20b:free',
+      description: 'metadata.models.openaiDescription'
     }
   ];
 

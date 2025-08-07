@@ -5,6 +5,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subscription } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
+import { Toast } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
 
 // Services
 import { ApiKeyService } from '../../services/api-key.service';
@@ -27,12 +29,14 @@ import { CsvDownloadComponent } from './components/csv-download/csv-download.com
     TranslateModule,
     ButtonModule,
     TooltipModule,
+    Toast,
     FileUploadComponent,
     SharedModelSelectorComponent,
     ProgressIndicatorComponent,
     ImageResultComponent,
     CsvDownloadComponent
   ],
+  providers: [MessageService],
   templateUrl: './image-assistant.component.html',
   styles: [`
     .results-section {
@@ -45,6 +49,9 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
   selectedVisionModel: string = 'qwen/qwen2.5-vl-32b-instruct:free';
   filesToProcess: Array<{file: File, displayName: string}> = [];
   state$!: Observable<any>;
+  
+  // Timing tracking
+  private processingStartTime: number = 0;
   
   // Model options for the shared selector
   visionModels: ModelOption[] = [
@@ -70,7 +77,8 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private route: ActivatedRoute,
     private router: Router,
-    private pdfConverterService: PdfConverterService
+    private pdfConverterService: PdfConverterService,
+    private messageService: MessageService
   ) {
     this.state$ = this.stateService.state$;
   }
@@ -92,6 +100,10 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
 
   onFilesSelected(files: FileList): void {
     console.log('Files selected:', files);
+    console.time("Image processing time");
+    
+    // Start timing
+    this.processingStartTime = performance.now();
     
     // Convert FileList to Array and count non-PDF files
     this.filesToProcess = [];
@@ -277,6 +289,19 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
     const state = this.stateService.getCurrentState();
     this.stateService.updateState({
       progressText: this.translate.instant('image.progress.complete', { count: state.processedCount })
+    });
+    
+    // Calculate and show processing time
+    console.timeEnd("Image processing time");
+    const endTime = performance.now();
+    const durationInSeconds = ((endTime - this.processingStartTime) / 1000).toFixed(2);
+    
+    // Show toast with processing time
+    this.messageService.add({
+      severity: 'success',
+      summary: this.translate.instant('common.requestComplete'),
+      detail: this.translate.instant('common.totalTime', { time: durationInSeconds }),
+      life: 10000
     });
     
     setTimeout(() => {
