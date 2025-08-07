@@ -10,7 +10,7 @@ import { ProjectAssistantComponent } from './views/project-assistant/project-ass
 import { InventoryAssistantComponent } from './views/inventory-assistant/inventory-assistant.component';
 import { MetadataAssistantComponent } from './views/metadata-assistant/metadata-assistant.component';
 import { AboutComponent } from './views/static/about.component';
-import { TestComponent } from './views/my-test/test.component';
+import { TestComponent } from './views/example/test.component';
 
 export const routes: Routes = [
     {

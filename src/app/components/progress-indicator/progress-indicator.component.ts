@@ -42,6 +42,7 @@ export class ProgressIndicatorComponent {
   @Input() processedCount = 0;
   @Input() totalFiles = 0;
   @Input() showProgress = false;
+  @Input() showSpinner = true;
   
   get progressValue(): number {
     if (this.totalFiles === 0) return 0;
