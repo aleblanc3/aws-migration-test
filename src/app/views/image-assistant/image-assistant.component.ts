@@ -4,6 +4,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subscription } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
 
 // Services
 import { ApiKeyService } from '../../services/api-key.service';
@@ -14,7 +15,7 @@ import { PdfConverterService } from '../../services/pdf-converter.service';
 // Components
 import { FileUploadComponent } from './components/file-upload/file-upload.component';
 import { ModelSelectorComponent } from './components/model-selector/model-selector.component';
-import { ProgressIndicatorComponent } from './components/progress-indicator/progress-indicator.component';
+import { ProgressIndicatorComponent } from '../../components/progress-indicator/progress-indicator.component';
 import { ImageResultComponent } from './components/image-result/image-result.component';
 import { CsvDownloadComponent } from './components/csv-download/csv-download.component';
 
@@ -25,6 +26,7 @@ import { CsvDownloadComponent } from './components/csv-download/csv-download.com
     CommonModule,
     TranslateModule,
     ButtonModule,
+    TooltipModule,
     FileUploadComponent,
     ModelSelectorComponent,
     ProgressIndicatorComponent,
@@ -271,5 +273,16 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
   // Helper method for template to convert object to array
   getResultsArray(results: { [key: string]: FileProcessingResult }): FileProcessingResult[] {
     return Object.values(results);
+  }
+  
+  // Reset the tool to process new images
+  resetTool(): void {
+    this.stateService.resetState();
+    this.filesToProcess = [];
+    // Clear any remaining progress text
+    this.stateService.updateState({
+      showProgressArea: false,
+      progressText: ''
+    });
   }
 }

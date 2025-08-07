@@ -1,154 +1,366 @@
-import { Component, signal } from '@angular/core';
-import { TranslateModule, TranslateService } from "@ngx-translate/core";
-import { LocalStorageService } from '../../services/local-storage.service'; //Delete if you aren't using anything from local storage
+import {
+  Component, ViewChild, OnInit,  //decorators & lifecycle
+  ElementRef, //DOM utilities
+  signal, effect //Signals/reactivity
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { Router } from '@angular/router';
 
-//primeNG
-import { RadioButtonModule } from 'primeng/radiobutton';
-import { CheckboxModule } from 'primeng/checkbox';
+//Translation
+import { TranslateModule, TranslateService } from "@ngx-translate/core";
+
+//PrimeNG
 import { ButtonModule } from 'primeng/button';
-import { StepperModule } from 'primeng/stepper';
-import { PanelModule } from 'primeng/panel';
-import { MessageModule } from 'primeng/message';
 import { CardModule } from 'primeng/card';
-
-//Components
-import { UploadUrlComponent } from './components/upload/upload-url.component';
-import { UploadPasteComponent } from './components/upload/upload-paste.component';
-import { UploadWordComponent } from './components/upload/upload-word.component';
-//import { PageCompareComponent } from './components/page-compare.component';
-import { ViewDiffsComponent } from './components/view/view-diffs.component';
-//import { ViewPageComponent } from './components/view/view-page.component';
+import { TabsModule } from 'primeng/tabs';
+import { RadioButtonModule } from 'primeng/radiobutton';
+import { MessageModule } from 'primeng/message';
+import { MessageService } from 'primeng/api';
+import { Toast } from 'primeng/toast';
 
 //Services
-import { OpenRouterService, OpenRouterMessage } from './components/openrouter.service';
-import { UploadSettingsService } from './services/upload-settings.service';
-import { UploadData } from '../../common/data.types'
+import { UploadStateService } from './services/upload-state.service';
+import { UrlDataService } from './services/url-data.service';
+import { SourceDiffService } from './services/source-diff.service';
+import { ShadowDomService } from './services/shadowdom.service';
+
+//Data
+import { UploadData, ViewOption, WebViewType, SourceViewType, PromptKey, AiModel } from '../../common/data.types';
+import { PromptTemplates } from './components/ai-prompts';
+
+//Components
+import { AiOptionsComponent } from './components/ai-options.component';
+import { HorizontalRadioButtonsComponent } from '../../components/horizontal-radio-buttons/horizontal-radio-buttons.component';
 
 @Component({
-  selector: 'ca-page-assistant',
-  imports: [ TranslateModule, CommonModule, FormsModule, RadioButtonModule, CheckboxModule, ButtonModule, StepperModule, UploadUrlComponent, UploadPasteComponent, UploadWordComponent, ViewDiffsComponent, PanelModule, MessageModule, CardModule],
+  selector: 'ca-page-assistant-compare',
+  imports: [CommonModule, FormsModule,
+    TranslateModule,
+    ButtonModule, MessageModule, Toast, CardModule, TabsModule, RadioButtonModule,
+    AiOptionsComponent, HorizontalRadioButtonsComponent],
   templateUrl: './page-assistant.component.html',
-  styles: ``
+  styleUrl: './page-assistant.component.css'
 })
-export class PageAssistantComponent {
+export class PageAssistantCompareComponent implements OnInit {
 
-  selectedUploadType: string = 'url';  // Default to first radio button
-  onUploadTypeChange(value: 'url' | 'paste' | 'word') { // Set variable in service
-    this.selectedUploadType = value;
-    this.uploadSettings.setUploadType(value);
-  }
-  activeStep = 1;
-
-  //Test
-  activeStepIndex = 0;           // current step index: 0 (Upload) or 1 (View)
-  preloadedUrl?: string;         // if coming from direct URL
-  finalUrl?: string;             // URL to pass to View step
-  //End test
-
-
-
-  // cancelUpload() {
-  //  this.selectedUploadType = null;
-  // }
-
-  sourceURL: any;
-
-  constructor(public localStore: LocalStorageService, private translate: TranslateService, private route: ActivatedRoute, private openRouterService: OpenRouterService, private uploadSettings: UploadSettingsService) { }
-
-  /*Test continued
- ngOnInit() {
-    // Check if arriving via /stepper/view?url=...
-    this.route.queryParamMap.subscribe(params => {
-      const directUrl = params.get('url');
-      if (directUrl) {
-        this.preloadedUrl = directUrl;
-        this.finalUrl = directUrl;
-        this.activeStepIndex = 1; // jump directly to View step
+  constructor(private translate: TranslateService, private messageService: MessageService, private uploadState: UploadStateService, private sourceDiffService: SourceDiffService, private shadowDomService: ShadowDomService, private urlDataService: UrlDataService, private router: Router) {
+    effect(() => {
+      const data = this.uploadState.getUploadData();
+      const viewType = this.webSelectedView();
+      const shadowRoot = this.shadowDOM();
+      console.log("[Web tab] received new data");
+      if (data?.originalHtml && data?.modifiedHtml && shadowRoot) {
+        console.log("[Web tab] generating diff");
+        this.shadowDomService.generateShadowDOMContent(
+          shadowRoot,
+          viewType,
+          data.originalHtml,
+          data.modifiedHtml);
+      }
+    });
+    effect(() => {
+      const data = this.uploadState.getUploadData();
+      const viewType = this.sourceSelectedView();
+      const container = this.sourceContainerSignal();
+      console.log("[Source tab] received new data");
+      if (data?.originalHtml && data?.modifiedHtml && container) {
+        console.log("[Source tab] generating diff");
+        this.sourceDiffService.generateSourceContent(
+          container.nativeElement,
+          viewType,
+          data.originalHtml,
+          data.modifiedHtml,
+          data.originalUrl ?? 'Original',
+          data.modifiedUrl ?? 'Modified'
+        );
       }
     });
   }
 
-  onUploadCompleted(uploadedUrl: string) {
-    this.finalUrl = uploadedUrl;
-    this.activeStepIndex = 1; // advance to View step
+  get uploadType(): 'url' | 'paste' | 'word' {
+    return this.uploadState.getSelectedUploadType(); // returns signal().value
   }
 
-
-
-  //End test*/
-
-  //Step 1 radio buttons to select task
-  selectedTask: any = null;
-
-  tasks: any[] = [
-    { name: 'my content with an AI optimized version', key: 'taskContentAndAI', unavailable: 'false' },
-    { name: 'two webpages', key: 'task2Contents', unavailable: 'false' },
-    { name: 'two AI models', key: 'task2Models', unavailable: 'false' },
-    { name: 'two AI prompts', key: 'task2Prompts', unavailable: 'true' }
-  ];
-
-  //Step 2 radio buttons to select upload type
-  selectedUpload: any = null;
-
-  uploads: any[] = [
-    { name: 'URL', key: 'url', unavailable: 'false' },
-    { name: 'Copy & paste', key: 'paste', unavailable: 'false' },
-    { name: 'Word doc (converts to HTML)', key: 'word', unavailable: 'true' }
-  ];
-  //Step 2 get upload data from child component
-  public receivedUploadData: UploadData | null = null;
-
-  public handleUpload(uploadData: UploadData | null = null): void {
-    this.receivedUploadData = uploadData;
-    this.activeStep = 2;  // move to step 2
+  get uploadData(): Partial<UploadData> | null {
+    return this.uploadState.getUploadData(); // returns signal().value
   }
 
-  //Interaction with AI
+  legendItems = signal<
+    { text: string; colour: string; style: string; lineStyle?: string }[]
+  >([
+    { text: 'Previous version', colour: '#F3A59D', style: 'highlight' },
+    { text: 'Updated version', colour: '#83d5a8', style: 'highlight' },
+    { text: 'Updated link', colour: '#FFEE8C', style: 'highlight' },
+    { text: 'Hidden content', colour: '#6F9FFF', style: 'line' },
+    {
+      text: 'Modal content',
+      colour: '#666',
+      style: 'line',
+      lineStyle: 'dashed',
+    },
+    {
+      text: 'Dynamic content',
+      colour: '#fbc02f',
+      style: 'line',
+      lineStyle: 'dashed',
+    },
+  ]);
 
+  //Web view options
+  webSelectedView = signal<WebViewType>(WebViewType.Diff);
 
-  aiResponse: string = '';
+  webViewOptions: ViewOption<WebViewType>[] = [
+    { label: 'page.compare.view.original', value: WebViewType.Original, icon: 'pi pi-file' },
+    { label: 'page.compare.view.modified', value: WebViewType.Modified, icon: 'pi pi-file-edit' },
+    { label: 'page.compare.view.diff', value: WebViewType.Diff, icon: 'pi pi-sort-alt' }
+  ];
+
+  // Source view options
+  sourceSelectedView = signal<SourceViewType>(SourceViewType.SideBySide);
+
+  sourceViewOptions: ViewOption<SourceViewType>[] = [
+    { label: 'page.compare.view.original', value: SourceViewType.Original, icon: 'pi pi-file' },
+    { label: 'page.compare.view.modified', value: SourceViewType.Modified, icon: 'pi pi-file-edit' },
+    { label: 'page.compare.view.sidebyside', value: SourceViewType.SideBySide, icon: 'pi pi-pause' },
+    { label: 'page.compare.view.linebyline', value: SourceViewType.LineByLine, icon: 'pi pi-equals' }
+  ];
+
+  //Change web view
+  onWebViewChange(viewType: WebViewType) {
+    this.webSelectedView.set(viewType);
+  }
+
+  //Change source view
+  onSourceViewChange(viewType: SourceViewType) {
+    this.sourceSelectedView.set(viewType);
+  }
+
+  //Get DOM elements from template
+  @ViewChild('liveContainer', { static: false }) liveContainer!: ElementRef;
+  @ViewChild('sourceContainer', { static: false }) sourceContainer!: ElementRef;
+
+  shadowDOM = signal<ShadowRoot | null>(null);
+  sourceContainerSignal = signal<ElementRef | null>(null);
+
+  //Runs when view is initialized
+  ngAfterViewInit() {
+    const shadowRoot = this.shadowDomService.initializeShadowDOM(this.liveContainer.nativeElement);
+    if (shadowRoot) {
+      this.shadowDOM.set(shadowRoot);
+      console.log('Shadow DOM is initialized.');
+    }
+    if (this.sourceContainer) {
+      this.sourceContainerSignal.set(this.sourceContainer);
+      console.log('Source container is initialized.');
+    }
+  }
+
+  ngOnInit(): void {
+    this.observeDarkMode();
+
+  }
+  ngOnDestroy() {
+    if (this.shadowDOM) {
+      this.shadowDomService.clearShadowDOM(this.shadowDOM()!);
+      this.shadowDOM.set(null);
+    }
+    this.sourceContainerSignal.set(null);
+    this.darkModeObserver?.disconnect();
+  }
+
+  clearAll(): void {
+    this.uploadState.resetUploadFlow();
+    this.router.navigate(['page-assistant']);
+  }
+
+  private darkModeObserver?: MutationObserver;
+  private observeDarkMode(): void {
+    this.darkModeObserver = new MutationObserver(() => {
+      this.sourceDiffService.loadPrismTheme();
+    });
+
+    //Checks for any changes to classes on <html> ie. dark-mode
+    this.darkModeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+  }
+
+  //AI Prompt
+  selectedPromptKey: PromptKey = PromptKey.PlainLanguage;
+  onPromptChange(key: PromptKey) {
+    this.selectedPromptKey = key;
+  }
+
+  customPromptText: string = '';
+  onAppendCustom(prompt: string) {
+    this.customPromptText = prompt;
+  }
+
+  get combinedPrompt(): string {
+    const base = PromptTemplates[this.selectedPromptKey];
+    const custom = this.customPromptText.trim();
+
+    return custom ? `${base}\n\n${custom}` : base; //Note: a heading can be added to the custom instructions here, something like ${base}\n\nPrioritize the following:\n${custom}
+  }
+
+  //AI Model
+  selectedAiModel: AiModel = AiModel.Gemini;
+
+  onAiChange(key: AiModel) {
+    this.selectedAiModel = key;
+  }
+
+  private getEnumKeyByValue<T extends Record<string, string>>(enumObj: T, value: string): keyof T | undefined {
+    return Object.keys(enumObj).find(k => enumObj[k as keyof T] === value) as keyof T | undefined;
+  }
+  //AI interaction
   isLoading = false;
+  statusMessage: string = '';
+  statusSeverity: 'info' | 'warn' | 'error' | 'success' = 'info';
 
-  sendToAI(): void {
-    const html = this.receivedUploadData?.originalHtml;
-    const prompt = "You are an expert web content writer with 10 years of experience in the public service. Your primary function is to help web publishers rewrite technical content to be easy to understand for the general public. Please review the included HTML code and update only the words. Return only the updated HTML code with no explanations. "
-
-    if (!html) return;
-    const messages: OpenRouterMessage[] = [
-      { role: 'system', content: prompt },
-      { role: 'user', content: html }
-    ];
-
+  async sendToAI(): Promise<void> {
+    console.time("Time until AI response");
+    const startTime = performance.now();
     this.isLoading = true;
-    setTimeout(() => {
-      this.openRouterService.sendChat('deepseek/deepseek-chat-v3-0324:free', messages).subscribe({
-        next: (response) => {
-          this.aiResponse = response;
-          this.isLoading = false;
-        },
-        error: (err) => {
-          console.error('Error getting AI response:', err);
-          this.aiResponse = 'An error occurred while contacting the AI.';
-          this.isLoading = false;
+    this.statusSeverity = 'info';
+    this.statusMessage = 'Sending content to Open Router.';
+
+    try {
+      const apiKey = localStorage.getItem('apiKey');
+      if (!apiKey) throw new Error('Missing API key');
+
+      const uploadData = this.uploadState.getUploadData();
+      const html = uploadData?.originalHtml
+      if (!html) throw new Error('No HTML to send');
+
+      const prompt = this.combinedPrompt;
+      const model = this.selectedAiModel;
+      const url = "https://openrouter.ai/api/v1/chat/completions";
+
+      const headers = {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      };
+
+      const payload = {
+        "models": [model, AiModel.Mistral, AiModel.Qwen],
+        "messages": [
+          { "role": "system", "content": prompt },
+          { "role": "user", "content": html }
+        ],
+        "temperature": 0,
+        "provider": {
+          "allow_fallbacks": true,
+          //"data_collection": "deny"
         }
+      };
+
+      console.log('Sending to OpenRouter:', { payload });
+
+      const orResponse = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload)
       });
-    }, 1000); // 1 second delay
+
+      console.log(`OpenRouter response status: `, orResponse.status);
+      if (orResponse.status === 200) {
+        console.log("Waiting for AI response")
+        this.statusMessage = 'AI is generating a response.';
+      }
+
+      const aiResponse = await orResponse.json();
+
+      if (aiResponse.error) {
+        console.groupCollapsed("AI Error");
+        console.error(aiResponse.error?.status);
+        console.warn(`400: Bad Request (invalid or missing params, CORS)\n
+                    401: Invalid credentials (OAuth session expired, disabled/invalid API key)\n
+                    402: Your account or API key has insufficient credits. Add more credits and retry the request.\n
+                    403: Your chosen model requires moderation and your input was flagged\n
+                    408: Your request timed out\n
+                    429: You are being rate limited\n
+                    502: Your chosen model is down or we received an invalid response from it\n
+                    503: There is no available model provider that meets your routing requirements`);
+        console.error(aiResponse.error?.message);
+        console.groupEnd();
+        this.statusSeverity = 'error';
+        this.statusMessage = 'An error occurred while communicating with the AI.';
+        throw new Error(`AI error: ${aiResponse.error?.message}`);
+      }
+
+      const aiHtml = aiResponse.choices?.[0].message.content;
+
+      console.groupCollapsed("AI Response");
+      console.log(`AI model: `, aiResponse.model);
+      console.log(`Prompt tokens: `, aiResponse.usage.prompt_tokens);
+      console.log(`Response tokens: `, aiResponse.usage.completion_tokens);
+      console.log(`Total tokens: `, aiResponse.usage.total_tokens);
+      console.dir(aiResponse);
+      console.groupEnd();
+
+      if (model != aiResponse.model) {
+        console.warn("A FALLBACK MODEL WAS USED");
+        console.groupCollapsed("Fallback model info");
+        console.log(`Requested model: `, model);
+        console.log(`Fallback model: `, aiResponse.model);
+        console.log(`Your requested model may be down or you have exceeded the rate limit`);
+        console.groupEnd();
+        const requestedModelKey = this.getEnumKeyByValue(AiModel, model);
+        const usedModelKey = this.getEnumKeyByValue(AiModel, aiResponse.model);
+        const requestedModel = this.translate.instant(`page.ai-options.model.short.${requestedModelKey}`);
+        const usedModel = this.translate.instant(`page.ai-options.model.short.${usedModelKey}`);
+        this.statusSeverity = 'warn';
+        this.statusMessage = `Your selected AI model was unavailable. Used `, usedModel, ` instead.`;
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Fallback Model Used',
+          detail: `"${requestedModel}" was unavailable. Used "${usedModel}" instead.`,
+          life: 10000
+        });
+      }
+
+      const formattedHtml = await this.urlDataService.formatHtml(aiHtml, 'ai');
+
+      this.uploadState.mergeModifiedData({
+        modifiedUrl: "AI generated",
+        modifiedHtml: formattedHtml
+      });
+
+      this.statusSeverity = 'success';
+      this.statusMessage = 'Comparison has been updated with AI response.';
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'AI Response Received',
+        detail: 'Comparison has been updated with AI response.',
+        life: 5000
+      });
+
+    } catch (err) {
+      console.error(`sendToAI function failed:`, err);
+      this.statusSeverity = 'error';
+      this.statusMessage = 'An error occurred while communicating with Open Router or the seleced AI model.';
+      this.messageService.add({
+        severity: 'error',
+        summary: 'AI Request Failed',
+        detail: err instanceof Error ? err.message : 'Unknown error occurred.',
+        sticky: true
+      });
+
+    } finally {
+      this.isLoading = false;
+      console.timeEnd("Time until AI response");
+      const endTime = performance.now();
+      const durationInSeconds = ((endTime - startTime) / 1000).toFixed(2);
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Request Complete',
+        detail: `Total time: ${durationInSeconds} seconds.`,
+        sticky: true
+      });
+    }
   }
-
-  get modifiedHtml(): string {
-    return this.aiResponse || this.receivedUploadData?.modifiedHtml || '';
-  }
-
-  //TEST FOR RIGHT DRAWER
-  drawerVisible = false;
-  parentData = 'Some input from parent';
-
-  handleDrawerMessage(data: string) {
-    console.log('Drawer says:', data);
-  }
-  //END TEST
-
 }

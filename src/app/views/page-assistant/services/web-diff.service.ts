@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-//import { Diff } from '@ali-tas/htmldiff-js';
 import { DiffOptions } from '../../../common/data.types';
 
 @Injectable({
@@ -8,9 +7,8 @@ import { DiffOptions } from '../../../common/data.types';
 export class WebDiffService {
   constructor() { }
 
-  /**
-   * Generate HTML diff using htmldiff-js
-   */
+  
+  //Generate HTML diff (web page view) using htmldiff-js
   async generateHtmlDiff(originalHtml: string, modifiedHtml: string): Promise<string> {
     const options: DiffOptions = {
       repeatingWordsAccuracy: 0,
@@ -27,33 +25,14 @@ export class WebDiffService {
       modifiedHtml,
       options,
     ).replace(
-      /<(ins|del)[^>]*>(\s|&nbsp;|&#32;|&#160;|&#x00e2;|&#x0080;|&#x00af;|&#x202f;|&#xa0;)+<\/(ins|del)>/gis,
+      /<(ins|del)[^>]*>(\s|&nbsp;|&#32;|&#160;|&#x00e2;|&#x0080;|&#x00af;|&#x202f;|&#xa0;)+<\/(ins|del)>/gis, // Remove empty or whitespace-only <ins>/<del> tags
       ' ',
     );
 
     return diffResult;
   }
 
-  /**
-   * Parse HTML string to get body content
-   */
-  parseHtmlContent(htmlString: string): string {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(htmlString, 'text/html');
-    return doc.body ? doc.body.innerHTML : htmlString;
-  }
-
-  /**
-   * Generate rendered diff HTML for shadow DOM
-   */
-  async generateRenderedDiff(originalHtml: string, modifiedHtml: string): Promise<string> {
-    const diffResult = await this.generateHtmlDiff(originalHtml, modifiedHtml);
-    return this.parseHtmlContent(diffResult);
-  }
-
-  /**
-   * Get styles for rendered diff content
-   */
+  //Styles for HTML diff
   getRenderedDiffStyles(): string {
     return `
       /* Import canada.ca CSS */
@@ -69,33 +48,27 @@ export class WebDiffService {
         box-sizing: border-box;
       }
 
-      html, body {
+      .rendered-content {
         margin: 0;
         padding: 0;
-        box-sizing: border-box;
-        max-width: 100%;
-        overflow-x: hidden;
-        font-family: sans-serif;
-      }
-
-      .rendered-content {
         background-color: #ffffff !important; 
         width: 100%;
         max-width: 100%;
         overflow-wrap: break-word;
         box-sizing: border-box;
+        font-family: sans-serif;
       }
 
-      table {
+      .rendered-content table {
         width: 100%;
         table-layout: auto;
       }
 
-      td, th, pre {
+      .rendered-content td, .rendered-content th, .rendered-content pre {
         word-break: break-word;
       }
 
-      pre {
+      .rendered-content pre {
         white-space: pre-wrap;
       }
       

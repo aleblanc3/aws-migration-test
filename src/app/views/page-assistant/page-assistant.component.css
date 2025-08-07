@@ -1,10 +1,3 @@
-//@import 'diff2html/bundles/css/diff2html.min.css';
-@import 'https://use.fontawesome.com/releases/v5.15.4/css/all.css';
-/* * {
-  outline: 1px solid red; /* Highlight all elements */
-
-/* @import 'https://www.canada.ca/etc/designs/canada/wet-boew/css/theme.min.css'; */
-
 .d2h-file-side-diff {
   overflow-x: scroll;
   overflow-y: scroll;
@@ -32,6 +25,31 @@
   overflow-y: scroll;
   height: 75vh;
   position: relative;
+}
+
+.live-container.original {
+  border-color: #F3A59D;
+}
+
+.live-container.modified {
+  border-color: #83d5a8;
+}
+
+.source-container {
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 1rem;
+  overflow-y: scroll;
+  height: 75vh;
+  position: relative;
+}
+
+.source-container.original {
+  border-color: #F3A59D;
+}
+
+.source-container.modified {
+  border-color: #83d5a8;
 }
 
 .slide-content {

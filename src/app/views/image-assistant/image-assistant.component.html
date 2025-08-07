@@ -47,6 +47,17 @@
       <ca-csv-download
         [results]="state.results">
       </ca-csv-download>
+      
+      <!-- Reset Button -->
+      <div class="mt-3">
+        <p-button 
+          (click)="resetTool()"
+          [label]="'image.reset.label' | translate"
+          icon="pi pi-refresh"
+          severity="secondary"
+          [pTooltip]="'image.reset.tooltip' | translate">
+        </p-button>
+      </div>
     </div>
   </ng-container>
 </section>

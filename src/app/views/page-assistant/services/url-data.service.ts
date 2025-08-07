@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { sampleHtmlO, sampleHtmlM, sampleSnippetO, sampleSnippetM, sampleWordO, sampleWordM } from '../components/upload/sample-data';
+import { sampleHtmlO, sampleHtmlM, sampleSnippetO, sampleSnippetM, sampleWordO, sampleWordM } from '../components/sample-data';
 import { UploadData } from '../../../common/data.types'
+import { UploadStateService } from './upload-state.service';
 //import prettier from 'prettier/standalone';
 import * as parserHtml from 'prettier/parser-html';
 
@@ -8,6 +9,8 @@ import * as parserHtml from 'prettier/parser-html';
   providedIn: 'root'
 })
 export class UrlDataService {
+
+  constructor(private uploadState: UploadStateService) { }
 
   //Block unknown hosts
   private allowedHosts = new Set([
@@ -30,18 +33,13 @@ export class UrlDataService {
     }
 
     //Get HTML content
-    const response = await fetch(url);
+    const response = await fetch(`${url}?_=${Date.now()}`);
     if (!response.ok) {
       throw new Error(`Fetch failed: HTTP ${response.status}`);
     }
     console.warn(`Response code: ${response.status}`);
 
     const html = await response.text();
-
-    //Process HTML data
-    //if (parsedUrl.host === 'www.canada.ca') {
-    //  html = html.replace(/=("|')\//g, '="https://www.canada.ca/');
-    //}
 
     //Process HTML and return main element
     return this.extractContent(html);
@@ -66,16 +64,33 @@ export class UrlDataService {
     if (!main) {
       console.warn('No <main> tag found. Using full <body> content instead.');
     }
-    const content = main ? main.innerHTML : doc.body.innerHTML.trim();
+    const content = main ? main.outerHTML : doc.body.innerHTML.trim();
     return await this.formatHtml(content);
   }
 
   //START OF CLEAN-UP FUNCTIONS
 
   //Prettier HTML
-  async formatHtml(html: string): Promise<string> {
+  async formatHtml(html: string, source?: 'url' | 'paste' | 'word' | 'ai'): Promise<string> {
     try {
       const { default: prettier } = await import('prettier/standalone');
+      if (source === 'word') {
+        // Wrap in <main>
+        html = `<main  property="mainContentOfPage" resource="#wb-main" typeof="WebPageElement" class="container">${html}</main>`;
+
+        // Apply replacements
+        html = html
+          .replace('<h1>', '<h1 property="name" id="wb-cont" dir="ltr">')
+          .replace('<table>', '<table class="wb-tables table table-striped">');
+      }
+      // Wrap in <body>
+      if (source !== 'ai') {
+        html = `<body vocab="http://schema.org/" typeof="WebPage" resource="#wb-webpage" class=" cnt-wdth-lmtd">${html}</body>`;
+      }
+      if (source === 'ai') {
+        html = this.aiCleanup(html);
+      }
+
       //const [{ default: prettier }, parserHtml] = await Promise.all([
       //  import('prettier/standalone'),
       //  import('prettier/parser-html'),
@@ -90,6 +105,36 @@ export class UrlDataService {
       console.error('Error formatting HTML:', error);
       return html; // returns unformatted HTML
     }
+  }
+
+  //Clean AI-generated HTML
+  private aiCleanup(html: string): string {
+    // Handle cases where ``` appears inside <p> tags
+    html = html.replace(/<p>```html<\/p>/, '```html\n').replace(/<p>```<\/p>/, '\n```');
+    // Extract content inside triple backticks if they exist
+    const match = html.match(/```(?:html)?\r?\n([\s\S]*?)\r?\n```/);
+    if (match) {
+      html = match[1]; // Capture only the inner content
+    }
+
+    // Trim leading and trailing <p> and </p> tags
+    html = html.replace(/^<p>/, '').replace(/<\/p>$/, '').trim();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll("p").forEach(p => {
+      let children = p.children;
+      // If the <p> only contains one block-level element, unwrap it
+      if (children.length === 1 && children[0].matches("div, section, ul, ol, table, h1, h2, h3, h4, h5, h6")) {
+        p.replaceWith(...p.childNodes);
+      }
+    });
+    // Remove empty <p> tags
+    doc.querySelectorAll("p").forEach(p => {
+      if (p.innerHTML.trim() === "") {
+        p.remove();
+      }
+    });
+    // Return the cleaned-up HTML as a string
+    return doc.body.outerHTML;
   }
 
   //Resolve AJAX-loaded content
@@ -139,7 +184,12 @@ export class UrlDataService {
             const anchorElement = ajaxDoc.querySelector(`#${anchor}`);
             content = anchorElement ? anchorElement.outerHTML : '';
           } else {
-            content = ajaxDoc.documentElement.innerHTML;
+            const isFullDoc = /<html[\s>]/i.test(fetchedHtml) && /<body[\s>]/i.test(fetchedHtml);
+            if (isFullDoc) {
+              console.warn(`Skipping full document injection from: ${fullUrl}`);
+              continue;
+            }
+            content = ajaxDoc.body ? ajaxDoc.body.innerHTML : ajaxDoc.documentElement.innerHTML;
           }
 
           if (!content) continue;
@@ -371,7 +421,7 @@ export class UrlDataService {
   //END OF CLEAN-UP FUNCTIONS
 
   //Start of sample data
-  async loadSampleDataset(name: 'webpage' | 'snippet' | 'word' = 'webpage'): Promise<UploadData> {
+  async loadSampleDataset(name: 'webpage' | 'snippet' | 'word' = 'webpage'): Promise<void> {
     let originalHtml: string;
     let modifiedHtml: string;
 
@@ -379,33 +429,25 @@ export class UrlDataService {
       case 'snippet':
         originalHtml = await this.extractContent(sampleSnippetO);
         modifiedHtml = await this.formatHtml(sampleSnippetM);
-        return {
-          originalUrl: 'Original snippet',
-          originalHtml,
-          modifiedUrl: 'Modified snippet',
-          modifiedHtml,
-        };
+        break;
 
       case 'word':
-        originalHtml = await this.extractContent(sampleWordO);
-        modifiedHtml = await this.formatHtml(sampleWordM);
-        return {
-          originalUrl: 'Original word content',
-          originalHtml,
-          modifiedUrl: 'Modified word content',
-          modifiedHtml,
-        };
+        originalHtml = await this.formatHtml(sampleWordO, 'word');
+        modifiedHtml = await this.formatHtml(sampleWordM, 'word');
+        break;
 
       default:
         originalHtml = await this.extractContent(sampleHtmlO);
         modifiedHtml = await this.formatHtml(sampleHtmlM);
-        return {
-          originalUrl: 'Original HTML',
-          originalHtml,
-          modifiedUrl: 'Modified HTML',
-          modifiedHtml,
-        };
+        break;
     }
+
+    this.uploadState.setUploadData({
+      originalUrl: `Original ${name}`,
+      originalHtml,
+      modifiedUrl: `Modified ${name}`,
+      modifiedHtml,
+    });
   }
 
 }

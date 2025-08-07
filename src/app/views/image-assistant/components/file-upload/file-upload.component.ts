@@ -86,6 +86,10 @@ export class FileUploadComponent {
 
   triggerFileInput(): void {
     const fileInput = document.getElementById('file-input') as HTMLInputElement;
-    fileInput?.click();
+    if (fileInput) {
+      // Reset the input value to allow re-selecting the same file
+      fileInput.value = '';
+      fileInput.click();
+    }
   }
 }

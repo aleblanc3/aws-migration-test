@@ -1,114 +1,62 @@
 <h1 id="wb-cont">{{ 'title.page' | translate}}</h1>
-<p>{{'page.description' | translate }}</p>
+<p>{{'page.compare.description' | translate }}</p>
 
+<!-- Control Buttons -->
+<div class="flex gap-2 flex-wrap mb-3">
+    <p-button label="Send to GenAI" [icon]="isLoading ? 'pi pi-spinner pi-spin' : 'pi pi-comments'" severity="primary"
+        (onClick)="sendToAI()" [disabled]="!uploadData?.originalHtml || isLoading"></p-button>
+    <ca-ai-options (promptChange)="onPromptChange($event)" (aiChange)="onAiChange($event)" (aiSubmit)="sendToAI()" (customPrompt)="onAppendCustom($event)"></ca-ai-options>
+    <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="clearAll()" class="md:ml-auto"></p-button>
+</div>
+<p-toast />
+<p-message *ngIf="statusMessage" [severity]="statusSeverity" [text]="statusMessage" closable></p-message>
 
-<!-- To-do: 
- Upload content - url, copy/paste, word, sample
- Show content imediately in tab interface - web | code
- Submit to get response from AI - send very basic prompt to 1 AI
- Show diffs in tab interface - web | code
- Build side menu with AI options for iteration
- Build dropdown to select an iteration
- Add option to submit feedback-->
+<!-- Results Section -->
 
-<p-stepper class="basis-[50rem]" [(value)]="activeStep" [linear]="false">
-    <p-step-list>
-        <p-step [value]="1">Upload</p-step>
-        <!--p-step [value]="3">View</p-step-->
-        <p-step [value]="2">New View</p-step>
-    </p-step-list>
-    <p-step-panels>
-        <p-step-panel [value]="1">
-            <ng-template #content let-activateCallback="activateCallback">
+<p-tabs value="0" class="mt-3">
+    <p-tablist>
+        <p-tab value="0"><i class="pi pi-eye mr-1"></i>Web page</p-tab>
+        <p-tab value="1"><i class="pi pi-code mr-1"></i>Page source</p-tab>
+    </p-tablist>
+    <!-- Rendered page -->
+    <p-tabpanels class="shadow-1">
 
-                <div class="border-2 border-dashed rounded">
-
-                    <div class="flex flex-wrap">
-                        <!--SELECT UPLOAD TYPE-->
-                        <div
-                            class="flex-grow-0 flex-shrink-0 flex align-items-top justify-content-left m-2 px-5 py-3 border-round">
-
-                            <fieldset class="border-none p-0 m-0">
-                                <legend class="font-bold mb-3">Choose upload type:</legend>
-
-                                <div class="flex flex-column gap-3">
-                                    <label class="flex align-items-center">
-                                        <p-radioButton name="uploadType" value="url"
-                                            (onClick)="onUploadTypeChange('url')"
-                                            [(ngModel)]="selectedUploadType"></p-radioButton>
-                                        <span class="ml-2">URL</span>
-                                    </label>
-
-                                    <label class="flex align-items-center">
-                                        <p-radioButton name="uploadType" value="paste"
-                                            (onClick)="onUploadTypeChange('paste')"
-                                            [(ngModel)]="selectedUploadType"></p-radioButton>
-                                        <span class="ml-2">Copy & Paste</span>
-                                    </label>
-
-                                    <label class="flex align-items-center">
-                                        <p-radioButton name="uploadType" value="word"
-                                            (onClick)="onUploadTypeChange('word')"
-                                            [(ngModel)]="selectedUploadType"></p-radioButton>
-                                        <span class="ml-2">Word doc (converts to HTML)</span>
-                                    </label>
-                                </div>
-                            </fieldset>
-
-                        </div>
-                        <!--Upload-->
-                        <div
-                            class="flex-grow-1 flex-shrink-0 flex align-items-top justify-content-left m-2 px-5 py-3 border-round">
-
-                            <ng-container [ngSwitch]="selectedUploadType">
-
-                                <ca-upload-url *ngSwitchCase="'url'"
-                                    (uploadData)="handleUpload($event)"></ca-upload-url>
-                                <ca-upload-paste *ngSwitchCase="'paste'"
-                                    (uploadData)="handleUpload($event)"></ca-upload-paste>
-                                <ca-upload-word *ngSwitchCase="'word'"
-                                    (uploadData)="handleUpload($event)"></ca-upload-word>
-
-                            </ng-container>
-                        </div>
+        <p-tabpanel value="0">
+           
+                <!--Switch view -->
+                <ca-horizontal-radio-buttons label="page.compare.view" [name]="'webView'" [options]="webViewOptions"
+                    [(selected)]="webSelectedView" (selectedChange)="onWebViewChange($event)">
+                </ca-horizontal-radio-buttons>
+                <!--Legend-->
+                <div class="group-legend mb-2">
+                    <div *ngFor="let item of legendItems()" class="legend-item">
+                        <div class="legend-box" [ngStyle]="{
+                            'background-color':
+                            item.style === 'highlight' ? item.colour : 'transparent',
+                            border:
+                            item.style === 'line'
+                                ? '2px ' + (item.lineStyle || 'solid') + ' ' + item.colour
+                                : 'none',
+                        }"></div>
+                        <span class="legend-text">{{ item.text }}</span>
                     </div>
                 </div>
-            </ng-template>
-        </p-step-panel>
+                <!--Shadow Dom-->
+                <div #liveContainer class="live-container p-0" [ngClass]="webSelectedView()"></div>
 
-        <!--p-step-panel [value]="3">
-            <ng-template #content let-activateCallback="activateCallback">
-                <div class="border-2 border-dashed rounded">
+        </p-tabpanel>
+        <!-- Source code -->
+        <p-tabpanel value="1">
+           
+                <!--Switch view -->
+                <ca-horizontal-radio-buttons label="page.compare.view" [name]="'sourceView'"
+                    [options]="sourceViewOptions" [(selected)]="sourceSelectedView"
+                    (selectedChange)="onSourceViewChange($event)">
+                </ca-horizontal-radio-buttons>
+                <!--Source view-->
+                <div #sourceContainer class="source-container p-0" [ngClass]="sourceSelectedView()"></div>
+           
+        </p-tabpanel>
 
-                    
-                    <div *ngIf=receivedUploadData>
-                        <div class="p-3" *ngIf="receivedUploadData; else noData">
-                            <ca-page-compare [uploadData]="receivedUploadData"></ca-page-compare>
-                        </div>
-                        <ng-template #noData>
-                            <p-message severity="danger" text="Did not receive upload data" />
-                        </ng-template>
-                    </div>
-                </div>
-
-            </ng-template>
-        </p-step-panel-->
-        <p-step-panel [value]="2">
-            <ng-template #content let-activateCallback="activateCallback">
-                <div class="border-2 border-dashed rounded">
-
-                    <!--VIEW CONTENT-->
-                    <div *ngIf=receivedUploadData>
-                        <div class="p-3" *ngIf="receivedUploadData; else noData">
-                            <ca-view-diffs [uploadData]="receivedUploadData"></ca-view-diffs>
-                        </div>
-                        <ng-template #noData>
-                            <p-message severity="danger" text="Did not receive upload data" />
-                        </ng-template>
-                    </div>
-                </div>
-
-            </ng-template>
-        </p-step-panel>
-    </p-step-panels>
-</p-stepper>
+    </p-tabpanels>
+</p-tabs>
