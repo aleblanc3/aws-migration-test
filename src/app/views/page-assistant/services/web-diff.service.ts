@@ -116,8 +116,9 @@ export class WebDiffService {
       /* Highlighting for inserted, deleted, and updated elements */
       del.highlight,
       ins.highlight,
+      span.diff-group.highlight,
       .updated-link.highlight:not(.overlay-wrapper.updated-link) {
-        border: 2px dotted #000;
+        outline: 2px dotted #000;
         padding-left: 0.35em;
         padding-right: 0.35em;
         line-height: unset;

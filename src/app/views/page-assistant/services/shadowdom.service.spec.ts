@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 
-import { ShadowdomService } from './shadowdom.service';
+import { ShadowDomService } from './shadowdom.service';
 
 describe('ShadowdomService', () => {
-  let service: ShadowdomService;
+  let service: ShadowDomService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(ShadowdomService);
+    service = TestBed.inject(ShadowDomService);
   });
 
   it('should be created', () => {
