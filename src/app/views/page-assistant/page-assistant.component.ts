@@ -163,7 +163,7 @@ export class PageAssistantCompareComponent implements OnInit {
 
   //Change web view
   async onWebViewChange(viewType: WebViewType) {
-    this.webSelectedView.set(viewType); 
+    this.webSelectedView.set(viewType);
   }
 
   //Change source view
@@ -462,7 +462,7 @@ export class PageAssistantCompareComponent implements OnInit {
     const editable = shadowRoot?.getElementById('editable');
     if (!editable) {
       console.warn('Editable area not found.');
-      this.toggleEdit = false; 
+      this.toggleEdit = false;
       return;
     }
     if (this.toggleEdit) { //edit
@@ -521,5 +521,98 @@ export class PageAssistantCompareComponent implements OnInit {
     if (!data?.originalHtml || !data?.originalUrl) return;
     this.uploadState.mergeModifiedData({ modifiedHtml: data.originalHtml, modifiedUrl: data.originalUrl });
     this.currentIndex = 0;
+  }
+
+  toolbarAccept(): void {
+    this.processDiffChange('accept');
+  }
+
+  toolbarReject(): void {
+    this.processDiffChange('reject');
+  }
+
+  processDiffChange(mode: 'accept' | 'reject'): void {
+    //Get diff container
+    const shadowRoot = this.shadowDOM();
+    if (!shadowRoot) { console.warn('Shadow root not found.'); return; }
+    const diffContainer = shadowRoot.querySelector('.diff-content') as HTMLElement;
+    if (!diffContainer) { console.warn("Diff container not found"); return; }
+
+    //Get highlighted <ins> or <del> or <span>
+    const highlighted = diffContainer.querySelector('ins.highlight, del.highlight, span.diff-group.highlight, span.updated-link.highlight') as HTMLElement;
+    if (!highlighted) { console.warn("highlighted element not found"); return; }
+
+    const keepTag = mode === 'accept' ? 'ins' : 'del';
+    const removeTag = mode === 'accept' ? 'del' : 'ins';
+
+    //Keep highlighted tag (accept mode keep tag = ins)
+    if (highlighted.tagName.toLowerCase() === keepTag) {
+      highlighted.insertAdjacentHTML('beforebegin', highlighted.innerHTML);
+      highlighted.remove();
+    }
+
+    //Remove highlighted tag (accept mode remove tag = del)
+    else if (highlighted.tagName.toLowerCase() === removeTag) {
+      highlighted.remove();
+    }
+
+    //Handle highlighted .diff-group or .updated-link (accept mode keep tag = ins)
+    else if (highlighted.tagName.toLowerCase() === 'span') {
+      //diff-group
+      const el = highlighted.querySelector(keepTag);
+      if (el) { highlighted.insertAdjacentHTML('beforebegin', el.innerHTML); highlighted.remove(); }
+      //updated-link
+      const link = highlighted.querySelector('a');
+      if (link) {
+        if (mode === 'accept') { highlighted.replaceWith(link); }
+        else {
+          const oldHref = highlighted.getAttribute('title')?.replace(/^Old URL:\s*/, '') || '';
+          link.setAttribute('href', oldHref);
+          highlighted.replaceWith(link);
+        }
+      }
+      //neither found
+      else { console.log(`No <${keepTag}> or updated-link found. Leaving content as-is.`); return; }
+    }
+
+    //Keep and unwrap remaining elements of opposite tag
+    diffContainer.querySelectorAll(`${removeTag}, span.diff-group`).forEach(el => {
+      const parent = el.parentNode;
+      while (el.firstChild) {
+        parent?.insertBefore(el.firstChild, el);
+      }
+      parent?.removeChild(el);
+    });
+
+    // Remove remaining elements of the keep tag
+    diffContainer.querySelectorAll(keepTag).forEach(el => {
+      el.remove();
+    });
+
+    // Remove new/old link highlights
+    diffContainer.querySelectorAll('span.updated-link').forEach(span => {
+      const link = span.querySelector('a');
+      if (!link) return;
+      if (mode === 'reject') { span.replaceWith(link); }
+      else {
+        const oldHref = span.getAttribute('title')?.replace(/^Old URL:\s*/, '') || '';
+        link.setAttribute('href', oldHref);
+        span.replaceWith(link);
+      }
+    });
+
+    //Merge with modified HTML
+    const updatedHtml = diffContainer.innerHTML;
+    if (mode === 'accept') {
+      this.uploadState.mergeOriginalData({
+        originalUrl: 'Change accepted',
+        originalHtml: updatedHtml
+      });
+    } else {
+      this.uploadState.mergeModifiedData({
+        modifiedUrl: 'Change rejected',
+        modifiedHtml: updatedHtml
+      });
+    }
   }
 }
