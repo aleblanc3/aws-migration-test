@@ -1,5 +1,5 @@
 import { Injectable, signal, computed } from '@angular/core';
-import { UploadData, ModifiedData } from '../../../common/data.types'
+import { UploadData, ModifiedData, OriginalData } from '../../../common/data.types'
 
 @Injectable({
   providedIn: 'root'
@@ -27,6 +27,15 @@ export class UploadStateService {
       ...current,
       modifiedHtml: modified.modifiedHtml,
       modifiedUrl: modified.modifiedUrl,
+    });
+  }
+
+  mergeOriginalData(original: OriginalData): void {
+    const current = this.uploadData() || {};
+    this.uploadData.set({
+      ...current,
+      originalHtml: original.originalHtml,
+      originalUrl: original.originalUrl,
     });
   }
 

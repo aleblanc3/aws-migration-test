@@ -181,7 +181,7 @@ export const sampleHtmlO = `
                     <div class="intro mrgn-bttm-md">
                         <h1 property="name" id="wb-cont">Personal income tax </h1>
                     </div>
-                    <p>Who should file a tax return, how to get ready and file taxes, payment and filing due dates,
+                    <p><a href="#who">Who should file</a> a tax return, how to get ready and file taxes, payment and filing due dates,
                         reporting income and claiming deductions, and how to make payments or check the status of your
                         refund.</p>
                 </div>
@@ -230,7 +230,7 @@ export const sampleHtmlO = `
                     <section class="gc-srvinfo col-md-12">
                         <div class="wb-eqht row">
                             <div class="col-md-6 col-lg-4">
-                                <h3><a
+                                <h3 id="who"><a
                                         href="/en/services/taxes/income-tax/personal-income-tax/who-should-file-tax.html">Who
                                         should file</a></h3>
                                 <p>Determine if you need to file a tax return, what are your tax obligations</p>

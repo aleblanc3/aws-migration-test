@@ -23,7 +23,6 @@
 body {
   background-color: var(--surface-ground);
     color: var(--text-color);
-    position: relative;
     padding: 0 1rem;
     font-family: var(--body-font);
     font-size: var(--font-size);

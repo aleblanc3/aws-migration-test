@@ -76,38 +76,39 @@ export class SourceDiffService {
       //  import('diff2html/lib/ui/js/diff2html-ui-slim'),
       //]);
 
-      // Create unified diff patch
+      // Data used for diff
       const patch = createPatch(
         '',
         originalHtml,
         modifiedHtml,
         originalUrl,
         modifiedUrl,
+        {
+          ignoreWhitespace: true,
+        }
       );
 
       // Configure diff2html
-      const configuration: Diff2HtmlUIConfig = {
-        drawFileList: false,
-        fileListToggle: false,
-        fileListStartVisible: false,
-        fileContentToggle: false,
-        matching: 'lines',
+      const diffOptions: Diff2HtmlUIConfig = {
         outputFormat: diffStyle,
+        drawFileList: false,
+        fileContentToggle: false,
+        matching: 'words',
         synchronisedScroll: true,
         highlight: true,
-        renderNothingWhenEmpty: false
       };
 
       // Clear previous content
       container.innerHTML = '';
 
       // Create diff2html UI
-      const diff2htmlUi = new Diff2HtmlUI(container, patch, configuration);
-      diff2htmlUi.draw();
-      //diff2htmlUi.highlightCode();
+      const diff2 = new Diff2HtmlUI(container, patch, diffOptions);
+      diff2.highlightCode();
+      diff2.draw();
+
     } catch (error) {
       console.error('Error generating diff2html:', error);
-      container.innerHTML = '<p class="p-error">Error generating unified diff view.</p>';
+      container.innerHTML = '<p class="p-error">Error generating diff view.</p>';
     }
   }
 
@@ -121,6 +122,8 @@ export class SourceDiffService {
   //Toggle theme for light/dark mode
   public loadPrismTheme(): void {
     const isDarkMode = document.documentElement.classList.contains('dark-mode');
+
+    //Prism
     const existingLink = document.getElementById('prism-theme') as HTMLLinkElement;
 
     const newHref = isDarkMode
@@ -137,6 +140,12 @@ export class SourceDiffService {
       link.href = newHref;
       document.head.appendChild(link);
     }
-  }
 
+    //Diff2Html
+    const diffWrappers = document.querySelectorAll('.d2h-wrapper');
+    diffWrappers.forEach(diffWrapper => {
+      diffWrapper.classList.remove('d2h-dark-color-scheme', 'd2h-light-color-scheme');
+      diffWrapper.classList.add(isDarkMode ? 'd2h-dark-color-scheme' : 'd2h-light-color-scheme');
+    });
+  }
 }
