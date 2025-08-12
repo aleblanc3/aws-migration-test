@@ -17,9 +17,9 @@
 
   <!-- Main Content Area -->
   <section *ngIf="apiKeyService.hasApiKey$ | async">
-    <div class="row">
+    <div class="grid">
       <!-- Left Column: Input & Settings -->
-      <div class="col-lg-6">
+      <div class="col-12 lg:col-6">
         <!-- URL Input -->
         <ca-url-input
           [disabled]="state.isProcessing"
@@ -70,14 +70,15 @@
       </div>
 
       <!-- Right Column: Progress & Error Messages -->
-      <div class="col-lg-6">
+      <div class="col-12 lg:col-6">
         <!-- Progress Indicator -->
         <div *ngIf="state.isProcessing || state.currentStep === 'complete'">
           <ca-progress-indicator
             [progressText]="getProgressText()"
             [processedCount]="state.processedUrls"
             [totalFiles]="state.totalUrls"
-            [showProgress]="true">
+            [showProgress]="true"
+            [showSpinner]="state.isProcessing">
           </ca-progress-indicator>
         </div>
 

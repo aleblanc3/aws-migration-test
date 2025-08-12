@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, from, of, throwError } from 'rxjs';
+import { Observable, from, of, throwError, timer } from 'rxjs';
 import { catchError, map, retry, delay, timeout, switchMap } from 'rxjs/operators';
 import { ApiKeyService } from './api-key.service';
 
@@ -418,8 +418,8 @@ export class MetadataAssistantService {
       : `${noReasoningInstruction}En tant qu'expert en référencement, analysez attentivement le contenu suivant et fournissez un résumé concis et complet adapté à une méta-description en français. Le résumé DOIT être parfaitement adapté au contenu spécifique fourni. Utilisez des termes spécifiques au sujet, écrivez en phrases complètes, et assurez-vous que le résumé se termine de manière concise dans les 275 caractères. IMPORTANT: Fournissez UNIQUEMENT le texte de la méta-description SANS commentaire supplémentaire ni comptage de caractères. N'incluez PAS le nombre de caractères.\n\n${content}\n\nRésumé:`;
 
     const keywordsPrompt = language === 'en'
-      ? `${noReasoningInstruction}As a search engine optimization expert, carefully analyze the following content and identify 10 meaningful, topic-specific meta keywords that are DIRECTLY EXTRACTED from or strongly implied by the content. IMPORTANT: Return ONLY a comma-separated list of keywords with absolutely NO additional notes, commentary, or character counts. Do NOT include the number of characters. Exclude 'Canada Revenue Agency' from the keywords.\n\n${content}\n\nKeywords:`
-      : `${noReasoningInstruction}En tant qu'expert en optimisation pour les moteurs de recherche, analysez attentivement le contenu suivant et identifiez 10 mots-clés méta significatifs qui sont DIRECTEMENT EXTRAITS du contenu. IMPORTANT: Retournez UNIQUEMENT une liste de mots-clés séparés par des virgules sans AUCUNE note supplémentaire ni comptage de caractères. N'incluez PAS le nombre de caractères. Excluez 'Agence du revenu du Canada' des mots-clés.\n\n${content}\n\nMots-clés:`;
+      ? `${noReasoningInstruction}As a search engine optimization expert, carefully analyze the following content and identify 8-12 meaningful, topic-specific meta keywords that are DIRECTLY EXTRACTED from or strongly implied by the content. CRITICAL: List keywords in order of relevance, with the MOST RELEVANT and important keywords FIRST. Maximum 12 keywords. IMPORTANT: Return ONLY a comma-separated list of keywords with absolutely NO additional notes, commentary, or character counts. Keep the total length under 400 characters. Do NOT include the number of characters. Exclude 'Canada Revenue Agency' from the keywords.\n\n${content}\n\nKeywords:`
+      : `${noReasoningInstruction}En tant qu'expert en optimisation pour les moteurs de recherche, analysez attentivement le contenu suivant et identifiez 8-12 mots-clés méta significatifs qui sont DIRECTEMENT EXTRAITS du contenu. CRITIQUE: Listez les mots-clés par ordre de pertinence, avec les mots-clés les PLUS PERTINENTS et importants en PREMIER. Maximum 12 mots-clés. IMPORTANT: Retournez UNIQUEMENT une liste de mots-clés séparés par des virgules sans AUCUNE note supplémentaire ni comptage de caractères. Gardez la longueur totale sous 400 caractères. N'incluez PAS le nombre de caractères. Excluez 'Agence du revenu du Canada' des mots-clés.\n\n${content}\n\nMots-clés:`;
 
     return this.callOpenRouter(descriptionPrompt, model, 200).pipe(
       switchMap(description => {
@@ -440,7 +440,7 @@ export class MetadataAssistantService {
     }
 
     // Use Mistral Small for translation (same as image-assistant)
-    const translationModel = 'mistralai/mistral-small:free';
+    const translationModel = 'mistralai/mistral-small-3.2-24b-instruct:free';
 
     const descriptionPrompt = `You are a professional translator specializing in Canadian government content. Translate the following English meta description to French, maintaining the formal tone used by the Canada Revenue Agency (CRA). 
 
@@ -504,6 +504,19 @@ French keywords (comma-separated):`;
 
     return this.http.post<any>(this.OPENROUTER_URL, payload, { headers }).pipe(
       timeout(timeoutMs),
+      retry({
+        count: 2,
+        delay: (error, retryCount) => {
+          // Only retry on 404 or "No endpoints found" errors
+          if (error.status === 404 || 
+              (error.error?.error?.message && error.error.error.message.includes('No endpoints found'))) {
+            console.log(`Retrying API call (attempt ${retryCount + 1}) after transient error`);
+            return timer(1000 * retryCount); // Exponential backoff: 1s, 2s
+          }
+          // Don't retry other errors
+          throw error;
+        }
+      }),
       map(response => {
         // Debug logging for API response
         console.log('API Response for model', model, ':', response);
@@ -542,11 +555,23 @@ French keywords (comma-separated):`;
         if (error.error) {
           console.error('Error details:', error.error);
           if (error.error.error) {
-            return throwError(() => new Error(`API Error: ${error.error.error.message || error.error.error}`));
+            const errorMessage = error.error.error.message || error.error.error;
+            
+            // Check for the "No endpoints found" error which often happens on first load
+            if (errorMessage.includes('No endpoints found')) {
+              return throwError(() => new Error(`Model temporarily unavailable (${model}). This often happens on first use. Please try again in a few moments.`));
+            }
+            
+            return throwError(() => new Error(`API Error: ${errorMessage}`));
           }
         }
         
-        return throwError(() => new Error('Failed to generate content'));
+        // Check for 404 errors
+        if (error.status === 404) {
+          return throwError(() => new Error(`Model not found or temporarily unavailable (${model}). Please try again or select a different model.`));
+        }
+        
+        return throwError(() => new Error('Failed to generate content. Please check your API key and try again.'));
       })
     );
   }
@@ -606,7 +631,34 @@ French keywords (comma-separated):`;
     }
 
     // Clean up the keywords list
-    const keywords = cleaned.split(',').map(k => k.trim()).filter(k => k.length > 0);
-    return keywords.join(', ');
+    let keywords = cleaned.split(',').map(k => k.trim()).filter(k => k.length > 0);
+    
+    // Enforce maximum 12 keywords
+    if (keywords.length > 12) {
+      keywords = keywords.slice(0, 12);
+    }
+    
+    let keywordsString = keywords.join(', ');
+    
+    // Enforce 400 character limit (though with 12 keywords this is unlikely to be exceeded)
+    if (keywordsString.length > 400) {
+      // Remove keywords from the end until we're under 400 characters
+      let limitedKeywords = [];
+      let currentLength = 0;
+      
+      for (const keyword of keywords) {
+        const newLength = currentLength + (currentLength > 0 ? 2 : 0) + keyword.length; // +2 for ", "
+        if (newLength <= 400) {
+          limitedKeywords.push(keyword);
+          currentLength = newLength;
+        } else {
+          break;
+        }
+      }
+      
+      keywordsString = limitedKeywords.join(', ');
+    }
+    
+    return keywordsString;
   }
 }
