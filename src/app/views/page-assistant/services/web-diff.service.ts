@@ -7,7 +7,7 @@ import { DiffOptions } from '../../../common/data.types';
 export class WebDiffService {
   constructor() { }
 
-  
+
   //Generate HTML diff (web page view) using htmldiff-js
   async generateHtmlDiff(originalHtml: string, modifiedHtml: string): Promise<string> {
     const options: DiffOptions = {
@@ -72,7 +72,23 @@ export class WebDiffService {
         white-space: pre-wrap;
       }
       
-      /* Custom diff styles */
+      /* Base styling for ins, del, and updated-link */
+      ins,
+      del,
+      .updated-link {
+        display: inline;
+        padding: 0 0.3em;
+        height: auto;
+        border-radius: 0.3em;
+        -webkit-box-decoration-break: clone;
+        -o-box-decoration-break: clone;
+        box-decoration-break: clone;
+        margin-left: 0.07em;
+        margin-right: 0.07em;
+        font-weight: 500;
+      }
+
+      /* Inserted text (ins) */
       .rendered-content ins {
         background-color: #d4edda !important;
         color: #155724 !important;
@@ -80,9 +96,9 @@ export class WebDiffService {
         padding: 2px 4px;
         border-radius: 3px;
         border: 1px solid #c3e6cb;
-        font-weight: 500;
       }
-      
+
+      /* Deleted text (del) */
       .rendered-content del {
         background-color: #f8d7da !important;
         color: #721c24 !important;
@@ -90,7 +106,81 @@ export class WebDiffService {
         padding: 2px 4px;
         border-radius: 3px;
         border: 1px solid #f5c6cb;
-        font-weight: 500;
+      }
+
+      /* Updated links */
+      .updated-link {
+        background-color: #FFEE8C;
+      }
+
+      /* Highlighting for inserted, deleted, and updated elements */
+      del.highlight,
+      ins.highlight,
+      .updated-link.highlight:not(.overlay-wrapper.updated-link) {
+        border: 2px dotted #000;
+        padding-left: 0.35em;
+        padding-right: 0.35em;
+        line-height: unset;
+        position: unset;
+        top: unset;
+        height: unset;
+        transition: padding-left ease 0.3s, padding-right ease 0.3s, color ease 0.7s;
+      }
+
+      /* Overlay wrapper styles */
+      .overlay-wrapper {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .overlay-wrapper::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(131, 213, 168, 0.4);
+        z-index: 10;
+        border-radius: 5px;
+        pointer-events: none;
+      }
+
+      .overlay-wrapper.del::before {
+        background: rgba(243, 165, 157, 0.5);
+      }
+
+      .overlay-wrapper.del::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: rgba(24, 21, 21, 0.5);
+        z-index: 20;
+        pointer-events: none;
+        opacity: 0.8;
+      }
+
+      .overlay-wrapper.updated-link::before {
+        background: rgba(250, 237, 165, 0.23);
+      }
+
+      .overlay-wrapper.highlight::before {
+        border: 2px dotted #000;
+      }
+
+      .overlay-wrapper img {
+        width: 100%;
+        display: block;
+      }
+
+      /* Optional connection type styling */
+      .cnjnctn-type-or > [class*=cnjnctn-col]:not(:first-child):before {
+        content: "or";
       }
     `;
   }

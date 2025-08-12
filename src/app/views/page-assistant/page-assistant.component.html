@@ -5,10 +5,20 @@
 <div class="flex gap-2 flex-wrap mb-3">
     <p-button label="Send to GenAI" [icon]="isLoading ? 'pi pi-spinner pi-spin' : 'pi pi-comments'" severity="primary"
         (onClick)="sendToAI()" [disabled]="!uploadData?.originalHtml || isLoading"></p-button>
-    <ca-ai-options (promptChange)="onPromptChange($event)" (aiChange)="onAiChange($event)" (aiSubmit)="sendToAI()" (customPrompt)="onAppendCustom($event)"></ca-ai-options>
-    <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="clearAll()" class="md:ml-auto"></p-button>
+    <ca-ai-options (promptChange)="onPromptChange($event)" (aiChange)="onAiChange($event)" (aiSubmit)="sendToAI()"
+        (customPrompt)="onAppendCustom($event)"></ca-ai-options>
+    <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="clearAll($event)"
+        class="md:ml-auto"></p-button>
 </div>
 <p-toast />
+<p-confirmdialog>
+    <ng-template #message let-message>
+        <div class="flex flex-row align-items-center gap-3">
+            <i [ngClass]="message.icon" class="text-6xl text-red-500"></i>
+            <div [innerHTML]="message.message"></div>
+        </div>
+    </ng-template>
+</p-confirmdialog>
 <p-message *ngIf="statusMessage" [severity]="statusSeverity" [text]="statusMessage" closable></p-message>
 
 <!-- Results Section -->
@@ -22,40 +32,76 @@
     <p-tabpanels class="shadow-1">
 
         <p-tabpanel value="0">
-           
-                <!--Switch view -->
-                <ca-horizontal-radio-buttons label="page.compare.view" [name]="'webView'" [options]="webViewOptions"
-                    [(selected)]="webSelectedView" (selectedChange)="onWebViewChange($event)">
-                </ca-horizontal-radio-buttons>
-                <!--Legend-->
-                <div class="group-legend mb-2">
-                    <div *ngFor="let item of legendItems()" class="legend-item">
-                        <div class="legend-box" [ngStyle]="{
-                            'background-color':
-                            item.style === 'highlight' ? item.colour : 'transparent',
-                            border:
-                            item.style === 'line'
+
+            <!--Switch view -->
+            <ca-horizontal-radio-buttons label="page.compare.view" [name]="'webView'" [options]="webViewOptions"
+                [(selected)]="webSelectedView" (selectedChange)="onWebViewChange($event)">
+            </ca-horizontal-radio-buttons>
+
+            <!--Toolbar-->
+            <div class="sticky top-0 z-5 bg-primary-reverse p-0">
+                <p-toolbar>
+                    <ng-template #start>
+                        <ng-container *ngIf="webSelectedView() === WebViewType.Diff">
+                            <p-button icon="pi pi-chevron-left" pTooltip="Previous change" showDelay="1000"
+                                hideDelay="300" text severity="primary" (onClick)="prev()" />
+                            <span>{{ elements.length > 0 ? (currentIndex + 1) + ' of ' + elements.length : '0 of 0' }}</span>
+                            <p-button icon="pi pi-chevron-right" pTooltip="Next change" showDelay="1000" hideDelay="300"
+                                text severity="primary" (onClick)="next()" />
+                            <p-button icon="pi pi-check" pTooltip="Accept this change" showDelay="1000" hideDelay="300"
+                                text severity="success" disabled/>
+                            <p-button icon="pi pi-times" pTooltip="Reject this change" showDelay="1000" hideDelay="300"
+                                text severity="danger" disabled/>
+                        </ng-container>
+                        <ng-container
+                            *ngIf="webSelectedView() === WebViewType.Original || webSelectedView() === WebViewType.Modified">
+                            <p-togglebutton [(ngModel)]="toggleEdit" onLabel="Save" offLabel="Edit" onIcon="pi pi-save"
+                                offIcon="pi pi-pen-to-square" ariaLabel="Edit/Save"
+                                styleClass="font-bold border-none w-6rem"
+                                (onChange)="toolbarToggleEdit(webSelectedView())" />
+                            <p-togglebutton [(ngModel)]="toggleCopy" offLabel="Copy" offIcon="pi pi-clipboard" onLabel="Copied!" onIcon=""
+                                  ariaLabel="Copy" styleClass="font-bold border-none w-6rem"
+                                (onChange)="toolbarToggleCopy(webSelectedView())" />
+                        </ng-container>
+                    </ng-template>
+                    <ng-template #center>
+
+                        <ng-container *ngIf="webSelectedView() === WebViewType.Diff">
+                            <p-button icon="pi pi-check-circle" label="Accept all" text severity="success"
+                                (onClick)="toolbarAcceptAll()" />
+                            <p-button icon="pi pi-times-circle" label="Reject all" text severity="danger"
+                                (onClick)="toolbarRejectAll()" />
+                        </ng-container>
+                    </ng-template>
+                    <ng-template #end>
+                        <!--Legend-->
+                        <div class="group-legend">
+                            <div *ngFor="let item of legendItems()" class="legend-item">
+                                <div class="legend-box" [ngStyle]="{
+                            'background-color': item.style === 'highlight' ? item.colour : 'transparent',
+                            border: item.style === 'line'
                                 ? '2px ' + (item.lineStyle || 'solid') + ' ' + item.colour
-                                : 'none',
-                        }"></div>
-                        <span class="legend-text">{{ item.text }}</span>
-                    </div>
-                </div>
-                <!--Shadow Dom-->
-                <div #liveContainer class="live-container p-0" [ngClass]="webSelectedView()"></div>
+                                : 'none', }"></div>
+                                <span class="legend-text">{{ item.text }}</span>
+                            </div>
+                        </div>
+                    </ng-template>
+                </p-toolbar>
+            </div>
+            <!--Shadow Dom-->
+            <div #liveContainer class="live-container p-0" [ngClass]="webSelectedView()"></div>
 
         </p-tabpanel>
         <!-- Source code -->
         <p-tabpanel value="1">
-           
-                <!--Switch view -->
-                <ca-horizontal-radio-buttons label="page.compare.view" [name]="'sourceView'"
-                    [options]="sourceViewOptions" [(selected)]="sourceSelectedView"
-                    (selectedChange)="onSourceViewChange($event)">
-                </ca-horizontal-radio-buttons>
-                <!--Source view-->
-                <div #sourceContainer class="source-container p-0" [ngClass]="sourceSelectedView()"></div>
-           
+
+            <!--Switch view -->
+            <ca-horizontal-radio-buttons label="page.compare.view" [name]="'sourceView'" [options]="sourceViewOptions"
+                [(selected)]="sourceSelectedView" (selectedChange)="onSourceViewChange($event)">
+            </ca-horizontal-radio-buttons>
+            <!--Source view-->
+            <div #sourceContainer class="source-container p-0" [ngClass]="sourceSelectedView()"></div>
+
         </p-tabpanel>
 
     </p-tabpanels>

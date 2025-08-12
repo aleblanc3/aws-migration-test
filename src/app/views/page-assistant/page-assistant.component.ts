@@ -1,7 +1,7 @@
 import {
   Component, ViewChild, OnInit,  //decorators & lifecycle
   ElementRef, //DOM utilities
-  signal, effect //Signals/reactivity
+  signal, effect, computed //Signals/reactivity
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -16,8 +16,12 @@ import { CardModule } from 'primeng/card';
 import { TabsModule } from 'primeng/tabs';
 import { RadioButtonModule } from 'primeng/radiobutton';
 import { MessageModule } from 'primeng/message';
-import { MessageService } from 'primeng/api';
+import { MessageService, ConfirmationService } from 'primeng/api';
 import { Toast } from 'primeng/toast';
+import { ToolbarModule } from 'primeng/toolbar';
+import { ToggleButtonModule } from 'primeng/togglebutton';
+import { TooltipModule } from 'primeng/tooltip';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 //Services
 import { UploadStateService } from './services/upload-state.service';
@@ -37,27 +41,36 @@ import { HorizontalRadioButtonsComponent } from '../../components/horizontal-rad
   selector: 'ca-page-assistant-compare',
   imports: [CommonModule, FormsModule,
     TranslateModule,
-    ButtonModule, MessageModule, Toast, CardModule, TabsModule, RadioButtonModule,
+    ButtonModule, MessageModule, Toast, CardModule, TabsModule, RadioButtonModule, ToolbarModule, ToggleButtonModule, TooltipModule, ConfirmDialogModule,
     AiOptionsComponent, HorizontalRadioButtonsComponent],
   templateUrl: './page-assistant.component.html',
   styleUrl: './page-assistant.component.css'
 })
 export class PageAssistantCompareComponent implements OnInit {
 
-  constructor(private translate: TranslateService, private messageService: MessageService, private uploadState: UploadStateService, private sourceDiffService: SourceDiffService, private shadowDomService: ShadowDomService, private urlDataService: UrlDataService, private router: Router) {
-    effect(() => {
+  constructor(private translate: TranslateService, private messageService: MessageService, private confirmationService: ConfirmationService, private uploadState: UploadStateService, private sourceDiffService: SourceDiffService, private shadowDomService: ShadowDomService, private urlDataService: UrlDataService, private router: Router) {
+    effect(async () => {
       const data = this.uploadState.getUploadData();
       const viewType = this.webSelectedView();
       const shadowRoot = this.shadowDOM();
       console.log("[Web tab] received new data");
       if (data?.originalHtml && data?.modifiedHtml && shadowRoot) {
         console.log("[Web tab] generating diff");
-        this.shadowDomService.generateShadowDOMContent(
+        await this.shadowDomService.generateShadowDOMContent(
           shadowRoot,
           viewType,
           data.originalHtml,
           data.modifiedHtml);
+        //Click listener for ShadowDom
+        if (this.shadowClickHandler) { this.shadowClickHandler(); console.log("Reset shadow click handler") }
+        this.shadowClickHandler = this.shadowDomService.handleDocumentClick(shadowRoot, (index: number) => { this.currentIndex = index; });
+        //Get DOM element with a data-id
+        this.elements = this.shadowDomService.getDataIdElements(shadowRoot);
+        if (this.elements.length > 0) {
+          this.focusOnIndex(this.currentIndex); //set initial focus to 1st element
+        }
       }
+      this.toggleEdit = false;
     });
     effect(() => {
       const data = this.uploadState.getUploadData();
@@ -86,28 +99,50 @@ export class PageAssistantCompareComponent implements OnInit {
     return this.uploadState.getUploadData(); // returns signal().value
   }
 
-  legendItems = signal<
+  readonly baseLegendItems = signal<
     { text: string; colour: string; style: string; lineStyle?: string }[]
   >([
     { text: 'Previous version', colour: '#F3A59D', style: 'highlight' },
     { text: 'Updated version', colour: '#83d5a8', style: 'highlight' },
     { text: 'Updated link', colour: '#FFEE8C', style: 'highlight' },
     { text: 'Hidden content', colour: '#6F9FFF', style: 'line' },
-    {
-      text: 'Modal content',
-      colour: '#666',
-      style: 'line',
-      lineStyle: 'dashed',
-    },
-    {
-      text: 'Dynamic content',
-      colour: '#fbc02f',
-      style: 'line',
-      lineStyle: 'dashed',
-    },
+    { text: 'Modal content', colour: '#666666', style: 'line', lineStyle: 'dashed', },
+    { text: 'Dynamic content', colour: '#fbc02f', style: 'line', lineStyle: 'dashed', },
   ]);
 
+  legendItems = computed(() => {
+    const view = this.webSelectedView();
+    const items = this.baseLegendItems();
+
+    return items
+      .map(item => {
+        if (item.text === 'Previous version') {
+          if (view === WebViewType.Modified) {
+            return null; // hide in Modified view
+          }
+          if (view === WebViewType.Original) {
+            return { ...item, style: 'line' }; // change style in Original view
+          }
+          return item;
+        }
+
+        if (item.text === 'Updated version') {
+          if (view === WebViewType.Original) {
+            return null; // hide in Original view
+          }
+          if (view === WebViewType.Modified) {
+            return { ...item, style: 'line' }; // change style in Modified view
+          }
+          return item;
+        }
+
+        return item;
+      })
+      .filter(Boolean) as typeof items;
+  });
+
   //Web view options
+  WebViewType = WebViewType;
   webSelectedView = signal<WebViewType>(WebViewType.Diff);
 
   webViewOptions: ViewOption<WebViewType>[] = [
@@ -127,8 +162,8 @@ export class PageAssistantCompareComponent implements OnInit {
   ];
 
   //Change web view
-  onWebViewChange(viewType: WebViewType) {
-    this.webSelectedView.set(viewType);
+  async onWebViewChange(viewType: WebViewType) {
+    this.webSelectedView.set(viewType); 
   }
 
   //Change source view
@@ -167,11 +202,37 @@ export class PageAssistantCompareComponent implements OnInit {
     }
     this.sourceContainerSignal.set(null);
     this.darkModeObserver?.disconnect();
+    if (this.shadowClickHandler) { this.shadowClickHandler(); }
   }
 
-  clearAll(): void {
-    this.uploadState.resetUploadFlow();
-    this.router.navigate(['page-assistant']);
+  clearAll(event: Event) {
+    console.log("Clicked reset");
+    this.confirmationService.confirm({
+      target: event.target as EventTarget,
+      message: `<p class="mt-0">This will clear all uploaded content and any changes you made.</p>\n\n<p>You will lose your work and return to the upload screen.</p><p class="mb-0">Are you sure you want to reset?</p>`,
+      header: 'Confirm reset',
+      icon: 'pi pi-exclamation-circle',
+      rejectLabel: 'Cancel',
+      rejectButtonProps: {
+        label: 'Cancel',
+        icon: 'pi pi-undo',
+        severity: 'secondary',
+        outlined: true,
+      },
+      acceptButtonProps: {
+        label: 'Reset',
+        icon: 'pi pi-trash',
+        severity: 'danger',
+      },
+      accept: () => {
+        this.uploadState.resetUploadFlow();
+        this.router.navigate(['page-assistant']);
+        console.log("Reset page comparison");
+      },
+      reject: () => {
+        console.log("Cancel reset page comparison");
+      },
+    });
   }
 
   private darkModeObserver?: MutationObserver;
@@ -362,5 +423,103 @@ export class PageAssistantCompareComponent implements OnInit {
         sticky: true
       });
     }
+  }
+  /*TOOLBAR FUNCTIONS*/
+
+  //Start of shadow DOM navigation
+  private shadowClickHandler: (() => void) | null = null;
+
+  currentIndex = 0;
+  elements: HTMLElement[] = [];
+  next() {
+    if (this.elements.length === 0) return;
+    this.currentIndex = (this.currentIndex + 1) % this.elements.length;
+    this.focusOnIndex(this.currentIndex);
+
+  }
+
+  prev() {
+    if (this.elements.length === 0) return;
+    this.currentIndex = (this.currentIndex - 1 + this.elements.length) % this.elements.length;
+    this.focusOnIndex(this.currentIndex);
+  }
+
+  private focusOnIndex(index: number) {
+    const shadowRoot = this.shadowDOM();
+    if (!shadowRoot) return;
+    const el = this.elements[index];
+    this.shadowDomService.highlightElement(el);
+    this.shadowDomService.openParentDetails(el);
+    this.shadowDomService.closeAllDetailsExcept(shadowRoot, el);
+    this.shadowDomService.scrollToElement(el);
+  }
+  //End of shadow DOM navigation
+
+  //Edit
+  toggleEdit: boolean = false;
+  async toolbarToggleEdit(view: WebViewType): Promise<void> {
+    const shadowRoot = this.shadowDOM();
+    const editable = shadowRoot?.getElementById('editable');
+    if (!editable) {
+      console.warn('Editable area not found.');
+      this.toggleEdit = false; 
+      return;
+    }
+    if (this.toggleEdit) { //edit
+      editable.setAttribute('contenteditable', 'true');
+      editable.focus();
+    }
+    else { //save
+      editable.setAttribute('contenteditable', 'false');
+      const editedHtml = await this.urlDataService.formatHtml(editable.innerHTML, 'edit');
+      if (view === WebViewType.Original) {
+        this.uploadState.mergeOriginalData({
+          originalUrl: 'User edited',
+          originalHtml: editedHtml
+        });
+      } else if (view === WebViewType.Modified) {
+        this.uploadState.mergeModifiedData({
+          modifiedUrl: 'User edited',
+          modifiedHtml: editedHtml
+        });
+      }
+      this.toggleEdit = false;
+    }
+  }
+
+  //Copy
+  toggleCopy: boolean = false;
+  toolbarToggleCopy(view: WebViewType): void {
+    const data = this.uploadState.getUploadData();
+    if (!data) return;
+    let htmlToCopy = '';
+    if (view === WebViewType.Original) {
+      htmlToCopy = data.originalHtml ?? '';
+    } else if (view === WebViewType.Modified) {
+      htmlToCopy = data.modifiedHtml ?? '';
+    }
+    navigator.clipboard.writeText(htmlToCopy)
+      .then(() => {
+        setTimeout(() => this.toggleCopy = false, 1000)
+      })
+      .catch(err => console.error('Clipboard copy failed:', err));
+  }
+
+  //Accept All
+  toolbarAcceptAll() {
+    const data = this.uploadState.getUploadData();
+    console.log("Accept all changes");
+    if (!data?.modifiedHtml || !data?.modifiedUrl) return;
+    this.uploadState.mergeOriginalData({ originalHtml: data.modifiedHtml, originalUrl: data.modifiedUrl });
+    this.currentIndex = 0;
+  }
+
+  //Reject All
+  toolbarRejectAll() {
+    const data = this.uploadState.getUploadData();
+    console.log("Reject all changes");
+    if (!data?.originalHtml || !data?.originalUrl) return;
+    this.uploadState.mergeModifiedData({ modifiedHtml: data.originalHtml, modifiedUrl: data.originalUrl });
+    this.currentIndex = 0;
   }
 }

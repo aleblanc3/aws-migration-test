@@ -12,6 +12,12 @@ export interface ModifiedData {
   modifiedHtml: string;
 }
 
+//Original data (from user edits or saving AI changes
+export interface OriginalData {
+  originalUrl: string;
+  originalHtml: string;
+}
+
 // Page assistant state (not used yet)
 export interface PageAssistantState {
   uploadData: UploadData | null;

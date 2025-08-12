@@ -71,7 +71,7 @@ export class UrlDataService {
   //START OF CLEAN-UP FUNCTIONS
 
   //Prettier HTML
-  async formatHtml(html: string, source?: 'url' | 'paste' | 'word' | 'ai'): Promise<string> {
+  async formatHtml(html: string, source?: 'url' | 'paste' | 'word' | 'ai' | 'edit'): Promise<string> {
     try {
       const { default: prettier } = await import('prettier/standalone');
       if (source === 'word') {
