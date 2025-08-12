@@ -186,7 +186,17 @@ export class ShadowDomService {
     });
 
     // Assign IDs
-    const uniqueElements = Array.from(diffDoc.querySelectorAll('ins, del, .updated-link')).map((el, index) => {
+    const uniqueElements = Array.from(diffDoc.querySelectorAll('ins.diffins, del.diffdel, del.diffmod, .updated-link')).map((el, index) => {
+      //Group diffmods <--needs QA check
+      if (el.matches('del.diffmod') && el.nextElementSibling?.matches('ins.diffmod')) {
+        const wrapper = diffDoc.createElement('span');
+        wrapper.classList.add('diff-group');
+        const matchingIns = el.nextElementSibling;
+        el.parentNode?.insertBefore(wrapper, el);
+        wrapper.appendChild(el);
+        wrapper.appendChild(matchingIns);
+        el = wrapper;
+      }
       const parent = el.parentElement;
       return {
         element: el,
