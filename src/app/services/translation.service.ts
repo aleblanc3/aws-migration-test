@@ -14,10 +14,10 @@ You will be provided two inputs in HTML format:
 2. A block of French text that is the translation of the English document.
 
 Your task: return the French document in HTML format such that:
-✅ All English text is replaced with its correct French translation.
-✅ The HTML structure (tags, attributes, order) remains unchanged.
-✅ Each text element retains its original unique ID.
-❌ Do not add extra commentary or leftover English text.`;
+1. All English text is replaced with its correct French translation.
+2. The HTML structure (tags, attributes, order) remains unchanged.
+3. Each text element retains its original unique ID.
+Do not add extra commentary or leftover English text.`;
 
   private pptxPrompt = `You are a presentation formatting assistant. 
 Inputs:
@@ -25,9 +25,9 @@ Inputs:
 2. A block of French text.
 
 Your task: 
-✅ Replace the English text with correct French translation.
-✅ Preserve the same HTML structure and unique IDs.
-✅ If the French text is one paragraph but the English input is split into multiple segments, split it appropriately.
+1. Replace the English text with correct French translation.
+2. Preserve the same HTML structure and unique IDs.
+3. If the French text is one paragraph but the English input is split into multiple segments, split it appropriately.
 Return only the French HTML document.`;
 
   constructor(
