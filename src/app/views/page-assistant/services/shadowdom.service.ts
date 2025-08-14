@@ -97,6 +97,7 @@ export class ShadowDomService {
     const diffDoc = parser.parseFromString(diffResult, 'text/html');
     const beforeDoc = parser.parseFromString(originalHtml, 'text/html');
 
+    /*
     const newLinks: LinksMap = new Map();
 
     const cleanText = (text: string) => text?.trim().replace(/\s+/g, ' ') || '';
@@ -165,11 +166,13 @@ export class ShadowDomService {
     for (const links of newLinks.values()) {
       for (const { element, insText } of links) {
         if (insText) {
+          console.log(`Newly added link text`, insText);
           element.outerHTML = wrapWithSpan(element, 'Newly added link');
         }
       }
     }
 
+    */
     // Remove nested ins/del tags
     diffDoc.querySelectorAll('del > del, ins > ins').forEach(el => {
       const parent = el.parentElement;
@@ -264,9 +267,7 @@ export class ShadowDomService {
         }
       }
       //diff clicks      
-      const changeElements = Array.from(
-        shadowRoot.querySelectorAll<HTMLElement>('[data-id]')
-      );
+      const changeElements = this.getDataIdElements(shadowRoot);
 
       if (!changeElements.length) return;
 
@@ -276,7 +277,8 @@ export class ShadowDomService {
 
       if (!clickedElement) return;
 
-      const index = Number(clickedElement.getAttribute('data-id'));
+      //const index = Number(clickedElement.getAttribute('data-id'));
+      const index = changeElements.indexOf(clickedElement);
       this.scrollToElement(clickedElement);
       if (updateCurrentIndex) {
         updateCurrentIndex(index);
@@ -293,9 +295,8 @@ export class ShadowDomService {
   }
 
   //Helper functions for next/prev buttons
-
   getDataIdElements(shadowRoot: ShadowRoot): HTMLElement[] {
-    return Array.from(shadowRoot.querySelectorAll('[data-id]')) as HTMLElement[];
+    return Array.from(shadowRoot.querySelectorAll<HTMLElement>('[data-id]'));
   }
 
   highlightElement(el: HTMLElement, highlightClass = 'highlight') {
