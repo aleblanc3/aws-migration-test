@@ -447,7 +447,7 @@ export class UrlDataService {
       case 'snippet':
         original = await this.extractContent(sampleSnippetO);
         originalHtml = original.html;
-        modifiedHtml = await this.formatHtml(sampleSnippetM);
+        modifiedHtml = (await this.extractContent(sampleSnippetM)).html;
         break;
 
       case 'word':
@@ -459,7 +459,7 @@ export class UrlDataService {
       default:
         original = await this.extractContent(sampleHtmlO);
         originalHtml = original.html;
-        modifiedHtml = await this.formatHtml(sampleHtmlM);
+        modifiedHtml = (await this.extractContent(sampleHtmlM)).html;
         break;
     }
 
