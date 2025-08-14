@@ -68,6 +68,7 @@ export class PageAssistantCompareComponent implements OnInit {
         this.elements = this.shadowDomService.getDataIdElements(shadowRoot);
         if (this.elements.length > 0) {
           this.focusOnIndex(this.currentIndex); //set initial focus to 1st element
+          console.log(`Number of changes: `, this.elements.length);
         }
       }
       this.toggleEdit = false;
@@ -115,7 +116,7 @@ export class PageAssistantCompareComponent implements OnInit {
     const items = this.baseLegendItems();
     const data = this.uploadState.getUploadData();
     const flags = data?.found
-    console.log(`Legend items:`,flags);
+    console.log(`Legend items:`, flags);
 
     return items
       .map(item => {
@@ -139,10 +140,10 @@ export class PageAssistantCompareComponent implements OnInit {
           return item;
         }
 
-        if ((item.text === 'Updated link') && (view === WebViewType.Original || view === WebViewType.Modified)) return null;
-        if (item.text === 'Hidden content' && !flags?.original.hidden && !flags?.modified.hidden) return null;
-        if (item.text === 'Modal content' && !flags?.original.modal && !flags?.modified.modal) return null;
-        if (item.text === 'Dynamic content' && !flags?.original.dynamic && !flags?.modified.dynamic) return null;
+        if ((item.text === 'Updated link') && (view === WebViewType.Original || view === WebViewType.Modified)) return null; //hide in both original and modified view
+        if (item.text === 'Hidden content' && !flags?.original.hidden && !flags?.modified.hidden) return null; //hide if hidden content not found in either original or modified
+        if (item.text === 'Modal content' && !flags?.original.modal && !flags?.modified.modal) return null; //hide if modal content not found in either original or modified
+        if (item.text === 'Dynamic content' && !flags?.original.dynamic && !flags?.modified.dynamic) return null; //hide if dynamic content not found in either original or modified
 
         return item;
       })
@@ -567,12 +568,14 @@ export class PageAssistantCompareComponent implements OnInit {
 
     //Handle highlighted .diff-group or .updated-link (accept mode keep tag = ins)
     else if (highlighted.tagName.toLowerCase() === 'span') {
-      //diff-group
       const el = highlighted.querySelector(keepTag);
-      if (el) { highlighted.insertAdjacentHTML('beforebegin', el.innerHTML); highlighted.remove(); }
-      //updated-link
       const link = highlighted.querySelector('a');
-      if (link) {
+      console.log(`Highlighted group: `,el);
+      console.log(`Highlighted link: `,link);
+      //diff-group      
+      if (el) { highlighted.insertAdjacentHTML('beforebegin', el.innerHTML); highlighted.remove(); }
+      //updated-link      
+      else if (link) {
         if (mode === 'accept') { highlighted.replaceWith(link); }
         else {
           const oldHref = highlighted.getAttribute('title')?.replace(/^Old URL:\s*/, '') || '';
@@ -585,7 +588,7 @@ export class PageAssistantCompareComponent implements OnInit {
     }
 
     //HANDLE ALL OTHER CHANGES (OPPOSITE OF WHAT IS DONE WITH THE HIGHLIGHTED CHANGE)//
-    //Keep and unwrap remaining elements of opposite tag
+    //Keep and unwrap remaining elements of opposite tag (including inside diff-group)
     diffContainer.querySelectorAll(`${removeTag}, span.diff-group`).forEach(el => {
       const parent = el.parentNode;
       while (el.firstChild) {
