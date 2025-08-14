@@ -63,9 +63,13 @@ export class TestComponent implements OnInit { //remove implements OnInit if not
 
       this.uploadState.setUploadData({
         originalUrl: url,
-        originalHtml: mainHTML,
+        originalHtml: mainHTML.html,
         modifiedUrl: url,
-        modifiedHtml: mainHTML
+        modifiedHtml: mainHTML.html,
+        found: {
+          original: mainHTML.found,
+          modified: mainHTML.found
+        }
       });
 
       this.router.navigate(['page-assistant/compare']);
@@ -83,6 +87,6 @@ export class TestComponent implements OnInit { //remove implements OnInit if not
     { title: 'Scams and fraud - CRA', url: 'https://www.canada.ca/en/revenue-agency/corporate/scams-fraud.html' },
     { title: 'Income earned illegally is taxable', url: 'https://www.canada.ca/en/revenue-agency/corporate/scams-fraud/income-earned-illegally-taxable.html' },
     { title: 'Return a payment - Canada Dental Benefit - Closed', url: 'https://www.canada.ca/en/revenue-agency/services/child-family-benefits/dental-benefit/return-payment.html' },
-   
+
   ];
 }

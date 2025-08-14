@@ -4,6 +4,10 @@ export interface UploadData {
   modifiedHtml: string;
   originalUrl: string;
   modifiedUrl: string;
+  found?: {
+    original: { hidden: boolean; modal: boolean; dynamic: boolean };
+    modified: { hidden: boolean; modal: boolean; dynamic: boolean };
+  };
 }
 
 // Modified data (from upload or AI generated content)
@@ -12,16 +16,20 @@ export interface ModifiedData {
   modifiedHtml: string;
 }
 
-//Original data (from user edits or saving AI changes
+//Original data (from user edits or saving AI changes)
 export interface OriginalData {
   originalUrl: string;
   originalHtml: string;
 }
 
-// Page assistant state (not used yet)
-export interface PageAssistantState {
-  uploadData: UploadData | null;
-  activeStep: number;
+//Data structure for extractContent fxn 
+export interface htmlProcessingResult {
+  html: string;
+  found: {
+    hidden: boolean;
+    modal: boolean;
+    dynamic: boolean;
+  };
 }
 
 // Diff options to tweaks how sensitive HTML diff is to whitespace, word repitition, etc.
@@ -67,7 +75,7 @@ export enum PromptKey {
   PlainLanguage = 'plainLanguage'
 }
 
-export enum AiModel {  
+export enum AiModel {
   Gemini = 'google/gemini-2.0-flash-exp:free', //1.05M context (saves prompt data)
   DeepSeekChatV3 = 'deepseek/deepseek-chat-v3-0324:free', //164k context (saves prompt data)
   Qwen = 'qwen/qwen3-235b-a22b:free', //131k context

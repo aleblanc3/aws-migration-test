@@ -60,16 +60,21 @@ export class UploadPasteComponent {
       if (this.mode === 'original') {
         this.uploadState.setUploadData({
           originalUrl: "Copy/Paste",
-          originalHtml: mainHTML,
+          originalHtml: mainHTML.html,
           modifiedUrl: "Copy/Paste",
-          modifiedHtml: mainHTML
+          modifiedHtml: mainHTML.html,
+          found: {
+            original: mainHTML.found,
+            modified: mainHTML.found
+          }
         });
       }
       if (this.mode === 'prototype') {
         this.uploadState.mergeModifiedData({
           modifiedUrl: "Copy/Paste",
-          modifiedHtml: mainHTML
+          modifiedHtml: mainHTML.html
         });
+        this.uploadState.mergeFoundFlags('modified', mainHTML.found);
       }
 
       this.uploadComplete.emit();

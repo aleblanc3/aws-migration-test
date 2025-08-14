@@ -113,6 +113,9 @@ export class PageAssistantCompareComponent implements OnInit {
   legendItems = computed(() => {
     const view = this.webSelectedView();
     const items = this.baseLegendItems();
+    const data = this.uploadState.getUploadData();
+    const flags = data?.found
+    console.log(`Legend items:`,flags);
 
     return items
       .map(item => {
@@ -135,6 +138,11 @@ export class PageAssistantCompareComponent implements OnInit {
           }
           return item;
         }
+
+        if ((item.text === 'Updated link') && (view === WebViewType.Original || view === WebViewType.Modified)) return null;
+        if (item.text === 'Hidden content' && !flags?.original.hidden && !flags?.modified.hidden) return null;
+        if (item.text === 'Modal content' && !flags?.original.modal && !flags?.modified.modal) return null;
+        if (item.text === 'Dynamic content' && !flags?.original.dynamic && !flags?.modified.dynamic) return null;
 
         return item;
       })
@@ -538,6 +546,7 @@ export class PageAssistantCompareComponent implements OnInit {
     const diffContainer = shadowRoot.querySelector('.diff-content') as HTMLElement;
     if (!diffContainer) { console.warn("Diff container not found"); return; }
 
+    //HANDLE HIGHLIGHTED DIFF//
     //Get highlighted <ins> or <del> or <span>
     const highlighted = diffContainer.querySelector('ins.highlight, del.highlight, span.diff-group.highlight, span.updated-link.highlight') as HTMLElement;
     if (!highlighted) { console.warn("highlighted element not found"); return; }
@@ -575,6 +584,7 @@ export class PageAssistantCompareComponent implements OnInit {
       else { console.log(`No <${keepTag}> or updated-link found. Leaving content as-is.`); return; }
     }
 
+    //HANDLE ALL OTHER CHANGES (OPPOSITE OF WHAT IS DONE WITH THE HIGHLIGHTED CHANGE)//
     //Keep and unwrap remaining elements of opposite tag
     diffContainer.querySelectorAll(`${removeTag}, span.diff-group`).forEach(el => {
       const parent = el.parentNode;
