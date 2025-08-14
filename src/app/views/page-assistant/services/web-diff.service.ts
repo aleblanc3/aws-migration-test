@@ -14,7 +14,7 @@ export class WebDiffService {
       repeatingWordsAccuracy: 0,
       ignoreWhiteSpaceDifferences: true,
       orphanMatchThreshold: 0,
-      matchGranularity: 4,
+      matchGranularity: 4, //0 may trigger entire page to show up as diff. Higher numbers result in several insertions in a row. (UPD uses 4)
       combineWords: true,
     };
 
@@ -24,7 +24,8 @@ export class WebDiffService {
       originalHtml,
       modifiedHtml,
       options,
-    ).replace(
+    ).replace(/<\/ins>\s*<ins class="(diffmod|diffins)">/gi, ' ') // merge consecutive insertions
+     .replace(
       /<(ins|del)[^>]*>(\s|&nbsp;|&#32;|&#160;|&#x00e2;|&#x0080;|&#x00af;|&#x202f;|&#xa0;)+<\/(ins|del)>/gis, // Remove empty or whitespace-only <ins>/<del> tags
       ' ',
     );
@@ -118,7 +119,7 @@ export class WebDiffService {
       ins.highlight,
       span.diff-group.highlight,
       .updated-link.highlight:not(.overlay-wrapper.updated-link) {
-        outline: 2px dotted #000;
+        outline: 3px dotted #6e2ea7;
         padding-left: 0.35em;
         padding-right: 0.35em;
         line-height: unset;
