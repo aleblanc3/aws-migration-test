@@ -49,9 +49,9 @@
                             <p-button icon="pi pi-chevron-right" pTooltip="Next change" showDelay="1000" hideDelay="300"
                                 text severity="primary" (onClick)="next()" />
                             <p-button icon="pi pi-check" pTooltip="Accept this change" showDelay="1000" hideDelay="300"
-                                text severity="success" (onClick)="toolbarAccept()" disabled="true"/>
+                                text severity="success" (onClick)="toolbarAccept()"/>
                             <p-button icon="pi pi-times" pTooltip="Reject this change" showDelay="1000" hideDelay="300"
-                                text severity="danger" (onClick)="toolbarReject()" disabled="true"/>
+                                text severity="danger" (onClick)="toolbarReject()"/>
                         </ng-container>
                         <ng-container
                             *ngIf="webSelectedView() === WebViewType.Original || webSelectedView() === WebViewType.Modified">
