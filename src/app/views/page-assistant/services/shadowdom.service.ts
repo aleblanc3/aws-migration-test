@@ -211,7 +211,7 @@ export class ShadowDomService {
     uniqueElements.forEach(({ element, id }) => {
       element.setAttribute('data-id', `${id}`);
     });
-
+/* 
     const wrapWithOverlayWrapper = (el: Element, parentClass: string) => {
       const parent = el.parentElement;
       const dataId = parent?.getAttribute('data-id');
@@ -232,7 +232,7 @@ export class ShadowDomService {
         wrapWithOverlayWrapper(el, parentClass);
       }
     });
-
+*/
     return diffDoc.body.innerHTML;
   }
 
