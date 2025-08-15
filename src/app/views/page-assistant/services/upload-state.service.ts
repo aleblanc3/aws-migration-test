@@ -15,6 +15,9 @@ export class UploadStateService {
 
   //Upload data
   private uploadData = signal<Partial<UploadData> | null>(null);
+  private originalUploadData: Partial<UploadData> | null = null; //for the compare with original button
+  private prevUploadData: (Partial<UploadData> | null)[] = []; //for the undo button
+  private maxHistory = 20; //max size of undo array
   getUploadData = computed(() => this.uploadData());
 
   setUploadData(data: Partial<UploadData>) {
@@ -57,10 +60,30 @@ export class UploadStateService {
     });
   }
 
+  // Restore the previous state (for undo button)
+  undoLastChange(): void {
+    if (this.prevUploadData.length === 0) return;
+    const lastState = this.prevUploadData.pop() ?? null;
+    this.uploadData.set(lastState);
+  }
+
+  isUndoDisabled(): boolean { return this.prevUploadData.length === 0; }
+
+  // Save a copy of uploadData before overwriting
+  savePreviousUploadData(): void {
+    const current = this.uploadData();
+    this.prevUploadData.push(current ? structuredClone(current) : null);
+    // Remove oldest item if array gets too big
+    if (this.prevUploadData.length > this.maxHistory) {
+      this.prevUploadData.shift(); 
+    }
+  }
+
   //Reset
-  resetUploadFlow() {
+  resetUploadFlow(): void {
     this.selectedUploadType.set('url'); // default to URL
     this.uploadData.set(null);
+    this.prevUploadData = [];
   }
 
 }
