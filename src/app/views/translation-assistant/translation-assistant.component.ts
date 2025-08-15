@@ -82,6 +82,10 @@ export class TranslationAssistantComponent implements OnInit {
     this.sourceError = '';
     const input = event.target as HTMLInputElement;
     this.selectedFile = input.files?.[0] ?? null;
+
+    if (this.selectedFile) {
+      this.buildEnglishHtmlStored(this.selectedFile).catch(console.error);
+    }
   }
 
   isDocx(file: File): boolean {
@@ -116,7 +120,7 @@ export class TranslationAssistantComponent implements OnInit {
         this.showSecondUpload = false;
         this.sourceError = '';
 
-        // Automatically parse the file
+        this.buildEnglishHtmlStored(this.selectedFile).catch(console.error);
         this.previewSource();
       } else {
         this.sourceError = 'Only .docx or .pptx files are supported.';
@@ -331,6 +335,31 @@ export class TranslationAssistantComponent implements OnInit {
     });
   }
 
+  private async buildEnglishHtmlStored(file: File): Promise<void> {
+    const buf = await file.arrayBuffer();
+    const ext = file.name.split('.').pop()?.toLowerCase();
+
+    if (ext === 'docx') {
+      const rawMapping = await this.extractDocxTextXmlWithId(buf);
+      const aggregatedMapping = this.aggregateDocxMapping(rawMapping);
+      this.englishHtmlStored = aggregatedMapping
+        .map((item) => `<p id="${item.id}">${item.text}</p>`)
+        .join('');
+    } else if (ext === 'pptx') {
+      const rawMapping = await this.parseSrv.extractPptxTextXmlWithId(buf);
+      this.englishHtmlStored = rawMapping
+        .map((item) => `<p id="${item.id}">${item.text}</p>`)
+        .join('');
+    } else {
+      this.englishHtmlStored = '';
+    }
+
+    console.log(
+      'englishHtmlStored sample:',
+      this.englishHtmlStored.slice(0, 200),
+    );
+  }
+
   private conversionDocxXmlModified(
     originalXml: string,
     finalFrenchHtml: string,
@@ -351,7 +380,16 @@ export class TranslationAssistantComponent implements OnInit {
       if (tElements.length > 0 && tElements[0].textContent?.trim()) {
         const key = aggregatedMapping[mappingIndex].id;
         if (frenchMap[key]) {
+          // Replace the text in the first <w:t> element
           tElements[0].textContent = frenchMap[key];
+
+          // Ensure spaces are preserved in the first <w:t>
+          const firstT = tElements[0] as Element;
+          if (!firstT.getAttribute('xml:space')) {
+            firstT.setAttribute('xml:space', 'preserve');
+          }
+
+          // Clear the text for any additional <w:t> elements
           for (let j = 1; j < tElements.length; j++) {
             tElements[j].textContent = '';
           }
@@ -369,13 +407,45 @@ export class TranslationAssistantComponent implements OnInit {
     slideNumber: string,
   ) {
     const frenchMap = this.buildFrenchTextMap(finalFrenchHtml);
+    const memoryCache: Record<string, string> = {};
     let runIndex = 1;
 
     return originalXml.replace(
       /(<a:r>[\s\S]*?<a:t>)([\s\S]*?)(<\/a:t>[\s\S]*?<\/a:r>)/g,
       (match, prefix, origText, suffix) => {
         const key = `S${slideNumber}_T${runIndex++}`;
-        const newText = frenchMap[key] || '';
+        const origTrim = (origText || '').trim();
+        const candidateRaw = frenchMap[key];
+        let newText = '';
+
+        if (candidateRaw !== undefined) {
+          const candidate = candidateRaw.trim();
+          newText = candidate;
+          if (origTrim && candidate !== origTrim) {
+            memoryCache[origTrim] = candidate;
+          }
+        } else if (memoryCache[origTrim]) {
+          newText = memoryCache[origTrim];
+        } else if (/^\s*[\d.,-]+\s*$/.test(origTrim)) {
+          newText = origTrim; // numeric fallback
+        } else {
+          newText = '';
+        }
+
+        // If bold, apply heading/inline spacing tweaks (parity with jQuery)
+        if (newText && /<a:rPr[^>]*\sb="1"/.test(prefix)) {
+          let t = newText.trim();
+          const wordCount = t.split(/\s+/).length;
+          const isHeading = wordCount > 2;
+          if (isHeading) {
+            if (!t.endsWith(' ')) t += ' ';
+          } else {
+            if (!t.startsWith(' ')) t = ' ' + t;
+            if (!t.endsWith(' ')) t += ' ';
+          }
+          newText = t;
+        }
+
         return prefix + this.escapeXml(newText) + suffix;
       },
     );
