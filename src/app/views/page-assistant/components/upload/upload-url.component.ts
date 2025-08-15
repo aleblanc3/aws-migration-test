@@ -74,16 +74,21 @@ export class UploadUrlComponent {
       if (this.mode === 'original') {
         this.uploadState.setUploadData({
           originalUrl: this.userInput,
-          originalHtml: mainHTML,
+          originalHtml: mainHTML.html,
           modifiedUrl: this.userInput,
-          modifiedHtml: mainHTML
+          modifiedHtml: mainHTML.html,
+          found: {
+            original: mainHTML.found,
+            modified: mainHTML.found
+          }
         });
       }
       if (this.mode === 'prototype') {
         this.uploadState.mergeModifiedData({
           modifiedUrl: this.userInput,
-          modifiedHtml: mainHTML
+          modifiedHtml: mainHTML.html
         });
+        this.uploadState.mergeFoundFlags('modified', mainHTML.found);
       }
 
       this.uploadComplete.emit();

@@ -4,7 +4,7 @@
 <!-- Control Buttons -->
 <div class="flex gap-2 flex-wrap mb-3">
     <p-button label="Send to GenAI" [icon]="isLoading ? 'pi pi-spinner pi-spin' : 'pi pi-comments'" severity="primary"
-        (onClick)="sendToAI()" [disabled]="!uploadData?.originalHtml || isLoading"></p-button>
+        (onClick)="sendToAI()" [disabled]="!uploadData?.originalHtml || isLoading || isDisabled" [pTooltip]="aiDisabled" showDelay="1000" hideDelay="300"></p-button>
     <ca-ai-options (promptChange)="onPromptChange($event)" (aiChange)="onAiChange($event)" (aiSubmit)="sendToAI()"
         (customPrompt)="onAppendCustom($event)"></ca-ai-options>
     <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="clearAll($event)"
@@ -49,9 +49,9 @@
                             <p-button icon="pi pi-chevron-right" pTooltip="Next change" showDelay="1000" hideDelay="300"
                                 text severity="primary" (onClick)="next()" />
                             <p-button icon="pi pi-check" pTooltip="Accept this change" showDelay="1000" hideDelay="300"
-                                text severity="success" disabled/>
+                                text severity="success" (onClick)="toolbarAccept()"/>
                             <p-button icon="pi pi-times" pTooltip="Reject this change" showDelay="1000" hideDelay="300"
-                                text severity="danger" disabled/>
+                                text severity="danger" (onClick)="toolbarReject()"/>
                         </ng-container>
                         <ng-container
                             *ngIf="webSelectedView() === WebViewType.Original || webSelectedView() === WebViewType.Modified">

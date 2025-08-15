@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { sampleHtmlO, sampleHtmlM, sampleSnippetO, sampleSnippetM, sampleWordO, sampleWordM } from '../components/sample-data';
-import { UploadData } from '../../../common/data.types'
+import { htmlProcessingResult } from '../../../common/data.types'
 import { UploadStateService } from './upload-state.service';
 //import prettier from 'prettier/standalone';
 import * as parserHtml from 'prettier/parser-html';
@@ -24,7 +24,7 @@ export class UrlDataService {
   /** Gets HTML content from a URL and processes it. 
     * Note: remove type later if it isn't needed */
 
-  async fetchAndProcess(url: string): Promise<string> {
+  async fetchAndProcess(url: string): Promise<htmlProcessingResult> {
     const parsedUrl = new URL(url);
 
     //Check if host is allowed
@@ -42,22 +42,24 @@ export class UrlDataService {
     const html = await response.text();
 
     //Process HTML and return main element
-    return this.extractContent(html);
+    return await this.extractContent(html);
 
   }
 
   //Runs all clean-up functions (might need to add type for full html document from url vs. snippet from copy/paste)
-  async extractContent(html: string): Promise<string> {
+  async extractContent(html: string): Promise<htmlProcessingResult> {
     const doc = new DOMParser().parseFromString(html, 'text/html');
+    const foundFlags = { hidden: false, modal: false, dynamic: false };
 
     //process HTML
-    await this.processAjaxReplacements(doc);
-    await this.processJsonReplacements(doc);
-    this.processModalDialogs(doc);
+    foundFlags.dynamic ||= await this.processAjaxReplacements(doc);
+    foundFlags.dynamic ||= await this.processJsonReplacements(doc);
+    foundFlags.modal ||= this.processModalDialogs(doc);
     this.updateRelativeURLs(doc, "https://www.canada.ca");
     this.cleanupUnnecessaryElements(doc);
-    this.displayInvisibleElements(doc);
+    foundFlags.hidden ||= this.displayInvisibleElements(doc);
     this.addToc(doc);
+    this.sortAttributes(doc);
 
     // Return main content
     const main = doc.querySelector('main');
@@ -65,7 +67,10 @@ export class UrlDataService {
       console.warn('No <main> tag found. Using full <body> content instead.');
     }
     const content = main ? main.outerHTML : doc.body.innerHTML.trim();
-    return await this.formatHtml(content);
+    return {
+      html: await this.formatHtml(content),
+      found: foundFlags
+    }
   }
 
   //START OF CLEAN-UP FUNCTIONS
@@ -75,10 +80,10 @@ export class UrlDataService {
     try {
       const { default: prettier } = await import('prettier/standalone');
       if (source === 'word') {
-        // Wrap in <main>
+        // Wrap word content in <main>
         html = `<main  property="mainContentOfPage" resource="#wb-main" typeof="WebPageElement" class="container">${html}</main>`;
 
-        // Apply replacements
+        // Add classes to H1 and tables
         html = html
           .replace('<h1>', '<h1 property="name" id="wb-cont" dir="ltr">')
           .replace('<table>', '<table class="wb-tables table table-striped">');
@@ -90,7 +95,7 @@ export class UrlDataService {
       if (source === 'ai') {
         html = this.aiCleanup(html);
       }
-
+     
       //const [{ default: prettier }, parserHtml] = await Promise.all([
       //  import('prettier/standalone'),
       //  import('prettier/parser-html'),
@@ -99,6 +104,8 @@ export class UrlDataService {
         parser: 'html',
         plugins: [parserHtml],
         htmlWhitespaceSensitivity: 'ignore', // default is css which treats <span> as inline and <div> as block
+        printWidth: 200,
+        singleAttributePerLine: false,
       });
       return formatted;
     } catch (error) {
@@ -133,12 +140,16 @@ export class UrlDataService {
         p.remove();
       }
     });
+    // Remove <think>
+    doc.querySelectorAll("think").forEach(think => {think.remove();});
+
     // Return the cleaned-up HTML as a string
     return doc.body.outerHTML;
   }
 
   //Resolve AJAX-loaded content
-  private async processAjaxReplacements(doc: Document): Promise<void> {
+  private async processAjaxReplacements(doc: Document): Promise<boolean> {
+    let found = false;
     const baseUrl = 'https://www.canada.ca';
 
     const fetchUrl = async (url: string, type: 'json' | 'text'): Promise<any> => {
@@ -157,6 +168,7 @@ export class UrlDataService {
       );
 
       if (!ajaxElements.length) return;
+      else { found = true };
 
       for (const element of ajaxElements) {
         const tag = element.tagName.toLowerCase();
@@ -216,11 +228,13 @@ export class UrlDataService {
         '[data-ajax-replace^="/"], [data-ajax-after^="/"], [data-ajax-append^="/"], [data-ajax-before^="/"], [data-ajax-prepend^="/"]'
       ).length;
     } while (currentCount && currentCount !== previousCount);
+    return found;
   }
 
   //Resolve JSON-loaded content
 
-  private async processJsonReplacements(doc: Document): Promise<void> {
+  private async processJsonReplacements(doc: Document): Promise<boolean> {
+    let found = false
     const baseUrl = 'https://www.canada.ca';
 
     const fetchUrl = async (url: string, type: 'json' | 'text'): Promise<any> => {
@@ -257,7 +271,7 @@ export class UrlDataService {
     };
 
     const jsonElements = doc.querySelectorAll('[data-wb-jsonmanager]');
-    if (!jsonElements.length) return;
+    if (!jsonElements.length) return found;
 
     const jsonDataMap = new Map<string, any>();
 
@@ -312,7 +326,10 @@ export class UrlDataService {
     `;
 
       element.outerHTML = styledContent;
+      found = true
+
     });
+    return found;
   }
 
 
@@ -326,7 +343,8 @@ export class UrlDataService {
   }
 
   //Reveal hidden stuff
-  private displayInvisibleElements(doc: Document): void {
+  private displayInvisibleElements(doc: Document): boolean {
+    let found = false
     const invisibleSelectors = ['.wb-inv', '.hidden', '.nojs-show'];
     invisibleSelectors.forEach(selector => {
       doc.querySelectorAll<HTMLElement>(selector).forEach(el => {
@@ -334,10 +352,13 @@ export class UrlDataService {
         el.style.border = '2px solid #6F9FFF'; // Visual cue
       });
     });
+    if (invisibleSelectors.length > 0) { found = true };
+    return found;
   }
 
-  //Show modals FIX PADDING
-  private processModalDialogs(doc: Document): void {
+  //Show modals
+  private processModalDialogs(doc: Document): boolean {
+    let found = false
     const modals = doc.querySelectorAll('.modal-dialog.modal-content');
     modals.forEach(modal => {
       // Unhide if it has 'mfp-hide'
@@ -354,6 +375,8 @@ export class UrlDataService {
       }
       modal.appendChild(wrapper);
     });
+    if (modals.length > 0) { found = true };
+    return found;
   }
 
   //Resolve relative URLs <-- make this work for canada.ca and github where the correct baseUrl is probably mydomain.ca
@@ -418,27 +441,51 @@ export class UrlDataService {
     });
   }
 
+  //Sort attributes
+  private sortAttributes(doc: Document): void {
+    doc.querySelectorAll('*').forEach(el => {
+      if (!el.hasAttributes()) return;
+
+      // Extract and sort attributes
+      const sortedAttrs = Array.from(el.attributes)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      // Rebuild attributes in sorted order
+      const clone = el.cloneNode(false) as HTMLElement;
+      sortedAttrs.forEach(attr => clone.setAttribute(attr.name, attr.value));
+
+      // Preserve inner HTML
+      if (el.innerHTML) { clone.innerHTML = el.innerHTML; }
+
+      el.replaceWith(clone);
+    });
+  }
+
   //END OF CLEAN-UP FUNCTIONS
 
   //Start of sample data
   async loadSampleDataset(name: 'webpage' | 'snippet' | 'word' = 'webpage'): Promise<void> {
+    let original: htmlProcessingResult;
     let originalHtml: string;
     let modifiedHtml: string;
 
     switch (name) {
       case 'snippet':
-        originalHtml = await this.extractContent(sampleSnippetO);
-        modifiedHtml = await this.formatHtml(sampleSnippetM);
+        original = await this.extractContent(sampleSnippetO);
+        originalHtml = original.html;
+        modifiedHtml = (await this.extractContent(sampleSnippetM)).html;
         break;
 
       case 'word':
         originalHtml = await this.formatHtml(sampleWordO, 'word');
+        original = { html: originalHtml, found: { hidden: false, modal: false, dynamic: false } };
         modifiedHtml = await this.formatHtml(sampleWordM, 'word');
         break;
 
       default:
-        originalHtml = await this.extractContent(sampleHtmlO);
-        modifiedHtml = await this.formatHtml(sampleHtmlM);
+        original = await this.extractContent(sampleHtmlO);
+        originalHtml = original.html;
+        modifiedHtml = (await this.extractContent(sampleHtmlM)).html;
         break;
     }
 
@@ -447,6 +494,10 @@ export class UrlDataService {
       originalHtml,
       modifiedUrl: `Modified ${name}`,
       modifiedHtml,
+      found: {
+        original: original.found,
+        modified: original.found
+      }
     });
   }
 

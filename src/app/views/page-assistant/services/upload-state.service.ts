@@ -39,6 +39,24 @@ export class UploadStateService {
     });
   }
 
+  mergeFoundFlags(version: 'original' | 'modified', flags: { hidden: boolean; modal: boolean; dynamic: boolean }) {
+    const current = this.uploadData() || {};
+    const currentFound = current.found || {
+      original: { hidden: true, modal: true, dynamic: true },
+      modified: { hidden: true, modal: true, dynamic: true }
+    };
+    this.uploadData.set({
+      ...current,
+      found: {
+        ...currentFound,
+        [version]: {
+          ...currentFound[version],
+          ...flags
+        }
+      }
+    });
+  }
+
   //Reset
   resetUploadFlow() {
     this.selectedUploadType.set('url'); // default to URL

@@ -53,9 +53,9 @@ export class PageAssistantCompareComponent implements OnInit {
       const data = this.uploadState.getUploadData();
       const viewType = this.webSelectedView();
       const shadowRoot = this.shadowDOM();
-      console.log("[Web tab] received new data");
+      //console.log("[Web tab] received new data");
       if (data?.originalHtml && data?.modifiedHtml && shadowRoot) {
-        console.log("[Web tab] generating diff");
+        //console.log("[Web tab] generating diff");
         await this.shadowDomService.generateShadowDOMContent(
           shadowRoot,
           viewType,
@@ -68,6 +68,12 @@ export class PageAssistantCompareComponent implements OnInit {
         this.elements = this.shadowDomService.getDataIdElements(shadowRoot);
         if (this.elements.length > 0) {
           this.focusOnIndex(this.currentIndex); //set initial focus to 1st element
+          this.isDisabled = true;
+          this.aiDisabled = "Accept or reject changes first"
+        }
+        else{
+          this.isDisabled = false;
+          this.aiDisabled = "";
         }
       }
       this.toggleEdit = false;
@@ -76,9 +82,9 @@ export class PageAssistantCompareComponent implements OnInit {
       const data = this.uploadState.getUploadData();
       const viewType = this.sourceSelectedView();
       const container = this.sourceContainerSignal();
-      console.log("[Source tab] received new data");
+      //console.log("[Source tab] received new data");
       if (data?.originalHtml && data?.modifiedHtml && container) {
-        console.log("[Source tab] generating diff");
+        //console.log("[Source tab] generating diff");
         this.sourceDiffService.generateSourceContent(
           container.nativeElement,
           viewType,
@@ -90,6 +96,10 @@ export class PageAssistantCompareComponent implements OnInit {
       }
     });
   }
+
+  //Disable AI if there are changes to accept/reject
+  isDisabled: boolean = false;
+  aiDisabled: string = "";
 
   get uploadType(): 'url' | 'paste' | 'word' {
     return this.uploadState.getSelectedUploadType(); // returns signal().value
@@ -113,6 +123,9 @@ export class PageAssistantCompareComponent implements OnInit {
   legendItems = computed(() => {
     const view = this.webSelectedView();
     const items = this.baseLegendItems();
+    const data = this.uploadState.getUploadData();
+    const flags = data?.found
+    //console.log(`Legend items:`, flags);
 
     return items
       .map(item => {
@@ -135,6 +148,11 @@ export class PageAssistantCompareComponent implements OnInit {
           }
           return item;
         }
+
+        if ((item.text === 'Updated link') && (view === WebViewType.Original || view === WebViewType.Modified)) return null; //hide in both original and modified view
+        if (item.text === 'Hidden content' && !flags?.original.hidden && !flags?.modified.hidden) return null; //hide if hidden content not found in either original or modified
+        if (item.text === 'Modal content' && !flags?.original.modal && !flags?.modified.modal) return null; //hide if modal content not found in either original or modified
+        if (item.text === 'Dynamic content' && !flags?.original.dynamic && !flags?.modified.dynamic) return null; //hide if dynamic content not found in either original or modified
 
         return item;
       })
@@ -163,7 +181,7 @@ export class PageAssistantCompareComponent implements OnInit {
 
   //Change web view
   async onWebViewChange(viewType: WebViewType) {
-    this.webSelectedView.set(viewType); 
+    this.webSelectedView.set(viewType);
   }
 
   //Change source view
@@ -285,6 +303,7 @@ export class PageAssistantCompareComponent implements OnInit {
     console.time("Time until AI response");
     const startTime = performance.now();
     this.isLoading = true;
+    this.aiDisabled = "Wait for response from AI"
     this.statusSeverity = 'info';
     this.statusMessage = 'Sending content to Open Router.';
 
@@ -362,6 +381,12 @@ export class PageAssistantCompareComponent implements OnInit {
       console.dir(aiResponse);
       console.groupEnd();
 
+      //AI model translation
+      const requestedModelKey = this.getEnumKeyByValue(AiModel, model);
+      const usedModelKey = this.getEnumKeyByValue(AiModel, aiResponse.model);
+      const requestedModel = this.translate.instant(`page.ai-options.model.short.${requestedModelKey}`);
+      const usedModel = this.translate.instant(`page.ai-options.model.short.${usedModelKey}`);
+
       if (model != aiResponse.model) {
         console.warn("A FALLBACK MODEL WAS USED");
         console.groupCollapsed("Fallback model info");
@@ -369,10 +394,7 @@ export class PageAssistantCompareComponent implements OnInit {
         console.log(`Fallback model: `, aiResponse.model);
         console.log(`Your requested model may be down or you have exceeded the rate limit`);
         console.groupEnd();
-        const requestedModelKey = this.getEnumKeyByValue(AiModel, model);
-        const usedModelKey = this.getEnumKeyByValue(AiModel, aiResponse.model);
-        const requestedModel = this.translate.instant(`page.ai-options.model.short.${requestedModelKey}`);
-        const usedModel = this.translate.instant(`page.ai-options.model.short.${usedModelKey}`);
+
         this.statusSeverity = 'warn';
         this.statusMessage = `Your selected AI model was unavailable. Used `, usedModel, ` instead.`;
         this.messageService.add({
@@ -391,7 +413,7 @@ export class PageAssistantCompareComponent implements OnInit {
       });
 
       this.statusSeverity = 'success';
-      this.statusMessage = 'Comparison has been updated with AI response.';
+      this.statusMessage = `Comparison has been updated with AI response from ${usedModel}.`;
 
       this.messageService.add({
         severity: 'success',
@@ -413,6 +435,7 @@ export class PageAssistantCompareComponent implements OnInit {
 
     } finally {
       this.isLoading = false;
+      this.aiDisabled = "";
       console.timeEnd("Time until AI response");
       const endTime = performance.now();
       const durationInSeconds = ((endTime - startTime) / 1000).toFixed(2);
@@ -420,7 +443,7 @@ export class PageAssistantCompareComponent implements OnInit {
         severity: 'info',
         summary: 'Request Complete',
         detail: `Total time: ${durationInSeconds} seconds.`,
-        sticky: true
+        life: 10000
       });
     }
   }
@@ -462,7 +485,7 @@ export class PageAssistantCompareComponent implements OnInit {
     const editable = shadowRoot?.getElementById('editable');
     if (!editable) {
       console.warn('Editable area not found.');
-      this.toggleEdit = false; 
+      this.toggleEdit = false;
       return;
     }
     if (this.toggleEdit) { //edit
@@ -521,5 +544,114 @@ export class PageAssistantCompareComponent implements OnInit {
     if (!data?.originalHtml || !data?.originalUrl) return;
     this.uploadState.mergeModifiedData({ modifiedHtml: data.originalHtml, modifiedUrl: data.originalUrl });
     this.currentIndex = 0;
+  }
+
+  toolbarAccept(): void {
+    this.processDiffChange('accept');
+  }
+
+  toolbarReject(): void {
+    this.processDiffChange('reject');
+  }
+
+  processDiffChange(mode: 'accept' | 'reject'): void {
+    //Get diff container
+    const shadowRoot = this.shadowDOM();
+    if (!shadowRoot) { console.warn('Shadow root not found.'); return; }
+    const diffContainer = shadowRoot.querySelector('.diff-content') as HTMLElement;
+    if (!diffContainer) { console.warn("Diff container not found"); return; }
+
+    //HANDLE HIGHLIGHTED DIFF//
+    //Get highlighted <ins> or <del> or <span>
+    const highlighted = diffContainer.querySelector('ins.highlight, del.highlight, span.diff-group.highlight, span.updated-link.highlight') as HTMLElement;
+    if (!highlighted) { console.warn("highlighted element not found"); return; }
+
+    const keepTag = mode === 'accept' ? 'ins' : 'del';
+    const removeTag = mode === 'accept' ? 'del' : 'ins';
+
+    //Keep highlighted tag (accept mode keep tag = ins)
+    if (highlighted.tagName.toLowerCase() === keepTag) {
+      highlighted.insertAdjacentHTML('beforebegin', highlighted.innerHTML);
+      highlighted.remove();
+    }
+
+    //Remove highlighted tag (accept mode remove tag = del)
+    else if (highlighted.tagName.toLowerCase() === removeTag) {
+      highlighted.remove();
+    }
+
+    //Handle highlighted .diff-group or .updated-link (accept mode keep tag = ins)
+    else if (highlighted.tagName.toLowerCase() === 'span') {
+      const el = highlighted.querySelector(keepTag);
+      const link = highlighted.querySelector('a');
+      //console.log(`Highlighted group: `,el);
+      //console.log(`Highlighted link: `,link);
+      //diff-group      
+      if (el) { highlighted.insertAdjacentHTML('beforebegin', el.innerHTML); highlighted.remove(); }
+      //updated-link      
+      else if (link) {
+        if (mode === 'accept') { highlighted.replaceWith(link); }
+        else {
+          const oldHref = highlighted.getAttribute('title')?.replace(/^Old URL:\s*/, '') || '';
+          link.setAttribute('href', oldHref);
+          highlighted.replaceWith(link);
+        }
+      }
+      //neither found
+      else { console.log(`No <${keepTag}> or updated-link found. Leaving content as-is.`); return; }
+    }
+
+    //HANDLE ALL OTHER CHANGES (OPPOSITE OF WHAT IS DONE WITH THE HIGHLIGHTED CHANGE)//
+    //Keep and unwrap remaining elements of opposite tag (including inside diff-group)
+    diffContainer.querySelectorAll(`${removeTag}, span.diff-group`).forEach(el => {
+      const parent = el.parentNode;
+      while (el.firstChild) {
+        parent?.insertBefore(el.firstChild, el);
+      }
+      parent?.removeChild(el);
+    });
+
+    // Remove remaining elements of the keep tag
+    diffContainer.querySelectorAll(keepTag).forEach(el => {
+      el.remove();
+    });
+
+    // Remove new/old link highlights
+    diffContainer.querySelectorAll('span.updated-link').forEach(span => {
+      const link = span.querySelector('a');
+      if (!link) return;
+      if (mode === 'reject') { span.replaceWith(link); }
+      else {
+        const oldHref = span.getAttribute('title')?.replace(/^Old URL:\s*/, '') || '';
+        link.setAttribute('href', oldHref);
+        span.replaceWith(link);
+      }
+    });
+
+    //Merge with modified HTML
+    const updatedHtml = diffContainer.innerHTML;
+    const data = this.uploadState.getUploadData();
+    if (!data) return;
+    if (mode === 'accept') {
+      this.uploadState.mergeOriginalData({
+        originalUrl: 'Change accepted',
+        originalHtml: updatedHtml
+      });
+      const modHtml = data.modifiedHtml?.replace(/<(\w+)([\s\S]*?)\s*\/>/g, '<$1$2>'); //removes self-closing slash
+      this.uploadState.mergeModifiedData({
+        modifiedUrl: data.modifiedUrl!,
+        modifiedHtml: modHtml!
+      });
+    } else {
+      this.uploadState.mergeModifiedData({
+        modifiedUrl: 'Change rejected',
+        modifiedHtml: updatedHtml
+      });
+      const oriHtml = data.originalHtml?.replace(/<(\w+)([\s\S]*?)\s*\/>/g, '<$1$2>'); //removes self-closing slash
+      this.uploadState.mergeOriginalData({
+        originalUrl: data.originalUrl!,
+        originalHtml: oriHtml!
+      });
+    }
   }
 }
