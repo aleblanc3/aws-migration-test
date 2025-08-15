@@ -14,7 +14,7 @@ export class WebDiffService {
       repeatingWordsAccuracy: 0,
       ignoreWhiteSpaceDifferences: true,
       orphanMatchThreshold: 0,
-      matchGranularity: 4, //0 may trigger entire page to show up as diff. Higher numbers result in several insertions in a row. (UPD uses 4)
+      matchGranularity: 4,
       combineWords: true,
     };
 
@@ -24,8 +24,7 @@ export class WebDiffService {
       originalHtml,
       modifiedHtml,
       options,
-    ).replace(/<\/ins>\s*<ins class="(diffmod|diffins)">/gi, ' ') // merge consecutive insertions
-     .replace(
+    ).replace(
       /<(ins|del)[^>]*>(\s|&nbsp;|&#32;|&#160;|&#x00e2;|&#x0080;|&#x00af;|&#x202f;|&#xa0;)+<\/(ins|del)>/gis, // Remove empty or whitespace-only <ins>/<del> tags
       ' ',
     );
