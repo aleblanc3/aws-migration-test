@@ -59,6 +59,7 @@ export class UrlDataService {
     this.cleanupUnnecessaryElements(doc);
     foundFlags.hidden ||= this.displayInvisibleElements(doc);
     this.addToc(doc);
+    this.sortAttributes(doc);
 
     // Return main content
     const main = doc.querySelector('main');
@@ -79,10 +80,10 @@ export class UrlDataService {
     try {
       const { default: prettier } = await import('prettier/standalone');
       if (source === 'word') {
-        // Wrap in <main>
+        // Wrap word content in <main>
         html = `<main  property="mainContentOfPage" resource="#wb-main" typeof="WebPageElement" class="container">${html}</main>`;
 
-        // Apply replacements
+        // Add classes to H1 and tables
         html = html
           .replace('<h1>', '<h1 property="name" id="wb-cont" dir="ltr">')
           .replace('<table>', '<table class="wb-tables table table-striped">');
@@ -94,7 +95,7 @@ export class UrlDataService {
       if (source === 'ai') {
         html = this.aiCleanup(html);
       }
-
+     
       //const [{ default: prettier }, parserHtml] = await Promise.all([
       //  import('prettier/standalone'),
       //  import('prettier/parser-html'),
@@ -103,6 +104,8 @@ export class UrlDataService {
         parser: 'html',
         plugins: [parserHtml],
         htmlWhitespaceSensitivity: 'ignore', // default is css which treats <span> as inline and <div> as block
+        printWidth: 200,
+        singleAttributePerLine: false,
       });
       return formatted;
     } catch (error) {
@@ -137,6 +140,9 @@ export class UrlDataService {
         p.remove();
       }
     });
+    // Remove <think>
+    doc.querySelectorAll("think").forEach(think => {think.remove();});
+
     // Return the cleaned-up HTML as a string
     return doc.body.outerHTML;
   }
@@ -432,6 +438,26 @@ export class UrlDataService {
       if (matchedLink) {
         heading.setAttribute('id', matchedLink.id);
       }
+    });
+  }
+
+  //Sort attributes
+  private sortAttributes(doc: Document): void {
+    doc.querySelectorAll('*').forEach(el => {
+      if (!el.hasAttributes()) return;
+
+      // Extract and sort attributes
+      const sortedAttrs = Array.from(el.attributes)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      // Rebuild attributes in sorted order
+      const clone = el.cloneNode(false) as HTMLElement;
+      sortedAttrs.forEach(attr => clone.setAttribute(attr.name, attr.value));
+
+      // Preserve inner HTML
+      if (el.innerHTML) { clone.innerHTML = el.innerHTML; }
+
+      el.replaceWith(clone);
     });
   }
 
