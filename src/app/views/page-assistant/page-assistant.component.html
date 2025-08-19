@@ -27,6 +27,7 @@
     <p-tablist>
         <p-tab value="0"><i class="pi pi-eye mr-1"></i>Web page</p-tab>
         <p-tab value="1"><i class="pi pi-code mr-1"></i>Page source</p-tab>
+        <p-tab value="2"><i class="pi pi-list mr-1"></i>Details</p-tab>
     </p-tablist>
     <!-- Rendered page -->
     <p-tabpanels class="shadow-1">
@@ -52,10 +53,6 @@
                                 text severity="primary" (onClick)="next()" /></div>
                                 <p-splitbutton label="Accept" icon="pi pi-check" severity="success" size="small" (onClick)="toolbarAccept()" [model]="acceptItems"  pTooltip="Accept this change" tooltipPosition="top" showDelay="1000" hideDelay="300"/>
                                 <p-splitbutton label="Reject" icon="pi pi-times" severity="danger" size="small" (onClick)="toolbarReject()" [model]="rejectItems" pTooltip="Reject this change" tooltipPosition="top" showDelay="1000" hideDelay="300"/>
-                            <!--p-button icon="pi pi-check" pTooltip="Accept this change" showDelay="1000" hideDelay="300"
-                                text severity="success" (onClick)="toolbarAccept()"/>
-                            <p-button icon="pi pi-times" pTooltip="Reject this change" showDelay="1000" hideDelay="300"
-                                text severity="danger" (onClick)="toolbarReject()"/-->
                                 </div>
                         </ng-container>
                         <ng-container
@@ -70,13 +67,6 @@
                         </ng-container>
                     </ng-template>
                     <ng-template #center>
-
-                        <!--ng-container *ngIf="webSelectedView() === WebViewType.Diff">
-                            <p-button icon="pi pi-check-circle" label="Accept all" text severity="success"
-                                (onClick)="toolbarAcceptAll()" />
-                            <p-button icon="pi pi-times-circle" label="Reject all" text severity="danger"
-                                (onClick)="toolbarRejectAll()" />
-                        </ng-container-->
                     </ng-template>
                     <ng-template #end>
                         <!--Legend-->
@@ -107,6 +97,11 @@
             <!--Source view-->
             <div #sourceContainer class="source-container p-0" [ngClass]="sourceSelectedView()"></div>
 
+        </p-tabpanel>
+        
+        <!-- Page details (metadata and misc reports) -->
+        <p-tabpanel value="2">
+            <ca-page-details></ca-page-details>            
         </p-tabpanel>
 
     </p-tabpanels>
