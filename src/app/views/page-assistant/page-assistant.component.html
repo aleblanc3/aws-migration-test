@@ -43,15 +43,20 @@
                 <p-toolbar>
                     <ng-template #start>
                         <ng-container *ngIf="webSelectedView() === WebViewType.Diff">
+                            <div class="flex flex-row gap-2">
+                                <div>
                             <p-button icon="pi pi-chevron-left" pTooltip="Previous change" showDelay="1000"
                                 hideDelay="300" text severity="primary" (onClick)="prev()" />
                             <span>{{ elements.length > 0 ? (currentIndex + 1) + ' of ' + elements.length : '0 of 0' }}</span>
                             <p-button icon="pi pi-chevron-right" pTooltip="Next change" showDelay="1000" hideDelay="300"
-                                text severity="primary" (onClick)="next()" />
-                            <p-button icon="pi pi-check" pTooltip="Accept this change" showDelay="1000" hideDelay="300"
+                                text severity="primary" (onClick)="next()" /></div>
+                                <p-splitbutton label="Accept" icon="pi pi-check" severity="success" size="small" (onClick)="toolbarAccept()" [model]="acceptItems"  pTooltip="Accept this change" tooltipPosition="top" showDelay="1000" hideDelay="300"/>
+                                <p-splitbutton label="Reject" icon="pi pi-times" severity="danger" size="small" (onClick)="toolbarReject()" [model]="rejectItems" pTooltip="Reject this change" tooltipPosition="top" showDelay="1000" hideDelay="300"/>
+                            <!--p-button icon="pi pi-check" pTooltip="Accept this change" showDelay="1000" hideDelay="300"
                                 text severity="success" (onClick)="toolbarAccept()"/>
                             <p-button icon="pi pi-times" pTooltip="Reject this change" showDelay="1000" hideDelay="300"
-                                text severity="danger" (onClick)="toolbarReject()"/>
+                                text severity="danger" (onClick)="toolbarReject()"/-->
+                                </div>
                         </ng-container>
                         <ng-container
                             *ngIf="webSelectedView() === WebViewType.Original || webSelectedView() === WebViewType.Modified">
@@ -59,19 +64,19 @@
                                 offIcon="pi pi-pen-to-square" ariaLabel="Edit/Save"
                                 styleClass="font-bold border-none w-6rem"
                                 (onChange)="toolbarToggleEdit(webSelectedView())" />
-                            <p-togglebutton [(ngModel)]="toggleCopy" offLabel="Copy" offIcon="pi pi-clipboard" onLabel="Copied!" onIcon=""
-                                  ariaLabel="Copy" styleClass="font-bold border-none w-6rem"
+                            <p-togglebutton [(ngModel)]="toggleCopy" offLabel="Copy code" offIcon="pi pi-clipboard" onLabel="Copied!" onIcon=""
+                                  ariaLabel="Copy code" styleClass="font-bold border-none w-6rem"
                                 (onChange)="toolbarToggleCopy(webSelectedView())" />
                         </ng-container>
                     </ng-template>
                     <ng-template #center>
 
-                        <ng-container *ngIf="webSelectedView() === WebViewType.Diff">
+                        <!--ng-container *ngIf="webSelectedView() === WebViewType.Diff">
                             <p-button icon="pi pi-check-circle" label="Accept all" text severity="success"
                                 (onClick)="toolbarAcceptAll()" />
                             <p-button icon="pi pi-times-circle" label="Reject all" text severity="danger"
                                 (onClick)="toolbarRejectAll()" />
-                        </ng-container>
+                        </ng-container-->
                     </ng-template>
                     <ng-template #end>
                         <!--Legend-->

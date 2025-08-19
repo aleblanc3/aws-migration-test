@@ -16,12 +16,13 @@ import { CardModule } from 'primeng/card';
 import { TabsModule } from 'primeng/tabs';
 import { RadioButtonModule } from 'primeng/radiobutton';
 import { MessageModule } from 'primeng/message';
-import { MessageService, ConfirmationService } from 'primeng/api';
+import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { Toast } from 'primeng/toast';
 import { ToolbarModule } from 'primeng/toolbar';
 import { ToggleButtonModule } from 'primeng/togglebutton';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { SplitButtonModule } from 'primeng/splitbutton';
 
 //Services
 import { UploadStateService } from './services/upload-state.service';
@@ -41,7 +42,7 @@ import { HorizontalRadioButtonsComponent } from '../../components/horizontal-rad
   selector: 'ca-page-assistant-compare',
   imports: [CommonModule, FormsModule,
     TranslateModule,
-    ButtonModule, MessageModule, Toast, CardModule, TabsModule, RadioButtonModule, ToolbarModule, ToggleButtonModule, TooltipModule, ConfirmDialogModule,
+    ButtonModule, MessageModule, Toast, CardModule, TabsModule, RadioButtonModule, ToolbarModule, ToggleButtonModule, TooltipModule, ConfirmDialogModule, SplitButtonModule,
     AiOptionsComponent, HorizontalRadioButtonsComponent],
   templateUrl: './page-assistant.component.html',
   styleUrl: './page-assistant.component.css'
@@ -71,12 +72,20 @@ export class PageAssistantCompareComponent implements OnInit {
           this.isDisabled = true;
           this.aiDisabled = "Accept or reject changes first"
         }
-        else{
+        else {
           this.isDisabled = false;
           this.aiDisabled = "";
         }
       }
       this.toggleEdit = false;
+      //Disable undo button
+      const undoText = this.translate.instant('page.compare.button.undo');
+      [this.acceptItems, this.rejectItems].forEach(arr => {
+        const undoItem = arr.find(item => item.label === undoText);
+        if (undoItem) {
+          undoItem.disabled = this.uploadState.isUndoDisabled();
+        }
+      });
     });
     effect(() => {
       const data = this.uploadState.getUploadData();
@@ -100,6 +109,9 @@ export class PageAssistantCompareComponent implements OnInit {
   //Disable AI if there are changes to accept/reject
   isDisabled: boolean = false;
   aiDisabled: string = "";
+
+  acceptItems: MenuItem[] = []
+  rejectItems: MenuItem[] = []
 
   get uploadType(): 'url' | 'paste' | 'word' {
     return this.uploadState.getSelectedUploadType(); // returns signal().value
@@ -211,6 +223,64 @@ export class PageAssistantCompareComponent implements OnInit {
 
   ngOnInit(): void {
     this.observeDarkMode();
+
+    //Translations
+    const undoText = this.translate.instant('page.compare.button.undo');
+    //Button array
+    this.acceptItems = [
+      {
+        label: 'Accept all',
+        icon: 'pi pi-check-circle',
+        command: () => {
+          this.toolbarAcceptAll();
+        },
+      },
+      {
+        label: 'Accept selected text',
+        icon: 'pi pi-align-justify',
+        command: () => {
+          this.messageService.add({ severity: 'info', summary: 'Selected text', detail: 'This feature needs work.', life: 3000 });
+        },
+      },
+      {
+        separator: true,
+      },
+      {
+        label: undoText,
+        icon: 'pi pi-refresh',
+        command: () => {
+          this.uploadState.undoLastChange();
+        },
+        disabled: true,
+      },
+    ];
+    this.rejectItems = [
+      {
+        label: 'Reject all',
+        icon: 'pi pi-times-circle',
+        command: () => {
+          this.toolbarRejectAll();
+        },
+      },
+      {
+        label: 'Reject selected text',
+        icon: 'pi pi-align-justify',
+        command: () => {
+          this.messageService.add({ severity: 'warn', summary: 'Selected text', detail: 'This feature needs work.', life: 3000 });
+        },
+      },
+      {
+        separator: true,
+      },
+      {
+        label: undoText,
+        icon: 'pi pi-refresh',
+        command: () => {
+          this.uploadState.undoLastChange();
+        },
+        disabled: true,
+      },
+    ];
 
   }
   ngOnDestroy() {
@@ -394,7 +464,6 @@ export class PageAssistantCompareComponent implements OnInit {
         console.log(`Fallback model: `, aiResponse.model);
         console.log(`Your requested model may be down or you have exceeded the rate limit`);
         console.groupEnd();
-
         this.statusSeverity = 'warn';
         this.statusMessage = `Your selected AI model was unavailable. Used `, usedModel, ` instead.`;
         this.messageService.add({
@@ -493,6 +562,7 @@ export class PageAssistantCompareComponent implements OnInit {
       editable.focus();
     }
     else { //save
+      this.uploadState.savePreviousUploadData(); //save previous data for undo button
       editable.setAttribute('contenteditable', 'false');
       const editedHtml = await this.urlDataService.formatHtml(editable.innerHTML, 'edit');
       if (view === WebViewType.Original) {
@@ -533,6 +603,7 @@ export class PageAssistantCompareComponent implements OnInit {
     const data = this.uploadState.getUploadData();
     console.log("Accept all changes");
     if (!data?.modifiedHtml || !data?.modifiedUrl) return;
+    this.uploadState.savePreviousUploadData(); //save previous data for undo button
     this.uploadState.mergeOriginalData({ originalHtml: data.modifiedHtml, originalUrl: data.modifiedUrl });
     this.currentIndex = 0;
   }
@@ -542,6 +613,7 @@ export class PageAssistantCompareComponent implements OnInit {
     const data = this.uploadState.getUploadData();
     console.log("Reject all changes");
     if (!data?.originalHtml || !data?.originalUrl) return;
+    this.uploadState.savePreviousUploadData(); //save previous data for undo button
     this.uploadState.mergeModifiedData({ modifiedHtml: data.originalHtml, modifiedUrl: data.originalUrl });
     this.currentIndex = 0;
   }
@@ -632,6 +704,7 @@ export class PageAssistantCompareComponent implements OnInit {
     const updatedHtml = diffContainer.innerHTML;
     const data = this.uploadState.getUploadData();
     if (!data) return;
+    this.uploadState.savePreviousUploadData(); //save previous data for undo button
     if (mode === 'accept') {
       this.uploadState.mergeOriginalData({
         originalUrl: 'Change accepted',
