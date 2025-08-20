@@ -3,6 +3,16 @@
 <h1 id="wb-cont">{{ 'title.test' | translate}}</h1>
 <p>{{'test.text' | translate }}</p>
 <p [innerHTML]="'test.html' | translate"></p>
+<div class="flex flex-row gap-2">
+  <p-button label="Primary" />
+  <p-button label="Secondary" severity="secondary" />
+  <p-button label="Help" severity="help" />
+  <p-button label="Info" severity="info" />
+  <p-button label="Success" severity="success" />
+  <p-button label="Danger" severity="danger" />
+  <p-button label="Warn" severity="warn" />
+  <p-button label="Contrast" severity="contrast" />
+</div>
 <h2>Table of links that drop you into page compare tool</h2>
 <p-table [value]="links">
   <ng-template pTemplate="header">
@@ -16,8 +26,8 @@
       <td>{{ link.title }}</td>
       <td>
         <p-button
-          variant="text" severity="info"
-          (onClick)="fetchAndGoToCompare(link.url)">
+                  variant="text" severity="info"
+                  (onClick)="fetchAndGoToCompare(link.url)">
           {{ link.url }}
         </p-button>
       </td>
@@ -27,15 +37,14 @@
 <h2>Horizontal radio button component</h2>
 <p>This component accepts:</p>
 <ul>
-    <li>label="your.translation.key" to set the label above the buttons</li>
-    <li>name="unique-name" in case you use it more than once on a page</li>
-    <li>[options]="yourArray" with your array of radio button labels, values, and icons
-    </li>
-    <li>[(selected)]="yourSelectedButton" to define which button is currently selected</li>
-    <li>(selectedChange)="yourFunction($event) to define what happens when the buttons are clicked</li>
+  <li>label="your.translation.key" to set the label above the buttons</li>
+  <li>name="unique-name" in case you use it more than once on a page</li>
+  <li>[options]="yourArray" with your array of radio button labels, values, and icons
+  </li>
+  <li>[(selected)]="yourSelectedButton" to define which button is currently selected</li>
+  <li>(selectedChange)="yourFunction($event) to define what happens when the buttons are clicked</li>
 </ul>
 <p>The component emits the value of the selected radio button.</p>
 <ca-horizontal-radio-buttons label="your.translation.key" name="unique-name" [options]="yourArray"
-    [(selected)]="yourSelectedButton" (selectedChange)="yourFunction($event)">
+                             [(selected)]="yourSelectedButton" (selectedChange)="yourFunction($event)">
 </ca-horizontal-radio-buttons>
-
