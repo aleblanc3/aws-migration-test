@@ -65,10 +65,10 @@ export class PageAssistantCompareComponent implements OnInit {
           data.modifiedHtml);
         //Click listener for ShadowDom
         if (this.shadowClickHandler) { this.shadowClickHandler(); console.log("Reset shadow click handler") }
-        this.shadowClickHandler = this.shadowDomService.handleDocumentClick(shadowRoot, (index: number) => { this.currentIndex = index; }, (count: number) => { this.currentCount = count; });
+        this.shadowClickHandler = this.shadowDomService.handleDocumentClick(shadowRoot, (index: number) => { this.currentIndex = index; });
         //Selection listener for ShadowDom
         if (this.shadowSelectionHandler) { this.shadowSelectionHandler();; console.log("Reset shadow selection handler") }
-        this.shadowSelectionHandler = this.shadowDomService.handleSelection(shadowRoot, ({ startId, endId, count }) => { this.currentCount = count; this.startId = startId; this.endId = endId; });
+        this.shadowSelectionHandler = this.shadowDomService.handleSelection(shadowRoot);
 
         //Get DOM element with a data-id
         this.elements = this.shadowDomService.getDataIdElements(shadowRoot);
@@ -241,14 +241,6 @@ export class PageAssistantCompareComponent implements OnInit {
         },
       },
       {
-        label: 'Accept selected text',
-        icon: 'pi pi-align-justify',
-        command: () => {
-          this.messageService.add({ severity: 'info', summary: 'Selected text', detail: 'This feature needs work.', life: 3000 });
-        },
-        disabled: true,
-      },
-      {
         separator: true,
       },
       {
@@ -267,14 +259,6 @@ export class PageAssistantCompareComponent implements OnInit {
         command: () => {
           this.toolbarRejectAll();
         },
-      },
-      {
-        label: 'Reject selected text',
-        icon: 'pi pi-align-justify',
-        command: () => {
-          this.messageService.add({ severity: 'warn', summary: 'Selected text', detail: 'This feature needs work.', life: 3000 });
-        },
-        disabled: true,
       },
       {
         separator: true,
@@ -322,6 +306,7 @@ export class PageAssistantCompareComponent implements OnInit {
       },
       accept: () => {
         this.uploadState.resetUploadFlow();
+        this.shadowDomService.lastSelection = { count: 1, startId: null, endId: null }; //reset selection
         this.router.navigate(['page-assistant']);
         console.log("Reset page comparison");
       },
@@ -531,22 +516,20 @@ export class PageAssistantCompareComponent implements OnInit {
   private shadowSelectionHandler: (() => void) | null = null;
 
   currentIndex = 0;
-  currentCount = 0;
-  startId: number | null = null;
-  endId: number | null = null;
   elements: HTMLElement[] = [];
+
   next() {
     if (this.elements.length === 0) return;
     this.currentIndex = (this.currentIndex + 1) % this.elements.length;
     this.focusOnIndex(this.currentIndex);
-    this.currentCount = 1;
+    this.shadowDomService.lastSelection = { count: 1, startId: null, endId: null }; //reset selection
   }
 
   prev() {
     if (this.elements.length === 0) return;
     this.currentIndex = (this.currentIndex - 1 + this.elements.length) % this.elements.length;
     this.focusOnIndex(this.currentIndex);
-    this.currentCount = 1;
+    this.shadowDomService.lastSelection = { count: 1, startId: null, endId: null }; //reset selection
   }
 
   private focusOnIndex(index: number) {
@@ -560,19 +543,28 @@ export class PageAssistantCompareComponent implements OnInit {
   }
 
   get displayCounter(): string {
-    if (!this.elements?.length) return '0 of 0';
+    if (!this.elements?.length) return '0\u00A0of\u00A00';
 
+    // nothing highlighted
+    if (this.shadowDomService.lastSelection.count === 0) {
+      return `–\u00A0of\u00A0${this.elements.length}`;
+    }
     // multiple highlighted
-    if (this.currentCount > 1) {
-      if (this.startId != null && this.endId != null) {
-        this.currentIndex = this.endId - 1; //needed so next button goes to next diff
-        return `${this.startId}-${this.endId} of ${this.elements.length}`;
+    if (this.shadowDomService.lastSelection.count > 1) {
+      if (this.shadowDomService.lastSelection.startId != null && this.shadowDomService.lastSelection.endId != null) {
+        this.currentIndex = this.shadowDomService.lastSelection.endId - 1; //needed so next button goes to next diff
+        return `${this.shadowDomService.lastSelection.startId}–${this.shadowDomService.lastSelection.endId}\u00A0of\u00A0${this.elements.length}`;
       }
-      return `- of ${this.elements.length}`;
+      return `–\u00A0of\u00A0${this.elements.length}`;
     }
 
     // single highlighted
-    return `${this.currentIndex + 1} of ${this.elements.length}`;
+    return `${this.currentIndex + 1}\u00A0of\u00A0${this.elements.length}`;
+  }
+
+  get displayNumHighlighted(): string {
+    if (this.shadowDomService.lastSelection.count < 1) return '';
+    else return `${this.shadowDomService.lastSelection.count}\u00A0items selected`
   }
   //End of shadow DOM navigation
 
@@ -731,7 +723,7 @@ export class PageAssistantCompareComponent implements OnInit {
       }
     });
 
-    this.currentCount = 1;
+    this.shadowDomService.lastSelection = { count: 1, startId: null, endId: null }; //reset selection
     //Merge with modified HTML
     const updatedHtml = diffContainer.innerHTML;
     const data = this.uploadState.getUploadData();
