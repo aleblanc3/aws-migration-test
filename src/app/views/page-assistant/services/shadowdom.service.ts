@@ -1,6 +1,12 @@
 import { Injectable } from '@angular/core';
 import { WebDiffService } from './web-diff.service';
 
+type SelectionTypes = {
+  count: number;
+  startId: number | null;
+  endId: number | null;
+};
+
 @Injectable({
   providedIn: 'root'
 })
@@ -237,7 +243,7 @@ export class ShadowDomService {
   }
 
   //Handle clicks inside Shadow DOM
-  handleDocumentClick(shadowRoot: ShadowRoot, updateCurrentIndex: (index: number) => void, updateCurrentCount: (count: number) => void): () => void {
+  handleDocumentClick(shadowRoot: ShadowRoot, updateCurrentIndex: (index: number) => void): () => void {
     const clickHandler = (event: Event) => {
       let target = event.target as HTMLElement;
 
@@ -281,7 +287,7 @@ export class ShadowDomService {
       this.scrollToElement(clickedElement);
       if (updateCurrentIndex) {
         updateCurrentIndex(index);
-        updateCurrentCount(1);
+        this.lastSelection = { count: 1, startId: null, endId: null }; //reset selection
       }
 
     };
@@ -295,12 +301,9 @@ export class ShadowDomService {
   }
 
   //Handle text selection inside Shadow DOM
-  handleSelection(shadowRoot: ShadowRoot, updateSelection: (selection: { startId: number | null; endId: number | null; count: number }) => void): () => void {
+  handleSelection(shadowRoot: ShadowRoot): () => void {
     const selectionHandler = () => {
-      const selection = this.highlightSelected(shadowRoot);
-      if (updateSelection && selection.count >= 0) {
-        updateSelection(selection);
-      }
+      this.highlightSelected(shadowRoot);
     };
 
     shadowRoot.addEventListener('mouseup', selectionHandler);
@@ -350,24 +353,27 @@ export class ShadowDomService {
     });
   }
 
-  highlightSelected(shadowRoot: ShadowRoot): { count: number, startId: number | null, endId: number | null } {
+
+  public lastSelection: SelectionTypes = { count: 1, startId: null, endId: null };
+
+  highlightSelected(shadowRoot: ShadowRoot): void {
     //NOTE: window.getSelection() seems limited to text in shadowdom so extra checks needed to match with actual shadowdom elements
     const selection = window.getSelection();
-    if (!shadowRoot || !selection) return { count: 0, startId: null, endId: null };
+    if (!shadowRoot || !selection) { this.lastSelection = { count: 0, startId: null, endId: null }; return }; //reset lastSelection
 
     const selectedText = normalize(selection.toString());
-    if (!selectedText) return { count: 0, startId: null, endId: null };
+    if (!selectedText) return; //no change to lastSelection
 
     //Step 1: Throw error if selected text not unique
     try {
+      this.clearHighlights(shadowRoot);
       findSelectionInShadow(shadowRoot, selectedText); //throws error if not unique
-      //Step 2: Find best match
-      this.clearHighlights(shadowRoot!);
+      //Step 2: Find best match      
       const dataIdElements = this.getDataIdElements(shadowRoot);
       // All matches
       const matches = dataIdElements
         .map(element => {
-          const text = (element.textContent || "").trim();
+          const text = normalize(element.textContent || "");
           return {
             element,
             dataId: parseInt(element.getAttribute("data-id") || "0"),
@@ -390,6 +396,7 @@ export class ShadowDomService {
 
       // Handle short best match
       if (bestMatch.text.length <= 20) {
+        console.log("Selected text: ", selectedText);
         const expanded = expandBestMatch(bestMatch.element, selectedText.length, 3);
         if (!selectedText.includes(expanded)) {
           console.log("Initial best match was wrong, checking others.");
@@ -397,9 +404,10 @@ export class ShadowDomService {
           console.log(expanded)
           const sortedMatches = matches.sort((a, b) => b.textLength - a.textLength);
           let found = false;
-
+          console.log(sortedMatches)
           for (const possibleMatch of sortedMatches) {
             const expanded = expandBestMatch(possibleMatch.element, selectedText.length, 3);
+            console.log("Checking: ", expanded);
             if (selectedText.includes(expanded)) {
               bestMatch = possibleMatch;
               found = true;
@@ -459,11 +467,14 @@ export class ShadowDomService {
         }
       }
       console.log(`Highlighted ${highlightedCount} elements from data-id ${startId} to ${endId}`);
-      return { count: highlightedCount, startId: startId, endId: endId };
+
+      this.lastSelection = { count: highlightedCount, startId: startId, endId: endId };
+      return;
 
     } catch (err) {
       console.error(err);
-      return { count: 0, startId: null, endId: null };
+      this.lastSelection = { count: 0, startId: null, endId: null }; //nothing selected
+      return;
     }
 
     /********************
@@ -500,7 +511,7 @@ export class ShadowDomService {
 
       //No match
       if (idx === -1) {
-        throw new Error("Selection not found in shadowDOM.");
+        throw new Error("Selection not found in shadowDOM."); //should never appear
       }
       //2nd match
       let secondIdx = shadowText.indexOf(selectedText, idx + 1);
@@ -532,7 +543,6 @@ export class ShadowDomService {
     //Include text on either side of match to confirm accuracy
     function expandBestMatch(element: HTMLElement, maxLength: number, chars: number = 5): string {
       let text = normalize(element.textContent || "");
-
       // If already longer than maxLength, just trim
       if (text.length >= maxLength) return text.slice(0, maxLength);
 
@@ -542,7 +552,7 @@ export class ShadowDomService {
       while (remaining > 0 && prevNode) {
         if (prevNode.nodeType === Node.TEXT_NODE) {
           const slice = prevNode.textContent?.slice(-remaining) || "";
-          text = slice + " " + text;
+          text = joinStrings(slice, text);
           remaining -= slice.length;
         }
         prevNode = prevNode.previousSibling;
@@ -554,7 +564,7 @@ export class ShadowDomService {
       while (remaining > 0 && nextNode) {
         if (nextNode.nodeType === Node.TEXT_NODE) {
           const slice = nextNode.textContent?.slice(0, remaining) || "";
-          text = text + " " + slice;
+          text = joinStrings(text, slice);
           remaining -= slice.length;
         }
         nextNode = nextNode.nextSibling;
@@ -567,5 +577,19 @@ export class ShadowDomService {
 
       return normalize(text);
     }
+
+    function joinStrings(left: string, right: string): string {
+      if (!left) return right;
+      if (!right) return left;
+
+      const l = left[left.length - 1]; //last char
+      const r = right[0]; //first char
+
+      if (/\s/.test(l) || /\s/.test(r) || /[.,!?;:)]/.test(r)) {
+        return left + right;
+      }
+      return left + " " + right;
+    }
+
   }
 }
