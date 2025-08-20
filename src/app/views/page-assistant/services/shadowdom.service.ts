@@ -211,34 +211,33 @@ export class ShadowDomService {
     uniqueElements.forEach(({ element, id }) => {
       element.setAttribute('data-id', `${id}`);
     });
-/* 
-    const wrapWithOverlayWrapper = (el: Element, parentClass: string) => {
-      const parent = el.parentElement;
-      const dataId = parent?.getAttribute('data-id');
-      const wrapper = document.createElement('div');
-      wrapper.className = `overlay-wrapper ${parentClass}`;
-      if (dataId) wrapper.setAttribute('data-id', dataId);
-      wrapper.innerHTML = el.outerHTML;
-      parent?.replaceWith(wrapper);
-    };
-
-    diffDoc.querySelectorAll('ins img, del img, .updated-link img').forEach(el => {
-      const parent = el.parentElement;
-      let parentClass = '';
-      if (parent?.tagName === 'INS') parentClass = 'ins';
-      else if (parent?.tagName === 'DEL') parentClass = 'del';
-
-      if (parentClass) {
-        wrapWithOverlayWrapper(el, parentClass);
-      }
-    });
-*/
+    /* 
+        const wrapWithOverlayWrapper = (el: Element, parentClass: string) => {
+          const parent = el.parentElement;
+          const dataId = parent?.getAttribute('data-id');
+          const wrapper = document.createElement('div');
+          wrapper.className = `overlay-wrapper ${parentClass}`;
+          if (dataId) wrapper.setAttribute('data-id', dataId);
+          wrapper.innerHTML = el.outerHTML;
+          parent?.replaceWith(wrapper);
+        };
+    
+        diffDoc.querySelectorAll('ins img, del img, .updated-link img').forEach(el => {
+          const parent = el.parentElement;
+          let parentClass = '';
+          if (parent?.tagName === 'INS') parentClass = 'ins';
+          else if (parent?.tagName === 'DEL') parentClass = 'del';
+    
+          if (parentClass) {
+            wrapWithOverlayWrapper(el, parentClass);
+          }
+        });
+    */
     return diffDoc.body.innerHTML;
   }
 
   //Handle clicks inside Shadow DOM
-  handleDocumentClick(shadowRoot: ShadowRoot, updateCurrentIndex: (index: number) => void
-  ): () => void {
+  handleDocumentClick(shadowRoot: ShadowRoot, updateCurrentIndex: (index: number) => void, updateCurrentCount: (count: number) => void): () => void {
     const clickHandler = (event: Event) => {
       let target = event.target as HTMLElement;
 
@@ -282,6 +281,7 @@ export class ShadowDomService {
       this.scrollToElement(clickedElement);
       if (updateCurrentIndex) {
         updateCurrentIndex(index);
+        updateCurrentCount(1);
       }
 
     };
@@ -291,6 +291,24 @@ export class ShadowDomService {
 
     return () => {
       shadowRoot.removeEventListener('click', clickHandler);
+    };
+  }
+
+  //Handle text selection inside Shadow DOM
+  handleSelection(shadowRoot: ShadowRoot, updateSelection: (selection: { startId: number | null; endId: number | null; count: number }) => void): () => void {
+    const selectionHandler = () => {
+      const selection = this.highlightSelected(shadowRoot);
+      if (updateSelection && selection.count >= 0) {
+        updateSelection(selection);
+      }
+    };
+
+    shadowRoot.addEventListener('mouseup', selectionHandler);
+    shadowRoot.addEventListener('keyup', selectionHandler); // for keyboard selection
+
+    return () => {
+      shadowRoot.removeEventListener('mouseup', selectionHandler);
+      shadowRoot.removeEventListener('keyup', selectionHandler);
     };
   }
 
@@ -330,5 +348,224 @@ export class ShadowDomService {
         (details as HTMLDetailsElement).open = false;
       }
     });
+  }
+
+  highlightSelected(shadowRoot: ShadowRoot): { count: number, startId: number | null, endId: number | null } {
+    //NOTE: window.getSelection() seems limited to text in shadowdom so extra checks needed to match with actual shadowdom elements
+    const selection = window.getSelection();
+    if (!shadowRoot || !selection) return { count: 0, startId: null, endId: null };
+
+    const selectedText = normalize(selection.toString());
+    if (!selectedText) return { count: 0, startId: null, endId: null };
+
+    //Step 1: Throw error if selected text not unique
+    try {
+      findSelectionInShadow(shadowRoot, selectedText); //throws error if not unique
+      //Step 2: Find best match
+      this.clearHighlights(shadowRoot!);
+      const dataIdElements = this.getDataIdElements(shadowRoot);
+      // All matches
+      const matches = dataIdElements
+        .map(element => {
+          const text = (element.textContent || "").trim();
+          return {
+            element,
+            dataId: parseInt(element.getAttribute("data-id") || "0"),
+            text,
+            textLength: text.length
+          };
+        })
+        .filter(item => item.text && selectedText.includes(item.text));
+
+      if (matches.length === 0) {
+        throw new Error("No diffs found in selected text.");
+      }
+      console.log('All matches:', matches.map(m => `${m.dataId}: "${m.text}"`));
+
+      // Best match = longest match
+      let bestMatch = matches.reduce((prev, current) =>
+        current.textLength > prev.textLength ? current : prev
+      );
+      console.log(`Initial best match: data-id="${bestMatch.dataId}", text: "${bestMatch.text}" (${bestMatch.textLength} chars)`);
+
+      // Handle short best match
+      if (bestMatch.text.length <= 20) {
+        const expanded = expandBestMatch(bestMatch.element, selectedText.length, 3);
+        if (!selectedText.includes(expanded)) {
+          console.log("Initial best match was wrong, checking others.");
+          console.log("EXPANDED SHADOWDOM TEXT")
+          console.log(expanded)
+          const sortedMatches = matches.sort((a, b) => b.textLength - a.textLength);
+          let found = false;
+
+          for (const possibleMatch of sortedMatches) {
+            const expanded = expandBestMatch(possibleMatch.element, selectedText.length, 3);
+            if (selectedText.includes(expanded)) {
+              bestMatch = possibleMatch;
+              found = true;
+              console.log(`New best match: data-id="${bestMatch.dataId}", text: "${bestMatch.text}" (${bestMatch.textLength} chars)`);
+              console.log("EXPANDED SHADOWDOM TEXT")
+              console.log(expanded)
+              break;
+            }
+          }
+          if (!found) { throw new Error("No expanded matches match the selected text."); }
+        }
+      }
+
+      // Get continuous range of matches
+      const matchedDataIds = new Set(matches.map(m => m.dataId));
+      let startId = bestMatch.dataId;
+      let endId = bestMatch.dataId;
+
+      // Current best match
+      let finalText = checkRange(shadowRoot, startId, endId);
+
+      // Expand left
+      while (startId > 0) {
+        const includeText = checkRange(shadowRoot, startId - 1, endId);
+        if (includeText) {
+          startId--;
+          finalText = includeText;
+        } else {
+          break;
+        }
+      }
+
+      // Expand right
+      while (true) {
+        const includeText = checkRange(shadowRoot, startId, endId + 1);
+        if (includeText) {
+          endId++;
+          finalText = includeText;
+        } else {
+          break;
+        }
+      }
+
+      // Final range
+      console.log(`Final match between ${startId} and ${endId}:`, finalText);
+
+      // Step 3: Highlight the range
+      let highlightedCount = 0;
+      const elementById = Object.fromEntries(dataIdElements.map(el => [parseInt(el.getAttribute('data-id') || '0'), el]));
+      for (let id = startId; id <= endId; id++) {
+        if (matchedDataIds.has(id)) {
+          const element = elementById[id];
+          if (element) {
+            element.classList.add('highlight');
+            highlightedCount++;
+          }
+        }
+      }
+      console.log(`Highlighted ${highlightedCount} elements from data-id ${startId} to ${endId}`);
+      return { count: highlightedCount, startId: startId, endId: endId };
+
+    } catch (err) {
+      console.error(err);
+      return { count: 0, startId: null, endId: null };
+    }
+
+    /********************
+     * HELPER FUNCTIONS *
+     ********************/
+
+    //Normalizes a string of text
+    function normalize(text: string): string {
+      return text.replace(/\s+/g, " ").trim();
+    }
+
+    //Extracts text-only from shadow dom
+    function extractShadowText(shadowRoot: ShadowRoot): string {
+
+      const walker = document.createTreeWalker(shadowRoot, NodeFilter.SHOW_TEXT, null);
+      let text = "";
+
+      let node: Node | null = walker.nextNode();
+      while (node) {
+        text += node.textContent || "";
+        node = walker.nextNode();
+      }
+
+      return normalize(text);
+    }
+
+    //Checks if selected text is unique in shadow dom
+    function findSelectionInShadow(shadowRoot: ShadowRoot, selectedText: string): number {
+      const shadowText = extractShadowText(shadowRoot);
+
+      if (!selectedText) return -1;
+
+      let idx = shadowText.indexOf(selectedText);
+
+      //No match
+      if (idx === -1) {
+        throw new Error("Selection not found in shadowDOM.");
+      }
+      //2nd match
+      let secondIdx = shadowText.indexOf(selectedText, idx + 1);
+      if (secondIdx !== -1) {
+        throw new Error("Selected text is not unique in shadowDOM.");
+      }
+      //Unique match position
+      return idx;
+    }
+
+    function checkRange(root: ParentNode, startId: number, endId: number): string | null {
+      const startEl = root.querySelector(`[data-id="${startId}"]`);
+      const endEl = root.querySelector(`[data-id="${endId}"]`);
+
+      if (!startEl || !endEl) {
+        return null;
+      }
+
+      // Create a range of text from start element to end element
+      const range = document.createRange();
+      range.setStartBefore(startEl);
+      range.setEndAfter(endEl);
+      const rangeText = normalize(range.toString());
+
+      // Check if range is in the selected text
+      return selectedText.includes(rangeText) ? rangeText : null;
+    }
+
+    //Include text on either side of match to confirm accuracy
+    function expandBestMatch(element: HTMLElement, maxLength: number, chars: number = 5): string {
+      let text = normalize(element.textContent || "");
+
+      // If already longer than maxLength, just trim
+      if (text.length >= maxLength) return text.slice(0, maxLength);
+
+      // Expand backwards into previous text
+      let remaining = Math.min(chars, maxLength - text.length);
+      let prevNode: Node | null = element.previousSibling;
+      while (remaining > 0 && prevNode) {
+        if (prevNode.nodeType === Node.TEXT_NODE) {
+          const slice = prevNode.textContent?.slice(-remaining) || "";
+          text = slice + " " + text;
+          remaining -= slice.length;
+        }
+        prevNode = prevNode.previousSibling;
+      }
+
+      // Expand forwards into next text
+      remaining = Math.min(chars, maxLength - text.length);
+      let nextNode: Node | null = element.nextSibling;
+      while (remaining > 0 && nextNode) {
+        if (nextNode.nodeType === Node.TEXT_NODE) {
+          const slice = nextNode.textContent?.slice(0, remaining) || "";
+          text = text + " " + slice;
+          remaining -= slice.length;
+        }
+        nextNode = nextNode.nextSibling;
+      }
+
+      // Confirm final length is less than selection
+      if (text.length > maxLength) {
+        text = text.slice(0, maxLength);
+      }
+
+      return normalize(text);
+    }
   }
 }
