@@ -103,25 +103,60 @@ Return only the French HTML document.`;
     const headers = new HttpHeaders({
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
+      Accept: 'application/json',
+      // Optional niceties OpenRouter likes (browser can set X-Title, not Referer):
+      'X-Title': 'Content Assistant',
     });
 
     const payload = {
-      model: model,
+      model,
       messages: requestJson,
-      temperature: temperature,
+      temperature,
+      // stream: false, // ensure non-streaming (default)
     };
 
     try {
-      const response = await this.http
-        .post(this.openRouterApiUrl, payload, { headers })
+      // Read as TEXT first to avoid Angular's JSON parser blowing up on HTML error pages.
+      const resp = await this.http
+        .post(this.openRouterApiUrl, payload, {
+          headers,
+          responseType: 'text', // <— important
+          observe: 'response', // so we can inspect status/headers
+        })
         .toPromise();
-      return response;
-    } catch (error: any) {
+
+      const contentType = resp?.headers.get('content-type') || '';
+
+      // Happy path: JSON response
+      if (contentType.includes('application/json')) {
+        try {
+          return JSON.parse(resp!.body as string);
+        } catch (e) {
+          console.error(
+            'OpenRouter: JSON parse failed on JSON content-type.',
+            e,
+          );
+          return undefined;
+        }
+      }
+
+      // Error path: non-JSON (likely HTML with an error message)
+      const bodySnippet = (resp?.body || '').slice(0, 500);
       console.error(
-        `Error calling OpenRouter API (Model: ${model}):`,
-        error.message || error,
+        `OpenRouter: non-JSON response (status ${resp?.status}, ${contentType}). Body (first 500 chars):\n${bodySnippet}`,
       );
       return undefined;
+    } catch (err: any) {
+      // Angular HttpErrorResponse: err.status, err.error (string if responseType:'text')
+      const status = err?.status;
+      const errText =
+        typeof err?.error === 'string'
+          ? err.error.slice(0, 500)
+          : JSON.stringify(err?.error);
+      console.error(
+        `OpenRouter HTTP error (Model: ${model}) status=${status}: ${errText}`,
+      );
+      return undefined; // let caller try the next model
     }
   }
 
