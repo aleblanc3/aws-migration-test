@@ -37,13 +37,14 @@ import { PromptTemplates } from './components/ai-prompts';
 //Components
 import { AiOptionsComponent } from './components/ai-options.component';
 import { HorizontalRadioButtonsComponent } from '../../components/horizontal-radio-buttons/horizontal-radio-buttons.component';
+import { PageDetailsComponent } from './components/page-details.component';
 
 @Component({
   selector: 'ca-page-assistant-compare',
   imports: [CommonModule, FormsModule,
     TranslateModule,
     ButtonModule, MessageModule, Toast, CardModule, TabsModule, RadioButtonModule, ToolbarModule, ToggleButtonModule, TooltipModule, ConfirmDialogModule, SplitButtonModule,
-    AiOptionsComponent, HorizontalRadioButtonsComponent],
+    AiOptionsComponent, HorizontalRadioButtonsComponent, PageDetailsComponent],
   templateUrl: './page-assistant.component.html',
   styleUrl: './page-assistant.component.css'
 })
@@ -64,7 +65,11 @@ export class PageAssistantCompareComponent implements OnInit {
           data.modifiedHtml);
         //Click listener for ShadowDom
         if (this.shadowClickHandler) { this.shadowClickHandler(); console.log("Reset shadow click handler") }
-        this.shadowClickHandler = this.shadowDomService.handleDocumentClick(shadowRoot, (index: number) => { this.currentIndex = index; });
+        this.shadowClickHandler = this.shadowDomService.handleDocumentClick(shadowRoot, (index: number) => { this.currentIndex = index; }, (count: number) => { this.currentCount = count; });
+        //Selection listener for ShadowDom
+        if (this.shadowSelectionHandler) { this.shadowSelectionHandler();; console.log("Reset shadow selection handler") }
+        this.shadowSelectionHandler = this.shadowDomService.handleSelection(shadowRoot, ({ startId, endId, count }) => { this.currentCount = count; this.startId = startId; this.endId = endId; });
+
         //Get DOM element with a data-id
         this.elements = this.shadowDomService.getDataIdElements(shadowRoot);
         if (this.elements.length > 0) {
@@ -241,6 +246,7 @@ export class PageAssistantCompareComponent implements OnInit {
         command: () => {
           this.messageService.add({ severity: 'info', summary: 'Selected text', detail: 'This feature needs work.', life: 3000 });
         },
+        disabled: true,
       },
       {
         separator: true,
@@ -268,6 +274,7 @@ export class PageAssistantCompareComponent implements OnInit {
         command: () => {
           this.messageService.add({ severity: 'warn', summary: 'Selected text', detail: 'This feature needs work.', life: 3000 });
         },
+        disabled: true,
       },
       {
         separator: true,
@@ -291,6 +298,7 @@ export class PageAssistantCompareComponent implements OnInit {
     this.sourceContainerSignal.set(null);
     this.darkModeObserver?.disconnect();
     if (this.shadowClickHandler) { this.shadowClickHandler(); }
+    if (this.shadowSelectionHandler) { this.shadowSelectionHandler(); }
   }
 
   clearAll(event: Event) {
@@ -520,20 +528,25 @@ export class PageAssistantCompareComponent implements OnInit {
 
   //Start of shadow DOM navigation
   private shadowClickHandler: (() => void) | null = null;
+  private shadowSelectionHandler: (() => void) | null = null;
 
   currentIndex = 0;
+  currentCount = 0;
+  startId: number | null = null;
+  endId: number | null = null;
   elements: HTMLElement[] = [];
   next() {
     if (this.elements.length === 0) return;
     this.currentIndex = (this.currentIndex + 1) % this.elements.length;
     this.focusOnIndex(this.currentIndex);
-
+    this.currentCount = 1;
   }
 
   prev() {
     if (this.elements.length === 0) return;
     this.currentIndex = (this.currentIndex - 1 + this.elements.length) % this.elements.length;
     this.focusOnIndex(this.currentIndex);
+    this.currentCount = 1;
   }
 
   private focusOnIndex(index: number) {
@@ -544,6 +557,22 @@ export class PageAssistantCompareComponent implements OnInit {
     this.shadowDomService.openParentDetails(el);
     this.shadowDomService.closeAllDetailsExcept(shadowRoot, el);
     this.shadowDomService.scrollToElement(el);
+  }
+
+  get displayCounter(): string {
+    if (!this.elements?.length) return '0 of 0';
+
+    // multiple highlighted
+    if (this.currentCount > 1) {
+      if (this.startId != null && this.endId != null) {
+        this.currentIndex = this.endId - 1; //needed so next button goes to next diff
+        return `${this.startId}-${this.endId} of ${this.elements.length}`;
+      }
+      return `- of ${this.elements.length}`;
+    }
+
+    // single highlighted
+    return `${this.currentIndex + 1} of ${this.elements.length}`;
   }
   //End of shadow DOM navigation
 
@@ -635,43 +664,45 @@ export class PageAssistantCompareComponent implements OnInit {
 
     //HANDLE HIGHLIGHTED DIFF//
     //Get highlighted <ins> or <del> or <span>
-    const highlighted = diffContainer.querySelector('ins.highlight, del.highlight, span.diff-group.highlight, span.updated-link.highlight') as HTMLElement;
-    if (!highlighted) { console.warn("highlighted element not found"); return; }
+    const highlightedEls = diffContainer.querySelectorAll<HTMLElement>('ins.highlight, del.highlight, span.diff-group.highlight, span.updated-link.highlight');
+    if (!highlightedEls.length) { console.warn("highlighted elements not found"); return; }
 
     const keepTag = mode === 'accept' ? 'ins' : 'del';
     const removeTag = mode === 'accept' ? 'del' : 'ins';
 
-    //Keep highlighted tag (accept mode keep tag = ins)
-    if (highlighted.tagName.toLowerCase() === keepTag) {
-      highlighted.insertAdjacentHTML('beforebegin', highlighted.innerHTML);
-      highlighted.remove();
-    }
-
-    //Remove highlighted tag (accept mode remove tag = del)
-    else if (highlighted.tagName.toLowerCase() === removeTag) {
-      highlighted.remove();
-    }
-
-    //Handle highlighted .diff-group or .updated-link (accept mode keep tag = ins)
-    else if (highlighted.tagName.toLowerCase() === 'span') {
-      const el = highlighted.querySelector(keepTag);
-      const link = highlighted.querySelector('a');
-      //console.log(`Highlighted group: `,el);
-      //console.log(`Highlighted link: `,link);
-      //diff-group      
-      if (el) { highlighted.insertAdjacentHTML('beforebegin', el.innerHTML); highlighted.remove(); }
-      //updated-link      
-      else if (link) {
-        if (mode === 'accept') { highlighted.replaceWith(link); }
-        else {
-          const oldHref = highlighted.getAttribute('title')?.replace(/^Old URL:\s*/, '') || '';
-          link.setAttribute('href', oldHref);
-          highlighted.replaceWith(link);
-        }
+    highlightedEls.forEach(highlighted => {
+      //Keep highlighted tag (accept mode keep tag = ins)
+      if (highlighted.tagName.toLowerCase() === keepTag) {
+        highlighted.insertAdjacentHTML('beforebegin', highlighted.innerHTML);
+        highlighted.remove();
       }
-      //neither found
-      else { console.log(`No <${keepTag}> or updated-link found. Leaving content as-is.`); return; }
-    }
+
+      //Remove highlighted tag (accept mode remove tag = del)
+      else if (highlighted.tagName.toLowerCase() === removeTag) {
+        highlighted.remove();
+      }
+
+      //Handle highlighted .diff-group or .updated-link (accept mode keep tag = ins)
+      else if (highlighted.tagName.toLowerCase() === 'span') {
+        const el = highlighted.querySelector(keepTag);
+        const link = highlighted.querySelector('a');
+        //console.log(`Highlighted group: `,el);
+        //console.log(`Highlighted link: `,link);
+        //diff-group      
+        if (el) { highlighted.insertAdjacentHTML('beforebegin', el.innerHTML); highlighted.remove(); }
+        //updated-link      
+        else if (link) {
+          if (mode === 'accept') { highlighted.replaceWith(link); }
+          else {
+            const oldHref = highlighted.getAttribute('title')?.replace(/^Old URL:\s*/, '') || '';
+            link.setAttribute('href', oldHref);
+            highlighted.replaceWith(link);
+          }
+        }
+        //neither found
+        else { console.log(`No <${keepTag}> or updated-link found. Leaving content as-is.`); return; }
+      }
+    });
 
     //HANDLE ALL OTHER CHANGES (OPPOSITE OF WHAT IS DONE WITH THE HIGHLIGHTED CHANGE)//
     //Keep and unwrap remaining elements of opposite tag (including inside diff-group)
@@ -700,6 +731,7 @@ export class PageAssistantCompareComponent implements OnInit {
       }
     });
 
+    this.currentCount = 1;
     //Merge with modified HTML
     const updatedHtml = diffContainer.innerHTML;
     const data = this.uploadState.getUploadData();
