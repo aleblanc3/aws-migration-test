@@ -60,13 +60,12 @@ Return only the French HTML document.`;
     ];
 
     const models = [
-      'google/gemini-2.0-flash-exp:free',
-      'cognitivecomputations/dolphin3.0-r1-mistral-24b:free',
-      'cognitivecomputations/dolphin3.0-mistral-24b:free',
       'meta-llama/llama-3.3-70b-instruct:free',
-      'nvidia/llama-3.1-nemotron-70b-instruct:free',
+      'google/gemini-2.0-flash-exp:free',
       'google/gemini-exp-1206:free',
-      'google/gemini-flash-1.5-8b-exp',
+      'cognitivecomputations/dolphin3.0-mistral-24b:free',
+      'cognitivecomputations/dolphin3.0-r1-mistral-24b:free',
+      'nvidia/llama-3.1-nemotron-70b-instruct:free',
       'deepseek/deepseek-r1:free',
     ];
 
@@ -92,36 +91,49 @@ Return only the French HTML document.`;
   private async getORData(
     model: string,
     requestJson: any,
-    temperature: number = 0.0,
+    temperature = 0.0,
   ): Promise<any> {
     const apiKey = this.apiKeyService.getCurrentKey();
-    if (!apiKey) {
-      console.error('API key is missing from ApiKeyService!');
-      throw new Error('API key is required.');
-    }
+    if (!apiKey) throw new Error('API key is required.');
 
     const headers = new HttpHeaders({
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'X-Title': 'Content Assistant', // optional but nice
     });
 
-    const payload = {
-      model: model,
-      messages: requestJson,
-      temperature: temperature,
-    };
+    const payload = { model, messages: requestJson, temperature };
 
     try {
-      const response = await this.http
-        .post(this.openRouterApiUrl, payload, { headers })
+      const resp = await this.http
+        .post(this.openRouterApiUrl, payload, {
+          headers,
+          responseType: 'text', // <-- key change
+          observe: 'response',
+        })
         .toPromise();
-      return response;
-    } catch (error: any) {
+
+      const ct = resp?.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        return JSON.parse(resp!.body as string);
+      } else {
+        console.error(
+          `OpenRouter non-JSON (status ${resp?.status}, ${ct}):\n`,
+          (resp?.body || '').slice(0, 500),
+        );
+        return undefined; // let alignTranslation() try the next model
+      }
+    } catch (err: any) {
+      const status = err?.status;
+      const bodySnippet =
+        typeof err?.error === 'string'
+          ? err.error.slice(0, 500)
+          : JSON.stringify(err?.error);
       console.error(
-        `Error calling OpenRouter API (Model: ${model}):`,
-        error.message || error,
+        `OpenRouter HTTP error (model: ${model}) status=${status}: ${bodySnippet}`,
       );
-      return undefined;
+      return undefined; // keep falling back
     }
   }
 
