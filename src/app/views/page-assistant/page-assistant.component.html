@@ -4,7 +4,8 @@
 <!-- Control Buttons -->
 <div class="flex gap-2 flex-wrap mb-3">
     <p-button label="Send to GenAI" [icon]="isLoading ? 'pi pi-spinner pi-spin' : 'pi pi-comments'" severity="primary"
-        (onClick)="sendToAI()" [disabled]="!uploadData?.originalHtml || isLoading || isDisabled" [pTooltip]="aiDisabled" showDelay="1000" hideDelay="300"></p-button>
+        (onClick)="sendToAI()" [disabled]="!uploadData?.originalHtml || isLoading || isDisabled" [pTooltip]="aiDisabled"
+        showDelay="1000" hideDelay="300"></p-button>
     <ca-ai-options (promptChange)="onPromptChange($event)" (aiChange)="onAiChange($event)" (aiSubmit)="sendToAI()"
         (customPrompt)="onAppendCustom($event)"></ca-ai-options>
     <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="clearAll($event)"
@@ -44,16 +45,23 @@
                 <p-toolbar>
                     <ng-template #start>
                         <ng-container *ngIf="webSelectedView() === WebViewType.Diff">
-                            <div class="flex flex-row gap-2">
+                            <div class="flex flex-row align-items-center gap-2">
                                 <div>
-                            <p-button icon="pi pi-chevron-left" pTooltip="Previous change" showDelay="1000"
-                                hideDelay="300" text severity="primary" (onClick)="prev()" />
-                            <span>{{ elements.length > 0 ? (currentIndex + 1) + ' of ' + elements.length : '0 of 0' }}</span>
-                            <p-button icon="pi pi-chevron-right" pTooltip="Next change" showDelay="1000" hideDelay="300"
-                                text severity="primary" (onClick)="next()" /></div>
-                                <p-splitbutton label="Accept" icon="pi pi-check" severity="success" size="small" (onClick)="toolbarAccept()" [model]="acceptItems"  pTooltip="Accept this change" tooltipPosition="top" showDelay="1000" hideDelay="300"/>
-                                <p-splitbutton label="Reject" icon="pi pi-times" severity="danger" size="small" (onClick)="toolbarReject()" [model]="rejectItems" pTooltip="Reject this change" tooltipPosition="top" showDelay="1000" hideDelay="300"/>
+                                    <p-button icon="pi pi-chevron-left" pTooltip="Previous change" showDelay="1000"
+                                        hideDelay="300" text severity="primary" (onClick)="prev()" />
+                                    <span>{{ displayCounter}}</span>
+                                    <p-button icon="pi pi-chevron-right" pTooltip="Next change" showDelay="1000"
+                                        hideDelay="300" text severity="primary" (onClick)="next()" />
                                 </div>
+                                <p-splitbutton label="Accept" icon="pi pi-check" severity="success" size="small"
+                                    (onClick)="toolbarAccept()" [model]="acceptItems" pTooltip="Accept this change"
+                                    tooltipPosition="top" showDelay="1000" hideDelay="300" />
+                                <p-splitbutton label="Reject" icon="pi pi-times" severity="danger" size="small"
+                                    (onClick)="toolbarReject()" [model]="rejectItems" pTooltip="Reject this change"
+                                    tooltipPosition="top" showDelay="1000" hideDelay="300" />
+                                <span *ngIf="currentCount > 1" class="text-color-secondary pl-1">{{currentCount}} items
+                                    selected</span>
+                            </div>
                         </ng-container>
                         <ng-container
                             *ngIf="webSelectedView() === WebViewType.Original || webSelectedView() === WebViewType.Modified">
@@ -61,8 +69,9 @@
                                 offIcon="pi pi-pen-to-square" ariaLabel="Edit/Save"
                                 styleClass="font-bold border-none w-6rem"
                                 (onChange)="toolbarToggleEdit(webSelectedView())" />
-                            <p-togglebutton [(ngModel)]="toggleCopy" offLabel="Copy code" offIcon="pi pi-clipboard" onLabel="Copied!" onIcon=""
-                                  ariaLabel="Copy code" styleClass="font-bold border-none w-6rem"
+                            <p-togglebutton [(ngModel)]="toggleCopy" offLabel="Copy code" offIcon="pi pi-clipboard"
+                                onLabel="Copied!" onIcon="" ariaLabel="Copy code"
+                                styleClass="font-bold border-none w-6rem"
                                 (onChange)="toolbarToggleCopy(webSelectedView())" />
                         </ng-container>
                     </ng-template>
@@ -98,10 +107,10 @@
             <div #sourceContainer class="source-container p-0" [ngClass]="sourceSelectedView()"></div>
 
         </p-tabpanel>
-        
+
         <!-- Page details (metadata and misc reports) -->
         <p-tabpanel value="2">
-            <ca-page-details></ca-page-details>            
+            <ca-page-details></ca-page-details>
         </p-tabpanel>
 
     </p-tabpanels>
