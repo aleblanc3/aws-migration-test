@@ -92,71 +92,49 @@ Return only the French HTML document.`;
   private async getORData(
     model: string,
     requestJson: any,
-    temperature: number = 0.0,
+    temperature = 0.0,
   ): Promise<any> {
     const apiKey = this.apiKeyService.getCurrentKey();
-    if (!apiKey) {
-      console.error('API key is missing from ApiKeyService!');
-      throw new Error('API key is required.');
-    }
+    if (!apiKey) throw new Error('API key is required.');
 
     const headers = new HttpHeaders({
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      // Optional niceties OpenRouter likes (browser can set X-Title, not Referer):
-      'X-Title': 'Content Assistant',
+      'X-Title': 'Content Assistant', // optional but nice
     });
 
-    const payload = {
-      model,
-      messages: requestJson,
-      temperature,
-      // stream: false, // ensure non-streaming (default)
-    };
+    const payload = { model, messages: requestJson, temperature };
 
     try {
-      // Read as TEXT first to avoid Angular's JSON parser blowing up on HTML error pages.
       const resp = await this.http
         .post(this.openRouterApiUrl, payload, {
           headers,
-          responseType: 'text', // <— important
-          observe: 'response', // so we can inspect status/headers
+          responseType: 'text', // <-- key change
+          observe: 'response',
         })
         .toPromise();
 
-      const contentType = resp?.headers.get('content-type') || '';
-
-      // Happy path: JSON response
-      if (contentType.includes('application/json')) {
-        try {
-          return JSON.parse(resp!.body as string);
-        } catch (e) {
-          console.error(
-            'OpenRouter: JSON parse failed on JSON content-type.',
-            e,
-          );
-          return undefined;
-        }
+      const ct = resp?.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        return JSON.parse(resp!.body as string);
+      } else {
+        console.error(
+          `OpenRouter non-JSON (status ${resp?.status}, ${ct}):\n`,
+          (resp?.body || '').slice(0, 500),
+        );
+        return undefined; // let alignTranslation() try the next model
       }
-
-      // Error path: non-JSON (likely HTML with an error message)
-      const bodySnippet = (resp?.body || '').slice(0, 500);
-      console.error(
-        `OpenRouter: non-JSON response (status ${resp?.status}, ${contentType}). Body (first 500 chars):\n${bodySnippet}`,
-      );
-      return undefined;
     } catch (err: any) {
-      // Angular HttpErrorResponse: err.status, err.error (string if responseType:'text')
       const status = err?.status;
-      const errText =
+      const bodySnippet =
         typeof err?.error === 'string'
           ? err.error.slice(0, 500)
           : JSON.stringify(err?.error);
       console.error(
-        `OpenRouter HTTP error (Model: ${model}) status=${status}: ${errText}`,
+        `OpenRouter HTTP error (model: ${model}) status=${status}: ${bodySnippet}`,
       );
-      return undefined; // let caller try the next model
+      return undefined; // keep falling back
     }
   }
 
