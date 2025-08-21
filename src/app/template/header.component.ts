@@ -24,7 +24,7 @@ import { LocalStorageService } from '../services/local-storage.service';
         priority="true"
       />
     </div>
-    <div class="flex align-items-end gap-3">
+    <div class="flex align-items-center gap-3">
       <ca-api-reset
         *ngIf="this.localStore.getData('apiKey') != null">
       </ca-api-reset>
@@ -34,12 +34,13 @@ import { LocalStorageService } from '../services/local-storage.service';
         offLabel=""
         onIcon="pi pi-sun"
         onLabel=""
-        class="p-button-rounded p-button-secondary p-button-outlined p-button-sm pr-0"
-        (click)="toggleDarkMode()">
+        class="p-button-rounded p-button-secondary p-button-outlined p-button-sm surface-border pr-0 darkmode-toggle"
+        (click)="toggleDarkMode()"
+        ariaLabel="Toggle between dark and light mode">
       </p-togglebutton>
 
       <a
-        class="cursor-pointer underline font-medium text-blue-600 hover:text-blue-800"
+        class="cursor-pointer underline font-medium text-blue-600 hover:text-blue-700"
         tabindex="0"
         (click)="selectLanguage()">
         {{ 'opp.lang' | translate }}
@@ -56,10 +57,18 @@ import { LocalStorageService } from '../services/local-storage.service';
     }
     header {
       border-bottom-style: solid;
-      border-bottom-color: #c4c4c4;
+      border-bottom-color: var(--p-gray-400);
       border-width: 1px;
       margin-top: -4rem;
     }
+    
+  ::ng-deep .darkmode-toggle:hover .p-togglebutton-icon {
+    color: var(--p-cyan-400) !important;
+  }
+
+  ::ng-deep html.dark-mode .darkmode-toggle:hover .p-togglebutton-icon {
+    color: var(--p-amber-400) !important;
+  }
     `
 })
 export class HeaderComponent {
