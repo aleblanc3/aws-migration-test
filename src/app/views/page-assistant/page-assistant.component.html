@@ -51,9 +51,9 @@
                                               pTooltip="Next change" showDelay="1000" hideDelay="300" />
                                 </div>
 
-                                <p-splitbutton label="Accept" icon="pi pi-check" severity="success" outlined size="small" (onClick)="toolbarAccept()" [model]="acceptItems"
+                                <p-splitbutton label="Accept" icon="pi pi-check" severity="success" outlined size="small" class="secondary-outline" (onClick)="toolbarAccept()" [model]="acceptItems"
                                                pTooltip="Accept selected changes" tooltipPosition="top" showDelay="1000" hideDelay="300" />
-                                <p-splitbutton label="Reject" icon="pi pi-times" severity="danger" outlined size="small" (onClick)="toolbarReject()" [model]="rejectItems"
+                                <p-splitbutton label="Reject" icon="pi pi-times" severity="danger" outlined size="small" class="secondary-outline" (onClick)="toolbarReject()" [model]="rejectItems"
                                                pTooltip="Reject selected changes" tooltipPosition="top" showDelay="1000" hideDelay="300" />
 
                                 <span *ngIf="displayNumHighlighted" class="text-color-secondary pl-1">{{ displayNumHighlighted }}</span>
