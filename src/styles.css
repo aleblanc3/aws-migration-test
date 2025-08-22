@@ -197,3 +197,9 @@ font-family: 'Noto Sans';
 html.dark-mode .p-button.p-button-primary {
   color: #ffffff;
 }
+
+/*override accordion style*/
+.p-accordion>.p-accordionpanel {
+  box-shadow: none !important;
+  margin: 0 !important;
+}
