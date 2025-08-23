@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { sampleHtmlO, sampleHtmlM, sampleSnippetO, sampleSnippetM, sampleWordO, sampleWordM } from '../components/sample-data';
-import { htmlProcessingResult, MetadataData, BreadcrumbData } from '../../../common/data.types'
+import { htmlProcessingResult, MetadataData } from '../../../common/data.types'
+import { MenuItem } from 'primeng/api';
 import { UploadStateService } from './upload-state.service';
 //import prettier from 'prettier/standalone';
 import * as parserHtml from 'prettier/parser-html';
@@ -52,15 +53,16 @@ export class UrlDataService {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const foundFlags = { hidden: false, modal: false, dynamic: false };
 
+    this.updateRelativeURLs(doc, "https://www.canada.ca");
+
     // Save extra data
     const metadata: MetadataData[] = this.getMetadata(doc);
-    const breadcrumb: BreadcrumbData[] = this.getBreadcrumb(doc);
+    const breadcrumb: MenuItem[] = this.getBreadcrumb(doc);
 
     //process HTML
     foundFlags.dynamic ||= await this.processAjaxReplacements(doc);
     foundFlags.dynamic ||= await this.processJsonReplacements(doc);
     foundFlags.modal ||= this.processModalDialogs(doc);
-    this.updateRelativeURLs(doc, "https://www.canada.ca");
     this.cleanupUnnecessaryElements(doc);
     foundFlags.hidden ||= this.displayInvisibleElements(doc);
     this.addToc(doc);
@@ -497,14 +499,13 @@ export class UrlDataService {
   }
 
   //Get Breadcrumb
-  private getBreadcrumb(doc: Document): BreadcrumbData[] {
+  private getBreadcrumb(doc: Document): MenuItem[] {
     const breadcrumbItems = doc.querySelectorAll('.breadcrumb li a');
-    const breadcrumbArray: BreadcrumbData[] = [];
+    const breadcrumbArray: MenuItem[] = [];
     breadcrumbItems.forEach((el, index) => {
       breadcrumbArray.push({
-        order: index + 1,
-        href: el.getAttribute('href') || '',
-        text: el.textContent?.trim() || ''
+        label: el.textContent?.trim() || '',
+        url: el.getAttribute('href') || ''
       });
     });
     return breadcrumbArray;

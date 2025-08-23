@@ -1,3 +1,5 @@
+import { MenuItem } from 'primeng/api';
+
 // Upload data (from html, copy/paste, or word)
 export interface UploadData {
   originalHtml: string;
@@ -9,7 +11,7 @@ export interface UploadData {
     modified: { hidden: boolean; modal: boolean; dynamic: boolean };
   };
   metadata?: MetadataData[];
-  breadcrumb?: BreadcrumbData[];
+  breadcrumb?: MenuItem[];
 }
 
 // Modified data (from upload or AI generated content)
@@ -29,12 +31,6 @@ export interface MetadataData {
   content: string | void;
 }
 
-export interface BreadcrumbData {
-  order: number;
-  href: string;
-  text: string;
-}
-
 //Data structure for extractContent fxn 
 export interface htmlProcessingResult {
   html: string;
@@ -44,7 +40,7 @@ export interface htmlProcessingResult {
     dynamic: boolean;
   };
   metadata?: MetadataData[];
-  breadcrumb?: BreadcrumbData[];
+  breadcrumb?: MenuItem[];
 }
 
 // Diff options to tweaks how sensitive HTML diff is to whitespace, word repitition, etc.
