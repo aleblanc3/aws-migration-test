@@ -1,7 +1,7 @@
 <p>Some things that may eventually be included in this space:</p>
 <ul>
-    <li>Auto-detect page template (let user override) (this will be used to inform GenAI what kind of page it is)</li>
-    <li>List of components found on page (pull in relevant guidance from UCDG)</li>
+
+
     <li>Metadata</li>
     <li>Warn user if they are using deprecated version of component (auto-fix?)</li>
     <li>Extra info like AI orphans</li>
@@ -9,3 +9,94 @@
     <li>Send to AI right away with prompt like "What is wrong with my page"</li>
     <li>Page structure (detected but editable)</li>
 </ul>
+
+
+<p-accordion [value]="[]" [multiple]="true" class="flex flex-column gap-3">
+    <p-accordion-panel value="0" class="border-1 border-round-md border-surface">
+        <p-accordion-header>Page structure</p-accordion-header>
+
+        <p-accordion-content>
+            <p-table [columns]="cols" [value]="headings"
+                     size="small" stripedRows [tableStyle]="{ 'min-width': '50rem' }"
+                     [reorderableColumns]="true"
+                     selectionMode="single" [(selection)]="selectedHeading" dataKey="order" metaKeySelection="false">
+                <ng-template #header let-columns>
+                    <tr>
+                        <th style="width:3rem"></th>
+                        <th *ngFor="let col of columns">
+                            {{ col.header }}
+                        </th>
+                        <th>test</th>
+                    </tr>
+                </ng-template>
+                <ng-template #body let-rowData let-columns="columns" let-index="rowIndex">
+                    <tr [pReorderableRow]="index" [pSelectableRow]="rowData">
+                        <td>
+                            <span class="pi pi-bars" pReorderableRowHandle></span>
+                        </td>
+                        <!--td *ngFor="let col of columns">
+                {{ rowData[col.field] }}
+            </td-->
+
+                        <td>{{ rowData.order }}</td>
+                        <td>{{ rowData.type }}</td>
+                        <td [ngClass]="getTextClass(rowData)" [ngStyle]="getTextStyle(rowData)">{{ rowData.text }}</td>
+                        <td>test</td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </p-accordion-content>
+    </p-accordion-panel>
+    <p-accordion-panel value="1" class="border-1 border-round-sm border-surface">
+        <p-accordion-header>Components</p-accordion-header>
+        <p-accordion-content>
+            <p class="m-0">Unfinished. Will add fxn to detect which components are used on the page and link to relevant UCDG guidance.</p>
+            <p>This button just checks if you have any classes or elements that aren't in theme.min.css</p>
+            <p-button severity="primary" (click)="runValidation()" class="mt-2">Check classes and elements</p-button>
+            <ul>
+                <li *ngFor="let v of violations">
+                    {{v.type}}: {{v.detail}}
+                </li>
+            </ul>
+        </p-accordion-content>
+    </p-accordion-panel>
+    <p-accordion-panel value="2" class="border-1 border-round-sm border-surface">
+        <p-accordion-header>Usability Data</p-accordion-header>
+        <p-accordion-content>
+            <div class="flex flex-row gap-3 mt-2">
+                <p-ifta-label variant="in" class="flex-1">
+                    <textarea pTextarea [(ngModel)]="searchTerms" id="search" rows="5" autoResize fluid disabled></textarea>
+                    <label for="search">Search terms</label>
+                </p-ifta-label>
+                <p-ifta-label variant="in" class="flex-1">
+                    <textarea pTextarea [(ngModel)]="userFeedback" id="feedback" rows="5" autoResize fluid disabled></textarea>
+                    <label for="feedback">User feedback</label>
+                </p-ifta-label>
+                <p-ifta-label variant="in" class="flex-1">
+                    <textarea pTextarea [(ngModel)]="uxFindings" id="ux" rows="5" autoResize fluid disabled></textarea>
+                    <label for="ux">UX test findings</label>
+                </p-ifta-label>
+            </div>
+        </p-accordion-content>
+    </p-accordion-panel>
+    <p-accordion-panel value="3" class="border-1 border-round-sm border-surface" *ngIf="metadata && metadata.length">
+        <p-accordion-header>Metadata</p-accordion-header>
+        <p-accordion-content>
+            <p-fieldset legend="Title">{{metadata[0].content || "unavailable"}}</p-fieldset>
+            <p-fieldset legend="Description">{{metadata[1].content || "unavailable"}}</p-fieldset>
+            <p-fieldset legend="Keywords">{{metadata[2].content || "unavailable"}}</p-fieldset>
+        </p-accordion-content>
+    </p-accordion-panel>
+    <p-accordion-panel value="4" class="border-1 border-round-md border-surface">
+        <p-accordion-header>Template</p-accordion-header>
+        <p-accordion-content>
+            <p class="m-0">Unfinished. Will add auto-detect page template fxn and option to choose a template to inform GenAI what kind of page it is or should be.</p>
+        </p-accordion-content>
+    </p-accordion-panel>
+    <p-accordion-panel value="5" class="border-1 border-round-md border-surface">
+        <p-accordion-header>Breadcrumb</p-accordion-header>
+        <p-accordion-content>
+            <p class="m-0">Unfinished. Add breadcrumbs, AI orphan status & maybe a rough IA structure</p>
+        </p-accordion-content>
+    </p-accordion-panel>
+</p-accordion>
