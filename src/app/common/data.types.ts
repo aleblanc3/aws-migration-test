@@ -8,6 +8,8 @@ export interface UploadData {
     original: { hidden: boolean; modal: boolean; dynamic: boolean };
     modified: { hidden: boolean; modal: boolean; dynamic: boolean };
   };
+  metadata?: MetadataData[];
+  breadcrumb?: BreadcrumbData[];
 }
 
 // Modified data (from upload or AI generated content)
@@ -22,6 +24,17 @@ export interface OriginalData {
   originalHtml: string;
 }
 
+export interface MetadataData {
+  name: string | void;
+  content: string | void;
+}
+
+export interface BreadcrumbData {
+  order: number;
+  href: string;
+  text: string;
+}
+
 //Data structure for extractContent fxn 
 export interface htmlProcessingResult {
   html: string;
@@ -30,6 +43,8 @@ export interface htmlProcessingResult {
     modal: boolean;
     dynamic: boolean;
   };
+  metadata?: MetadataData[];
+  breadcrumb?: BreadcrumbData[];
 }
 
 // Diff options to tweaks how sensitive HTML diff is to whitespace, word repitition, etc.
