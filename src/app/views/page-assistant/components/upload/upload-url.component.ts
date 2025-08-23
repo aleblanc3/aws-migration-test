@@ -85,8 +85,10 @@ export class UploadUrlComponent {
           modifiedHtml: mainHTML.html,
           found: {
             original: mainHTML.found,
-            modified: mainHTML.found
-          }
+            modified: mainHTML.found,
+          },
+          metadata: mainHTML.metadata,
+          breadcrumb: mainHTML.breadcrumb
         });
       }
       if (this.mode === 'prototype') {
