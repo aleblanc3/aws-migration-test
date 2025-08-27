@@ -166,77 +166,118 @@ export const allowedClasses: (string | RegExp)[] = [
 ];
 
 export const disallowedAttributes: (string | RegExp)[] = [
-    /^on.*/,       // any inline JS handler like onclick, onmouseover
-    //'style'        // inline styles, these are added by page assistant so needs extra check to
+    /^on.*/,       // inline JS handler like onclick, onmouseover
+    //'style'      // inline styles, these are added by page assistant so needs extra check to
 ];
 
-export const depracatedClasses: (string | RegExp)[] = [
+export const deprecatedClasses: (string | RegExp)[] = [
     'gc-byline'
 ];
 
-export const specialGuidance: (string | RegExp)[] = [
-    'gc-chckbxrdio',       // any inline JS handler like onclick, onmouseover
-    'style'        // inline styles, unless you want to allow them
-];
+export const guidanceMap: {
+    name: string;
+    url: string;
+    patterns: (string | RegExp)[];
+}[] = [
+        {
+            name: 'page.tools.guidance.craSpecific.andor.title',
+            url: 'page.tools.guidance.craSpecific.andor.url',
+            patterns: [/^cnjnctn-(type-(or|and)|xs|sm|md|lg|col(-[2-9][05])?)$/],
+        },
+        {
+            name: 'page.tools.guidance.craVariant.alerts.title',
+            url: 'page.tools.guidance.craVariant.alerts.url',
+            patterns: [/^alert(-(danger|dismissable|dismissible|info|link|success|warning))?$/],
+        },
+        {
+            name: 'page.tools.guidance.craVariant.headings.title',
+            url: 'page.tools.guidance.craVariant.headings.url',
+            patterns: [/^h[1-6]$/],
+        },
+        {
+            name: 'page.tools.guidance.craVariant.fieldflow.title',
+            url: 'page.tools.guidance.craVariant.fieldflow.url',
+            patterns: ['wb-fieldflow'],
+        },
+        {
+            name: 'page.tools.guidance.craVariant.lists.title',
+            url: 'page.tools.guidance.craVariant.lists.url',
+            patterns: [
+                /^list-col-(xs|sm|md|lg)-[1-4]$/,
+                /^list-group(?:-item(?:-(?:danger|heading|info|success|text|warning))?)?$/,
+                /^list-(advanced|inline|responsive|unstyled)$/,
+                /^lst-(?:spcd(?:-2)?|lwr-(?:alph|rmn)|upr-(?:alph|rmn)|none|num)$/,
+                /^dl-(horizontal|inline)$/,
+                'disc'
+            ],
+        },
+        {
+            name: 'page.tools.guidance.craVariant.subway.title',
+            url: 'page.tools.guidance.craVariant.subway.url',
+            patterns: [/^BANANA$/],
+        },
+        {
+            name: 'page.tools.guidance.craVariant.tables.title',
+            url: 'page.tools.guidance.craVariant.tables.url',
+            patterns: [/^BANANA$/],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.badges.title',
+            url: 'page.tools.guidance.gcCore.badges.url',
+            patterns: ['badge'],
+        },
+        {
+            name: 'page.tools.guidance.craVariant.basicPage.title',
+            url: 'page.tools.guidance.craVariant.basicPage.url',
+            patterns: [/^BANANA$/],
+        },
+        {
+            name: 'page.tools.guidance.craVariant.borders.title',
+            url: 'page.tools.guidance.craVariant.borders.url',
+            patterns: [/^BANANA$/],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.buttons.title',
+            url: 'page.tools.guidance.gcCore.buttons.url',
+            patterns: [/^btn(-(block|call-to-action|cnt|danger|default|group(-(justified|lg|sm|vertical|xs))?|info|lg|link|primary|sm|success|toolbar|warning|xs|all-services))?$/],
+        },
 
-/*
-'active',
-    'affix',
-    'avatar',
-    'blockquote-reverse',
-    'clearfix',
-    'collapse',
-    'collapsing',
-    'container',
-    'container-fluid',
-    'cnt-wdth-lmtd',
-    'disabled',
-    'dropdown',
-    'dropdown-menu',
-    'dropdown-toggle',
-    'embed-responsive',
-    'jumbotron',
-    'lead',
-    'media',
-    'modal',
-    'mwsgeneric-base-html',
-    'nav',
-    'navbar',
-    'nowrap',
-    'open',
-    'pagination',
-    'panel',
-    'parbase',
-    'popover',
-    'progress',
-    'row',
-    'sr-only',
-    'tab-content',
-    'tab-pane',
-    'table',
-    'tooltip',
-'list-unstyled',
-    'lst-spcd-2',
-    'checkbox',
-    'gc-chckbxrdio',
-    /^btn-?(default)?$/,
-    /^form-(inline|group|control)$/,
-    'field-name',
-    'legend-brdr-bttm',
-    /^wb-.+$/,         // any WET core component
-    /^gcwu-.+$/,       // Government of Canada theme classes
-    /^visible-(xs|sm|md|lg)$/,         // responsive visibility
-    /^hidden-(xs|sm|md|lg)$/,
-    'wb-inv',
-    'show',
-    'hidden',
-    'invisible',
-    'visible-print',
-    'hidden-print',
-    /^modal$/,         // generic UI components
-    /^tabs?$/,         // tab or tabs
-    /^carousel$/,
-    /^alert(-\w+)?$/,  // e.g. alert-warning
-    /^badge$/,
-    /^well$/,
-    /^grid(-\w+)?$/,   // grid or grid-fluid, etc.*/
+
+
+
+    ];
+
+
+export const guidanceContentMap: {
+    name: string;
+    url: string;
+    tag: string;             // restrict check to certain elements
+    patterns: (string | RegExp)[];
+}[] = [
+        {
+            name: 'page.tools.guidance.craSpecific.contact.title',
+            url: 'page.tools.guidance.craSpecific.contact.url',
+            tag: 'dt',
+            patterns: [/^Online$/i, /^By phone$/i, /^By mail$/i]
+        },
+        {
+            name: 'page.tools.guidance.craSpecific.toc.title',
+            url: 'page.tools.guidance.craSpecific.toc.url',
+            tag: 'h2',
+            patterns: [/^On this page$/i, /^Table of contents$/i],
+        },
+        {
+            name: 'page.tools.guidance.craVariant.doormats.title',
+            url: 'page.tools.guidance.craVariant.doormats.url',
+            tag: 'section',
+            patterns: [/^BANANA$/],
+        },
+        {
+            name: 'page.tools.guidance.craVariant.links.title',
+            url: 'page.tools.guidance.craVariant.links.url',
+            tag: 'a',
+            patterns: [/^.*?$/],
+        },
+    ];
+
+
