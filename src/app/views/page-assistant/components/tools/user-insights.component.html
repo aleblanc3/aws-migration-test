@@ -1,0 +1,20 @@
+<p class="mt-0">Unfinished. Will add a function to intregate data with AI prompt.</p>
+<div class="flex flex-row flex-wrap gap-3">
+    <p-button label="Get GenAI recomendations based on user data" severity="help" (click)="print('GenAI UX recomendations\nWill use:\npage content\nuser feedback\nUX findings\nWill update:\npage content')" [loading]="isLoading" icon="pi pi-sparkles" />
+</div>
+
+<h2>Usability Data</h2>
+<div class="flex flex-column gap-3">
+    <p-ifta-label variant="in" class="flex-1">
+        <textarea pTextarea [(ngModel)]="task" id="task" pTooltip="Used to update content" rows="1" autoResize fluid></textarea>
+        <label for="task">Tasks</label>
+    </p-ifta-label>
+    <p-ifta-label variant="in" class="flex-1">
+        <textarea pTextarea [(ngModel)]="userFeedback" id="feedback" pTooltip="Used to update content" rows="1" autoResize fluid></textarea>
+        <label for="feedback">User feedback</label>
+    </p-ifta-label>
+    <p-ifta-label variant="in" class="flex-1">
+        <textarea pTextarea [(ngModel)]="uxFindings" id="ux" pTooltip="Used to update content" rows="1" autoResize fluid></textarea>
+        <label for="ux">UX test findings</label>
+    </p-ifta-label>
+</div>

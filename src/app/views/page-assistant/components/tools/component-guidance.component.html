@@ -1,0 +1,19 @@
+<p class="m-0">Unfinished. Will add fxn to:</p>
+<ul>
+    <li>detect which components are used on the page and link to relevant UCDG guidance (in progress)</li>
+    <li>warn user if they are using a depracated version of a component</li>
+    <li>auto-fix deprecated code w/ option to accept & merge with page</li>
+</ul>
+<h2>Guidance</h2>
+<ul>
+    <li *ngFor="let item of guidanceList">
+        <a [href]="item.url | translate" target="_blank" rel="noopener">{{ item.name | translate }}<i class="pi pi-external-link ml-1" style="font-size: .75rem"></i></a>
+    </li>
+</ul>
+<p>This button just checks if you have any classes or elements that aren't in theme.min.css</p>
+<p-button severity="primary" (click)="runValidation()" class="mt-2">Check classes and elements</p-button>
+<ul>
+    <li *ngFor="let v of violations">
+        {{v.type}}: {{v.detail}}
+    </li>
+</ul>

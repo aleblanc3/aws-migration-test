@@ -1,0 +1,34 @@
+<p class="mt-0">Unfinished. Will add a function to intregate data with AI prompt.</p>
+<div class="flex flex-row flex-wrap gap-3">
+    <p-button label="Get GenAI metadata recomendations" severity="help" (click)="print('GenAI metadata recomendations\nWill use:\npage content\ncanada.ca search terms\nexisting metadata\nWill update:\nmetadata')" [loading]="isLoading" icon="pi pi-sparkles" />
+    <p-button label="Get GenAI content SEO recomendations" severity="help" (click)="print('GenAI content SEO recomendations\nWill use:\npage content\ncanada.ca search terms\ngoogle search terms\nWill update:\npage lead-in content')" [loading]="isLoading" icon="pi pi-sparkles" />
+</div>
+
+<ng-container *ngIf="metadata.length > 0">
+    <h2>Metadata</h2>
+    <div class="flex flex-column gap-3">
+        <p-ifta-label variant="in" class="flex-1">
+            <textarea pTextarea [(ngModel)]="metadataMap['dcterms.title']" id="title" rows="1" autoResize fluid></textarea>
+            <label for="title">Title</label>
+        </p-ifta-label>
+        <p-ifta-label variant="in" class="flex-1">
+            <textarea pTextarea [(ngModel)]="metadataMap['description']" id="description" rows="1" autoResize fluid></textarea>
+            <label for="description">Description</label>
+        </p-ifta-label>
+        <p-ifta-label variant="in" class="flex-1">
+            <textarea pTextarea [(ngModel)]="metadataMap['keywords']" id="keywords" rows="1" autoResize fluid></textarea>
+            <label for="keywords">Keywords</label>
+        </p-ifta-label>
+    </div>
+</ng-container>
+<h2>Search Data</h2>
+<div class="flex flex-column gap-3">
+    <p-ifta-label variant="in" class="flex-1">
+        <textarea pTextarea [(ngModel)]="canadaSearchTerms" id="search" pTooltip="Used to update lead-in content and keywords" rows="1" autoResize fluid></textarea>
+        <label for="search">Canada.ca search terms</label>
+    </p-ifta-label>
+    <p-ifta-label variant="in" class="flex-1">
+        <textarea pTextarea [(ngModel)]="googleSearchTerms" id="search" pTooltip="Used to update lead-in content" rows="1" autoResize fluid></textarea>
+        <label for="search">Google search terms</label>
+    </p-ifta-label>
+</div>

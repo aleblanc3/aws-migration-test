@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { PageDetailsComponent } from './page-details.component';
+import { LinkReportComponent } from './link-report.component';
 
-describe('PageDetailsComponent', () => {
-  let component: PageDetailsComponent;
-  let fixture: ComponentFixture<PageDetailsComponent>;
+describe('LinkReportComponent', () => {
+  let component: LinkReportComponent;
+  let fixture: ComponentFixture<LinkReportComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [PageDetailsComponent]
+      imports: [LinkReportComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(PageDetailsComponent);
+    fixture = TestBed.createComponent(LinkReportComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
