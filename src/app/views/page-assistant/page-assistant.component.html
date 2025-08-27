@@ -27,7 +27,7 @@
     <p-tablist>
         <p-tab value="0"><i class="pi pi-eye mr-1"></i>Web page</p-tab>
         <p-tab value="1"><i class="pi pi-code mr-1"></i>Page source</p-tab>
-        <p-tab value="2"><i class="pi pi-list mr-1"></i>Details</p-tab>
+        <p-tab value="2"><i class="pi pi-wrench mr-1"></i>Tools</p-tab>
     </p-tablist>
     <!-- Rendered page -->
     <p-tabpanels class="shadow-1">
@@ -44,16 +44,18 @@
                         <ng-container *ngIf="webSelectedView() === WebViewType.Diff">
                             <div class="flex flex-row align-items-center gap-2">
                                 <div>
-                                    <p-button icon="pi pi-chevron-left" text severity="primary" (onClick)="prev()"
+                                    <p-button icon="pi pi-chevron-left" text severity="primary" (onClick)="prev()" ariaLabel="Previous change"
                                               pTooltip="Previous change" showDelay="1000" hideDelay="300" />
                                     <span>{{ displayCounter}}</span>
-                                    <p-button icon="pi pi-chevron-right" text severity="primary" (onClick)="next()"
+                                    <p-button icon="pi pi-chevron-right" text severity="primary" (onClick)="next()" ariaLabel="Next change"
                                               pTooltip="Next change" showDelay="1000" hideDelay="300" />
                                 </div>
 
                                 <p-splitbutton label="Accept" icon="pi pi-check" severity="success" outlined size="small" class="secondary-outline" (onClick)="toolbarAccept()" [model]="acceptItems"
+                                               [buttonProps]="{'ariaLabel': 'Accept selected changes'}" [menuButtonProps]="{'ariaLabel': 'More accept options'}"
                                                pTooltip="Accept selected changes" tooltipPosition="top" showDelay="1000" hideDelay="300" />
                                 <p-splitbutton label="Reject" icon="pi pi-times" severity="danger" outlined size="small" class="secondary-outline" (onClick)="toolbarReject()" [model]="rejectItems"
+                                               [buttonProps]="{'ariaLabel': 'Reject selected changes'}" [menuButtonProps]="{'ariaLabel': 'More reject options'}"
                                                pTooltip="Reject selected changes" tooltipPosition="top" showDelay="1000" hideDelay="300" />
 
                                 <span *ngIf="displayNumHighlighted" class="text-color-secondary pl-1">{{ displayNumHighlighted }}</span>
