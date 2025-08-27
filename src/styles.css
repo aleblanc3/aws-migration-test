@@ -39,6 +39,10 @@ main.container {
   flex: 1 0 auto;
 }
 
+.max-h-75vh {
+  max-height: 75vh;
+}
+
 footer {
   margin-top: auto;
 }
