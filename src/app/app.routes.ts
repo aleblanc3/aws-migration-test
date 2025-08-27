@@ -2,7 +2,8 @@ import { Routes, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { LandingComponent } from './views/static/landing.component';
 import { NotFoundComponent } from './views/static/not-found.component';
-import { PageAssistantUploadComponent } from './views/page-assistant/components/upload.component';
+import { PageUploadComponent } from './views/page-assistant/components/upload.component';
+import { ShareComponent } from './views/page-assistant/components/share.component';
 import { UploadStateService } from './views/page-assistant/services/upload-state.service';
 import { ImageAssistantComponent } from './views/image-assistant/image-assistant.component';
 import { TranslationAssistantComponent } from './views/translation-assistant/translation-assistant.component';
@@ -38,7 +39,12 @@ export const routes: Routes = [
     },
     {
         path: 'page-assistant',
-        component: PageAssistantUploadComponent,
+        component: PageUploadComponent,
+        title: 'title.page',
+    },
+    {
+        path: 'share',
+        component: ShareComponent,
         title: 'title.page',
     },
     {
