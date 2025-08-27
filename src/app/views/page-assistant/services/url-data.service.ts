@@ -60,10 +60,10 @@ export class UrlDataService {
     const breadcrumb: MenuItem[] = this.getBreadcrumb(doc);
 
     //process HTML
+    this.cleanupUnnecessaryElements(doc);
     foundFlags.dynamic ||= await this.processAjaxReplacements(doc);
     foundFlags.dynamic ||= await this.processJsonReplacements(doc);
     foundFlags.modal ||= this.processModalDialogs(doc);
-    this.cleanupUnnecessaryElements(doc);
     foundFlags.hidden ||= this.displayInvisibleElements(doc);
     this.addToc(doc);
     this.sortAttributes(doc);
@@ -346,7 +346,7 @@ export class UrlDataService {
 
   //Remove irrelevent stuff
   private cleanupUnnecessaryElements(doc: Document): void {
-    const noisySelectors = ['section#chat-bottom-bar', '#gc-pft', 'header', 'footer', 'charlie'];
+    const noisySelectors = ['section#chat-bottom-bar', '#gc-pft', '.wb-disable-allow', 'header', 'footer', 'charlie'];
     noisySelectors.forEach(selector => {
       doc.querySelectorAll(selector).forEach(el => el.remove());
     });
