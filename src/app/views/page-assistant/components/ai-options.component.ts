@@ -13,7 +13,7 @@ import { IftaLabelModule } from 'primeng/iftalabel';
 import { TranslateModule } from "@ngx-translate/core";
 
 //Services
-import { CompareTask, PromptKey, AiModel } from '../../../common/data.types'
+import { CompareTask, PromptKey, AiModel } from '../data/data.model'
 import { UploadStateService } from '../services/upload-state.service';
 import { UploadUrlComponent } from './upload/upload-url.component';
 import { UploadPasteComponent } from './upload/upload-paste.component';
@@ -22,8 +22,8 @@ import { UploadWordComponent } from './upload/upload-word.component';
 @Component({
   selector: 'ca-ai-options',
   imports: [TranslateModule, CommonModule, FormsModule,
-            ButtonModule, DrawerModule, RadioButtonModule, CheckboxModule, AccordionModule, TextareaModule, IftaLabelModule,
-            UploadUrlComponent, UploadPasteComponent, UploadWordComponent],
+    ButtonModule, DrawerModule, RadioButtonModule, CheckboxModule, AccordionModule, TextareaModule, IftaLabelModule,
+    UploadUrlComponent, UploadPasteComponent, UploadWordComponent],
   templateUrl: './ai-options.component.html',
   styles: ``,
 })
@@ -46,7 +46,7 @@ export class AiOptionsComponent {
   trackById(index: number, item: { id: string | number }): string | number {
     return item.id;
   }
-  
+
   //Comparison task
   private _selectedTask: CompareTask = CompareTask.AiGenerated;
   isTwoPrompts = false;
@@ -133,8 +133,9 @@ export class AiOptionsComponent {
     this.customPrompt.emit(prompt);
   }
   resetCustom(): void {
-    if(!this.addCustom){
-    this.customInstruction = '';
-    this.emitCustomPrompt('');
-  }}
+    if (!this.addCustom) {
+      this.customInstruction = '';
+      this.emitCustomPrompt('');
+    }
+  }
 }

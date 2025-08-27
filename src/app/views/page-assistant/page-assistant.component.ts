@@ -31,20 +31,20 @@ import { SourceDiffService } from './services/source-diff.service';
 import { ShadowDomService } from './services/shadowdom.service';
 
 //Data
-import { UploadData, ViewOption, WebViewType, SourceViewType, PromptKey, AiModel } from '../../common/data.types';
-import { PromptTemplates } from './components/ai-prompts';
+import { UploadData, ViewOption, WebViewType, SourceViewType, PromptKey, AiModel } from './data/data.model';
+import { PromptTemplates } from './data/ai-prompts.constants';
 
 //Components
 import { AiOptionsComponent } from './components/ai-options.component';
 import { HorizontalRadioButtonsComponent } from '../../components/horizontal-radio-buttons/horizontal-radio-buttons.component';
-import { PageDetailsComponent } from './components/page-details.component';
+import { PageToolsComponent } from './components/tools.component';
 
 @Component({
   selector: 'ca-page-assistant-compare',
   imports: [CommonModule, FormsModule,
     TranslateModule,
     ButtonModule, MessageModule, Toast, CardModule, TabsModule, RadioButtonModule, ToolbarModule, ToggleButtonModule, TooltipModule, ConfirmDialogModule, SplitButtonModule,
-    AiOptionsComponent, HorizontalRadioButtonsComponent, PageDetailsComponent],
+    AiOptionsComponent, HorizontalRadioButtonsComponent, PageToolsComponent],
   templateUrl: './page-assistant.component.html',
   styleUrl: './page-assistant.component.css'
 })

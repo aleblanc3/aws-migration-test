@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { RadioButton } from 'primeng/radiobutton';
-import { ViewOption } from '../../common/data.types';
+import { ViewOption } from '../../views/page-assistant/data/data.model';
 
 @Component({
   selector: 'ca-horizontal-radio-buttons',

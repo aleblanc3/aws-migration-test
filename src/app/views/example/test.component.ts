@@ -3,7 +3,7 @@ import { TranslateModule, TranslateService } from "@ngx-translate/core";
 
 //Shared components
 import { HorizontalRadioButtonsComponent } from '../../components/horizontal-radio-buttons/horizontal-radio-buttons.component';
-import { ViewOption, WebViewType } from '../../common/data.types';
+import { ViewOption, WebViewType } from '../page-assistant/data/data.model';
 
 //Needed for linking to page compare tool
 import { UrlDataService } from '../page-assistant/services/url-data.service';

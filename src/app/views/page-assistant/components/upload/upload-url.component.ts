@@ -16,7 +16,7 @@ import { trigger, state, style, transition, animate } from '@angular/animations'
 //Page assistant
 import { UrlDataService } from '../../services/url-data.service';
 import { UploadStateService } from '../../services/upload-state.service';
-import { UploadData, ModifiedData } from '../../../../common/data.types'
+import { UploadData, ModifiedData } from '../../data/data.model'
 
 @Component({
   selector: 'ca-upload-url',
