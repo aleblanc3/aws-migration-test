@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { sampleHtmlO, sampleHtmlM, sampleSnippetO, sampleSnippetM, sampleWordO, sampleWordM } from '../components/sample-data';
-import { htmlProcessingResult } from '../../../common/data.types'
+import { htmlProcessingResult, MetadataData } from '../../../common/data.types'
+import { MenuItem } from 'primeng/api';
 import { UploadStateService } from './upload-state.service';
 //import prettier from 'prettier/standalone';
 import * as parserHtml from 'prettier/parser-html';
@@ -46,17 +47,23 @@ export class UrlDataService {
 
   }
 
+
   //Runs all clean-up functions (might need to add type for full html document from url vs. snippet from copy/paste)
   async extractContent(html: string): Promise<htmlProcessingResult> {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const foundFlags = { hidden: false, modal: false, dynamic: false };
 
+    this.updateRelativeURLs(doc, "https://www.canada.ca");
+
+    // Save extra data
+    const metadata: MetadataData[] = this.getMetadata(doc);
+    const breadcrumb: MenuItem[] = this.getBreadcrumb(doc);
+
     //process HTML
+    this.cleanupUnnecessaryElements(doc);
     foundFlags.dynamic ||= await this.processAjaxReplacements(doc);
     foundFlags.dynamic ||= await this.processJsonReplacements(doc);
     foundFlags.modal ||= this.processModalDialogs(doc);
-    this.updateRelativeURLs(doc, "https://www.canada.ca");
-    this.cleanupUnnecessaryElements(doc);
     foundFlags.hidden ||= this.displayInvisibleElements(doc);
     this.addToc(doc);
     this.sortAttributes(doc);
@@ -67,9 +74,12 @@ export class UrlDataService {
       console.warn('No <main> tag found. Using full <body> content instead.');
     }
     const content = main ? main.outerHTML : doc.body.innerHTML.trim();
+
     return {
       html: await this.formatHtml(content),
-      found: foundFlags
+      found: foundFlags,
+      metadata: metadata,
+      breadcrumb: breadcrumb
     }
   }
 
@@ -95,7 +105,7 @@ export class UrlDataService {
       if (source === 'ai') {
         html = this.aiCleanup(html);
       }
-     
+
       //const [{ default: prettier }, parserHtml] = await Promise.all([
       //  import('prettier/standalone'),
       //  import('prettier/parser-html'),
@@ -141,7 +151,7 @@ export class UrlDataService {
       }
     });
     // Remove <think>
-    doc.querySelectorAll("think").forEach(think => {think.remove();});
+    doc.querySelectorAll("think").forEach(think => { think.remove(); });
 
     // Return the cleaned-up HTML as a string
     return doc.body.outerHTML;
@@ -336,7 +346,7 @@ export class UrlDataService {
 
   //Remove irrelevent stuff
   private cleanupUnnecessaryElements(doc: Document): void {
-    const noisySelectors = ['section#chat-bottom-bar', '#gc-pft', 'header', 'footer', 'charlie'];
+    const noisySelectors = ['section#chat-bottom-bar', '#gc-pft', '.wb-disable-allow', 'header', 'footer', 'charlie'];
     noisySelectors.forEach(selector => {
       doc.querySelectorAll(selector).forEach(el => el.remove());
     });
@@ -462,6 +472,44 @@ export class UrlDataService {
   }
 
   //END OF CLEAN-UP FUNCTIONS
+
+  //Get Metadata
+  private getMetadata(doc: Document): MetadataData[] {
+    const metaNames = ['dcterms.title', 'description', 'keywords', 'dcterms.subject', 'dcterms.issued', 'dcterms.modified', 'dcterms.type', 'dcterms.language'];
+    const metaArray: MetadataData[] = [];
+    metaNames.forEach((name) => {
+      const el = doc.querySelector(`meta[name="${name}"]`);
+      if (el) {
+        metaArray.push({
+          name: name,
+          content: el.getAttribute('content') || ''
+        });
+      }
+    });
+    const currLang = metaArray.find(m => m.name === "dcterms.language");
+    const oppLang = currLang?.content?.toLowerCase() === "fra" ? "en" : "fr"
+    const altLink = doc.querySelector(`link[rel="alternate"][hreflang="${oppLang}"]`);
+    if (altLink) {
+      metaArray.push({
+        name: 'alternate',
+        content: altLink.getAttribute('href') || ''
+      });
+    }
+    return metaArray;
+  }
+
+  //Get Breadcrumb
+  private getBreadcrumb(doc: Document): MenuItem[] {
+    const breadcrumbItems = doc.querySelectorAll('.breadcrumb li a');
+    const breadcrumbArray: MenuItem[] = [];
+    breadcrumbItems.forEach((el, index) => {
+      breadcrumbArray.push({
+        label: el.textContent?.trim() || '',
+        url: el.getAttribute('href') || ''
+      });
+    });
+    return breadcrumbArray;
+  }
 
   //Start of sample data
   async loadSampleDataset(name: 'webpage' | 'snippet' | 'word' = 'webpage'): Promise<void> {

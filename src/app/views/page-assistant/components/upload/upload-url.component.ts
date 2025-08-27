@@ -29,6 +29,12 @@ import { UploadData, ModifiedData } from '../../../../common/data.types'
     :host {
       display: block;
     }
+    ::ng-deep button.p-button.nohover:hover {
+    background-color: transparent !important;
+    }
+    ::ng-deep button.p-button.nohover {
+    border: none !important;
+    }
   `,
   animations: [
     trigger('slideDown', [
@@ -79,8 +85,10 @@ export class UploadUrlComponent {
           modifiedHtml: mainHTML.html,
           found: {
             original: mainHTML.found,
-            modified: mainHTML.found
-          }
+            modified: mainHTML.found,
+          },
+          metadata: mainHTML.metadata,
+          breadcrumb: mainHTML.breadcrumb
         });
       }
       if (this.mode === 'prototype') {
