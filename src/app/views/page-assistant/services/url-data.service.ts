@@ -511,6 +511,17 @@ export class UrlDataService {
     return breadcrumbArray;
   }
 
+  //Check if URL is valid
+  public isValidUrl(url: string | undefined): boolean {
+    if (!url) return false;
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   //Start of sample data
   async loadSampleDataset(name: 'webpage' | 'snippet' | 'word' = 'webpage'): Promise<void> {
     let original: htmlProcessingResult;

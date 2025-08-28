@@ -1,11 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Router } from '@angular/router';
 
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
 
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { InputTextModule } from 'primeng/inputtext';
+import { IftaLabelModule } from 'primeng/iftalabel';
 
 import { UrlDataService } from '../services/url-data.service';
 import { UploadStateService } from '../services/upload-state.service';
@@ -13,11 +16,31 @@ import { htmlProcessingResult } from '../data/data.model';
 
 @Component({
   selector: 'ca-share',
-  imports: [CommonModule, ProgressSpinnerModule],
+  imports: [CommonModule, FormsModule, TranslateModule, ProgressSpinnerModule, InputTextModule, IftaLabelModule],
   template: `   
-      <p *ngIf="!loading">Sample share link: <br><a href="share?url=https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/gst-hst-businesses.html&compareUrl=https://cra-design.github.io/gst-hst-business/en/topics/gst-hst-businesses.html">
-      share?url=https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/gst-hst-businesses.html&compareUrl=https://cra-design.github.io/gst-hst-business/en/topics/gst-hst-businesses.html</a>
-    <div class="flex justify-content-center" *ngIf="loading"><p-progress-spinner ariaLabel="loading" /></div>
+  <h1 id="wb-cont">{{ 'title.page' | translate}}</h1>
+<p>{{'page.share.description' | translate }}</p>
+      <div *ngIf="!loading">
+        <h2>Which pages do you want to share?</h2>
+        <div class="flex flex-column gap-3">
+          <p-iftalabel>
+            <input pInputText id="url" [(ngModel)]="url" autocomplete="off" fluid/>
+            <label for="url">URL</label>
+          </p-iftalabel>
+          <p-iftalabel>
+            <input pInputText id="compare" [(ngModel)]="compareUrl" autocomplete="off" fluid/>
+            <label for="compare">Comparison URL</label>
+          </p-iftalabel>
+          <div>
+            <p>Your share link:<br>
+            <a [href]="getShareLink(url, compareUrl)">{{getShareLink(url, compareUrl)}}</a></p>
+            <p>Sample share link: <br>
+            <a href="page-assistant/share?url=https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/gst-hst-businesses.html&compareUrl=https://cra-design.github.io/gst-hst-business/en/topics/gst-hst-businesses.html">
+          page-assistant/share?url=https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/gst-hst-businesses.html&compareUrl=https://cra-design.github.io/gst-hst-business/en/topics/gst-hst-businesses.html</a></p>
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-content-center" *ngIf="loading"><p-progress-spinner ariaLabel="loading" /></div>
   `,
   styles: ``
 })
@@ -33,6 +56,17 @@ export class ShareComponent implements OnInit {
         this.fetchAndGoToCompare(url, compareUrl);
       }
     });
+  }
+
+  url: string = ""
+  compareUrl: string = ""
+  getShareLink(url: string, compareUrl: string) {
+    const params: any = {};
+    params.url = url;
+    params.compareUrl = compareUrl;
+    const treeLink = this.router.createUrlTree(['page-assistant/share'], { queryParams: params });
+    const shareLink = `${window.location.origin}${this.router.serializeUrl(treeLink)}`;
+    return shareLink;
   }
 
   error: string = '';

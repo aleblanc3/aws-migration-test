@@ -91,6 +91,10 @@ export class PageAssistantCompareComponent implements OnInit {
           undoItem.disabled = this.uploadState.isUndoDisabled();
         }
       });
+      //Checks if content is shareable
+      const canShareOriginal = this.urlDataService.isValidUrl(data?.originalUrl);
+      const canShareModified = this.urlDataService.isValidUrl(data?.modifiedUrl);
+      this.canShare = canShareOriginal || canShareModified;
     });
     effect(() => {
       const data = this.uploadState.getUploadData();
@@ -314,6 +318,36 @@ export class PageAssistantCompareComponent implements OnInit {
         console.log("Cancel reset page comparison");
       },
     });
+  }
+
+  canShare: boolean = false
+  shareLink() {
+    console.log("Clicked share");
+    const data = this.uploadState.getUploadData();
+    if (!data) return;
+    const params: any = {};
+    if (this.urlDataService.isValidUrl(data.originalUrl)) {
+      params.url = data.originalUrl;
+    }
+    else if (this.urlDataService.isValidUrl(data.modifiedUrl)) {
+      params.url = data.modifiedUrl
+    }
+    if (this.urlDataService.isValidUrl(data.originalUrl) && this.urlDataService.isValidUrl(data.modifiedUrl) && data.originalUrl !== data.modifiedUrl) {
+      params.compareUrl = data.modifiedUrl
+    }
+    const treeLink = this.router.createUrlTree(['page-assistant/share'], { queryParams: params });
+    const shareLink = `${window.location.origin}${this.router.serializeUrl(treeLink)}`;
+
+    navigator.clipboard.writeText(shareLink)
+      .then(() => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Copied share link to clipboard',
+          detail: `${shareLink}`,
+          life: 10000
+        });
+      })
+      .catch(err => console.error('Clipboard copy failed:', err));
   }
 
   private darkModeObserver?: MutationObserver;

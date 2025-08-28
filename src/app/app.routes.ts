@@ -38,13 +38,13 @@ export const routes: Routes = [
 
     },
     {
-        path: 'page-assistant',
-        component: PageUploadComponent,
+        path: 'page-assistant/share',
+        component: ShareComponent,
         title: 'title.page',
     },
     {
-        path: 'share',
-        component: ShareComponent,
+        path: 'page-assistant',
+        component: PageUploadComponent,
         title: 'title.page',
     },
     {
