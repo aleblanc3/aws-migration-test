@@ -2,6 +2,7 @@ import { Component, Output, EventEmitter, Input } from '@angular/core';
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { environment } from '../../../../../environments/environment';
 
 //primeNG
 import { ButtonModule } from 'primeng/button';
@@ -52,6 +53,7 @@ export class UploadWordComponent {
   //Import data from parent component
   @Input() mode: 'original' | 'prototype' = 'original';
   @Input() showSampleDataButton = true;
+  production: boolean = environment.production;
 
   //Export upload complete
   @Output() uploadComplete = new EventEmitter<void>();

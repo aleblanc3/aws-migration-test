@@ -6,7 +6,7 @@
 
     <!-- File input -->
     <p-fileupload #fileUploadRef name="word[]" accept=".docx" auto="true" maxFileSize="1000000" [customUpload]="true"
-        (uploadHandler)="getWordContent($event)" mode="advanced" styleClass="border-none">
+                  (uploadHandler)="getWordContent($event)" mode="advanced" styleClass="border-none">
         <ng-template #header></ng-template>
         <ng-template #content></ng-template>
 
@@ -22,10 +22,10 @@
             <!-- Buttons -->
             <div class="flex gap-2 flex-wrap mt-3">
                 <p-button type="submit" icon="pi pi-save" [label]="'page.upload.continue' | translate"
-                    [loading]="loading" [disabled]="!uploadedFileName" (onClick)="emitData()" severity="primary">
+                          [loading]="loading" [disabled]="!uploadedFileName" (onClick)="emitData()" severity="primary">
                 </p-button>
                 <p-button [label]="'page.upload.sample' | translate" icon="pi pi-file" (onClick)="loadSampleData()"
-                    severity="secondary">
+                          severity="secondary">
                 </p-button>
             </div>
         </ng-template>
@@ -35,7 +35,7 @@
             <div class="flex flex-column align-items-center justify-content-center p-3
                     border-dashed border-round border-200 surface-100
                     hover:surface-200 hover:border-primary-400 transition-colors transition-duration-500 cursor-pointer"
-                (click)="fileUploadRef.choose()">
+                 (click)="fileUploadRef.choose()">
                 <i class="pi pi-upload border-2 border-circle border-300 p-4 text-5xl text-color-secondary"></i>
                 <p class="m-0 mt-3">{{ 'page.upload.word.instruction' | translate }}</p>
             </div>
@@ -43,10 +43,10 @@
             <!-- Buttons -->
             <div class="flex gap-2 flex-wrap mt-3">
                 <p-button type="submit" icon="pi pi-save" [label]="'page.upload.continue' | translate"
-                    [loading]="loading" [disabled]="!uploadedFileName" (onClick)="emitData()" severity="primary">
+                          [loading]="loading" [disabled]="!uploadedFileName" (onClick)="emitData()" severity="primary">
                 </p-button>
                 <p-button [label]="'page.upload.sample' | translate" icon="pi pi-file" (onClick)="loadSampleData()"
-                    severity="secondary" *ngIf="showSampleDataButton">
+                          severity="secondary" *ngIf="showSampleDataButton && !production">
                 </p-button>
             </div>
         </ng-template>
