@@ -171,7 +171,8 @@ export const disallowedAttributes: (string | RegExp)[] = [
 ];
 
 export const deprecatedClasses: (string | RegExp)[] = [
-    'gc-byline'
+    'gc-byline',
+    /^carousel(-(caption|control|indicators|inner|s[12]))?$/
 ];
 
 export const guidanceMap: {
@@ -214,32 +215,34 @@ export const guidanceMap: {
         {
             name: 'page.tools.guidance.craVariant.subway.title',
             url: 'page.tools.guidance.craVariant.subway.url',
-            patterns: [/^BANANA$/],
+            patterns: [/^gc-subway(-pagination)?$/],
         },
         {
             name: 'page.tools.guidance.craVariant.tables.title',
             url: 'page.tools.guidance.craVariant.tables.url',
-            patterns: [/^BANANA$/],
+            patterns: [/^table-?(bordered|columnfloat|condensed|hover|responsive|striped)?$/,
+                /^(data(T|t)ables?_?(empty|filter|info|length|paginate|processing|scroll(Body|Head)?|sizing|wrapper)?)$/,],
         },
         {
             name: 'page.tools.guidance.gcCore.badges.title',
             url: 'page.tools.guidance.gcCore.badges.url',
             patterns: ['badge'],
         },
-        {
-            name: 'page.tools.guidance.craVariant.basicPage.title',
-            url: 'page.tools.guidance.craVariant.basicPage.url',
-            patterns: [/^BANANA$/],
-        },
+
         {
             name: 'page.tools.guidance.craVariant.borders.title',
             url: 'page.tools.guidance.craVariant.borders.url',
-            patterns: [/^BANANA$/],
+            patterns: [/^brdr-(0|bttm|lft|rght|tp|rds-0)$/,],
         },
         {
             name: 'page.tools.guidance.gcCore.buttons.title',
             url: 'page.tools.guidance.gcCore.buttons.url',
             patterns: [/^btn(-(block|call-to-action|cnt|danger|default|group(-(justified|lg|sm|vertical|xs))?|info|lg|link|primary|sm|success|toolbar|warning|xs|all-services))?$/],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.calendar.title',
+            url: 'page.tools.guidance.gcCore.calendar.url',
+            patterns: ['wb-calevt'],
         },
 
 
@@ -276,6 +279,18 @@ export const guidanceContentMap: {
             name: 'page.tools.guidance.craVariant.links.title',
             url: 'page.tools.guidance.craVariant.links.url',
             tag: 'a',
+            patterns: [/^.*?$/],
+        },
+        {
+            name: 'page.tools.guidance.craVariant.basicPage.title',
+            url: 'page.tools.guidance.craVariant.basicPage.url',
+            tag: 'p',
+            patterns: [/^BANANA$/],
+        },
+        {
+            name: 'page.tools.guidance.craVariant.borders.title',
+            url: 'page.tools.guidance.craVariant.borders.url',
+            tag: 'br',
             patterns: [/^.*?$/],
         },
     ];
