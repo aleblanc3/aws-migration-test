@@ -340,11 +340,16 @@ export class PageAssistantCompareComponent implements OnInit {
     this.customPromptText = prompt;
   }
 
+  customEditText: string = '';
+  onPrependLevel(prompt: string) {
+    this.customEditText = prompt;
+  }
+
   get combinedPrompt(): string {
     const base = PromptTemplates[this.selectedPromptKey];
     const custom = this.customPromptText.trim();
 
-    return custom ? `${base}\n\n${custom}` : base; //Note: a heading can be added to the custom instructions here, something like ${base}\n\nPrioritize the following:\n${custom}
+    return custom ? `${this.customEditText}\n\n${base}\n\n${custom}` : `${this.customEditText}\n\n${base}`; //Note: a heading can be added to the custom instructions here, something like ${base}\n\nPrioritize the following:\n${custom}
   }
 
   //AI Model

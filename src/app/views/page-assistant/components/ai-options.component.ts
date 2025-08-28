@@ -9,6 +9,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { AccordionModule } from 'primeng/accordion';
 import { TextareaModule } from 'primeng/textarea';
 import { IftaLabelModule } from 'primeng/iftalabel';
+import { SliderModule } from 'primeng/slider';
 
 import { TranslateModule } from "@ngx-translate/core";
 
@@ -22,7 +23,7 @@ import { UploadWordComponent } from './upload/upload-word.component';
 @Component({
   selector: 'ca-ai-options',
   imports: [TranslateModule, CommonModule, FormsModule,
-    ButtonModule, DrawerModule, RadioButtonModule, CheckboxModule, AccordionModule, TextareaModule, IftaLabelModule,
+    ButtonModule, DrawerModule, RadioButtonModule, CheckboxModule, AccordionModule, TextareaModule, IftaLabelModule, SliderModule,
     UploadUrlComponent, UploadPasteComponent, UploadWordComponent],
   templateUrl: './ai-options.component.html',
   styles: ``,
@@ -31,6 +32,7 @@ export class AiOptionsComponent {
 
   @Output() promptChange = new EventEmitter<PromptKey>();
   @Output() customPrompt = new EventEmitter<string>();
+  @Output() editPrompt = new EventEmitter<string>();
   @Output() aiChange = new EventEmitter<AiModel>();
   @Output() aiSubmit = new EventEmitter<void>();
 
@@ -137,5 +139,21 @@ export class AiOptionsComponent {
       this.customInstruction = '';
       this.emitCustomPrompt('');
     }
+  }
+
+  //Number of changes for AI to make
+  editLevel: number = 50;
+  editLevels = [
+    { value: 0, label: 'Grammar and spelling only', prompt: 'Make minor edits to correct spelling or grammar errors only. Mostly ignore the other instructions provided.' },
+    { value: 25, label: 'Minor edits', prompt: 'Make minor edits only to improve readability. Loosely follow the other instructions provided without making unnecessary changes.' },
+    { value: 50, label: 'Normal edits', prompt: '' },
+    { value: 75, label: 'Extensive edits', prompt: 'Heavily rewrite and reorganize the content to follow the instructions provided.' },
+    { value: 100, label: 'Complete rewrite', prompt: 'Aggressively rewrite the content. If there is a clear task on the page, feel free to remove unrelated content.' }
+  ];
+  get currentEditLevel() {
+    return this.editLevels.find(level => level.value === this.editLevel);
+  }
+  emitEditPrompt(prompt: string): void {
+    this.customPrompt.emit(prompt);
   }
 }

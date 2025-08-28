@@ -59,6 +59,11 @@
                           (blur)="emitCustomPrompt(customInstruction)" fluid></textarea>
                 <label for="customPrompt">{{ 'page.ai-options.prompt.textarea' | translate }}</label>
               </p-iftalabel>
+              <!--Slider for number of AI changes-->
+              <div class="flex flex-column gap-3 mt-3">
+                <p id="ai-changes">{{ currentEditLevel?.label }}</p>
+                <p-slider [(ngModel)]="editLevel" [step]="25" ariaLabelledBy="ai-changes" (onChange)="emitEditPrompt(currentEditLevel!.prompt)" fluid />
+              </div>
             </div>
           </fieldset>
 
