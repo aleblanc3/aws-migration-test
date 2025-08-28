@@ -346,7 +346,7 @@ export class PageAssistantCompareComponent implements OnInit {
           severity: 'success',
           summary: 'Copied share link to clipboard',
           detail: `${shareLink}`,
-          life: 10000
+          life: 2000
         });
       })
       .catch(err => console.error('Clipboard copy failed:', err));
