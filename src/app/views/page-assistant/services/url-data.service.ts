@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { sampleHtmlO, sampleHtmlM, sampleSnippetO, sampleSnippetM, sampleWordO, sampleWordM } from '../components/sample-data';
-import { htmlProcessingResult, MetadataData } from '../../../common/data.types'
+import { sampleHtmlO, sampleHtmlM, sampleSnippetO, sampleSnippetM, sampleWordO, sampleWordM } from '../data/sample-data.constants';
+import { htmlProcessingResult, MetadataData } from '../data/data.model'
 import { MenuItem } from 'primeng/api';
 import { UploadStateService } from './upload-state.service';
 //import prettier from 'prettier/standalone';
@@ -509,6 +509,17 @@ export class UrlDataService {
       });
     });
     return breadcrumbArray;
+  }
+
+  //Check if URL is valid
+  public isValidUrl(url: string | undefined): boolean {
+    if (!url) return false;
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   //Start of sample data

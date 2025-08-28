@@ -1,0 +1,25 @@
+<p-table [columns]="cols" [value]="headings"
+         size="small" stripedRows [tableStyle]="{ 'min-width': '50rem' }"
+         [reorderableColumns]="true"
+         selectionMode="single" [(selection)]="selectedHeading" dataKey="order" metaKeySelection="false">
+    <ng-template #header let-columns>
+        <tr>
+            <th style="width:3rem"></th>
+            <th *ngFor="let col of columns">
+                {{ col.header }}
+            </th>
+            <th>Action</th>
+        </tr>
+    </ng-template>
+    <ng-template #body let-rowData let-columns="columns" let-index="rowIndex">
+        <tr [pReorderableRow]="index" [pSelectableRow]="rowData">
+            <td>
+                <span class="pi pi-bars" pReorderableRowHandle></span>
+            </td>
+            <td>{{ rowData.order }}</td>
+            <td>{{ rowData.type }}</td>
+            <td [ngClass]="getTextClass(rowData)" [ngStyle]="getTextStyle(rowData)">{{ rowData.text }}</td>
+            <td>Add buttons!</td>
+        </tr>
+    </ng-template>
+</p-table>

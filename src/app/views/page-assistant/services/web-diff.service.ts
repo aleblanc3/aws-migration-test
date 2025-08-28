@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { DiffOptions } from '../../../common/data.types';
+import { DiffOptions } from '../data/data.model';
 
 @Injectable({
   providedIn: 'root'

@@ -2,13 +2,17 @@
 <p>{{'page.compare.description' | translate }}</p>
 
 <!-- Control Buttons -->
-<div class="flex gap-2 flex-wrap mb-3">
-    <p-button label="Send to GenAI" [icon]="isLoading ? 'pi pi-spinner pi-spin' : 'pi pi-comments'" severity="primary"
-              (onClick)="sendToAI()"
-              [pTooltip]="aiDisabled" showDelay="1000" hideDelay="300"
-              [disabled]="!uploadData?.originalHtml || isLoading || isDisabled"></p-button>
-    <ca-ai-options (promptChange)="onPromptChange($event)" (aiChange)="onAiChange($event)" (aiSubmit)="sendToAI()" (customPrompt)="onAppendCustom($event)"></ca-ai-options>
-    <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="clearAll($event)" class="md:ml-auto"></p-button>
+<div class="flex flex-wrap justify-content-between mb-3">
+    <div class="flex gap-2">
+        <p-button label="Send to GenAI" [icon]="isLoading ? 'pi pi-spinner pi-spin' : 'pi pi-comments'" severity="primary"
+                  (onClick)="sendToAI()"
+                  [pTooltip]="aiDisabled" showDelay="1000" hideDelay="300"
+                  [disabled]="!uploadData?.originalHtml || isLoading || isDisabled"></p-button>
+        <ca-ai-options (promptChange)="onPromptChange($event)" (aiChange)="onAiChange($event)" (aiSubmit)="sendToAI()" (customPrompt)="onAppendCustom($event)" (editPrompt)="onPrependLevel($event)"></ca-ai-options>
+    </div>
+    <div class="flex gap-2"><p-button label="Share" icon="pi pi-share-alt" severity="secondary" (onClick)="shareLink()" *ngIf="canShare"></p-button>
+        <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="clearAll($event)"></p-button>
+    </div>
 </div>
 <p-toast />
 <p-confirmdialog>
@@ -101,7 +105,7 @@
 
         <!-- Page details (metadata and misc reports) -->
         <p-tabpanel value="2">
-            <ca-page-details></ca-page-details>
+            <ca-page-tools></ca-page-tools>
         </p-tabpanel>
 
     </p-tabpanels>

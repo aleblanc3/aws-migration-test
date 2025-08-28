@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { allowedElements, allowedClasses, disallowedAttributes } from '../components/css-list.config';
+import { allowedElements, allowedClasses, disallowedAttributes, guidanceMap, guidanceContentMap } from '../data/css-list.config';
 
 @Injectable({
   providedIn: 'root'
@@ -76,4 +76,66 @@ export class ValidatorService {
       return false;
     });
   }
+
+  collectGuidanceUrls(html: string): { name: string; url: string }[] {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const found: Map<string, { name: string; url: string }> = new Map();
+
+    this.walkForGuidance(doc.body, found);
+    this.walkForContentGuidance(doc.body, found);
+
+    return Array.from(found.values()); // unique by url
+  }
+
+  private walkForGuidance(node: Element, found: Map<string, { name: string; url: string }>) {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      node.classList.forEach(cls => {
+        for (const group of guidanceMap) {
+          if (group.patterns.some(pat =>
+            typeof pat === 'string' ? pat === cls : pat.test(cls)
+          )) {
+            found.set(group.url, { name: group.name, url: group.url });
+          }
+        }
+      });
+    }
+
+    node.childNodes.forEach(child => {
+      if (child.nodeType === Node.ELEMENT_NODE) {
+        this.walkForGuidance(child as Element, found);
+      }
+    });
+  }
+
+  private walkForContentGuidance(
+    node: Element,
+    found: Map<string, { name: string; url: string }>
+  ) {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const tagName = node.tagName.toLowerCase();
+
+      const text = node.textContent?.trim();
+      if (text) {
+        for (const group of guidanceContentMap) {
+          if (group.tag === tagName &&
+            group.patterns.some(pat =>
+              typeof pat === 'string' ? pat === text : pat.test(text)
+            )
+          ) {
+            found.set(group.url, { name: group.name, url: group.url });
+          }
+        }
+      }
+    }
+
+    node.childNodes.forEach(child => {
+      if (child.nodeType === Node.ELEMENT_NODE) {
+        this.walkForContentGuidance(child as Element, found);
+      }
+    });
+  }
+
 }
+
+

@@ -1,401 +1,39 @@
-import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-//primeNG
-import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
-import { TextareaModule } from 'primeng/textarea';
-import { IftaLabel } from 'primeng/iftalabel';
-import { FieldsetModule } from 'primeng/fieldset';
-import { PanelModule } from 'primeng/panel';
-import { AccordionModule } from 'primeng/accordion';
-import { BreadcrumbModule } from 'primeng/breadcrumb';
-import { OrganizationChartModule } from 'primeng/organizationchart';
-import { ProgressBarModule } from 'primeng/progressbar';
-import { InputNumberModule } from 'primeng/inputnumber';
-import { TooltipModule } from 'primeng/tooltip';
-import { TreeTableModule } from 'primeng/treetable';
 
-//Services
-import { UrlDataService } from '../services/url-data.service';
-import { UploadStateService } from '../services/upload-state.service';
-import { ValidatorService } from '../services/validator.service';
-import { TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslateModule } from '@ngx-translate/core';
+
+import { UploadStateService } from '../../services/upload-state.service';
+import { ValidatorService } from '../../services/validator.service';
 
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { MenuItem, TreeNode } from 'primeng/api';
-import { MetadataData } from '../../../common/data.types';
-
-interface HeadingData {
-  order: number;
-  type: string;
-  text: string;
-}
-
-interface Column {
-  field: string;
-  header: string;
-}
-
-type TableRow = (string | undefined)[];
-
 
 @Component({
-  selector: 'ca-page-details',
+  selector: 'ca-component-guidance',
   imports: [CommonModule, FormsModule,
-    TableModule, ButtonModule, IftaLabel, TextareaModule, FieldsetModule, PanelModule, AccordionModule, BreadcrumbModule, OrganizationChartModule, ProgressBarModule, InputNumberModule, TooltipModule, TreeTableModule],
-  templateUrl: './page-details.component.html',
-  styles: `
-    :host {
-      display: block;
-    }
-    .ia-label {
-      white-space: pre-line; 
-      display: inline-block; 
-    }
-  `
+    TranslateModule,
+    ButtonModule,],
+  templateUrl: './component-guidance.component.html',
+  styles: ``
 })
-export class PageDetailsComponent implements OnInit {
+export class ComponentGuidanceComponent implements OnInit {
 
-  constructor(private urlDataService: UrlDataService, private uploadState: UploadStateService, private translate: TranslateService, private validator: ValidatorService, private http: HttpClient) { }
+  constructor(private uploadState: UploadStateService, private translate: TranslateService, private validator: ValidatorService, private http: HttpClient) { }
 
   ngOnInit() {
-    this.fetchHeadings();
-    this.cols = [
-      { field: 'order', header: 'Original order' },
-      { field: 'type', header: 'Heading type' },
-      { field: 'text', header: 'Text' }
-    ];
     const data = this.uploadState.getUploadData();
-    this.metadata = data?.metadata || [];
-    this.metadataMap = this.metadata.reduce((map, m) => {
-      if (m.name) map[m.name] = m.content || '';
-      return map;
-    }, {} as Record<string, string>);
-    this.breadcrumb = data?.breadcrumb || [];
-    this.originalUrl = data?.originalUrl || "";
-  }
-
-  //Initialize metadata & breadcrumb arrays (note: this data is part of UploadData)
-  metadata: MetadataData[] = [];
-  metadataMap: Record<string, string> = {};
-  originalUrl: string = "";
-
-  //UPD data (placeholders for future function)
-  canadaSearchTerms: string = "";
-  googleSearchTerms: string = "";
-  userFeedback: string = "";
-  uxFindings: string = "";
-
-  /********************************
-   * Start of breadcrumb analysis *
-   *******************************/
-
-  //Breadcrumb & orphan status
-  breadcrumb: MenuItem[] = [];
-  urlFound: boolean | null = null;
-
-  //IA chart
-  iaChart: TreeNode[] | null = null;
-  brokenLinks: { parentUrl?: string, url: string, status: number }[] = []
-  depth: number = 4 //default value
-
-  //For tracking progress while building IA chart
-  isChartLoading: boolean = false;
-  iaProgress: number = 0;
-  totalUrls: number = 0;
-  processedUrls: number = 0;
-
-  //Pages to skip children when building IA chart
-  private readonly skipFormsAndPubs = new Set<string>([
-    'https://www.canada.ca/en/revenue-agency/services/forms-publications/forms.html',
-    'https://www.canada.ca/fr/agence-revenu/services/formulaires-publications/formulaires.html',
-    'https://www.canada.ca/en/revenue-agency/services/forms-publications/publications.html',
-    'https://www.canada.ca/fr/agence-revenu/services/formulaires-publications/publications.html'
-  ]);
-
-  //Button fxn
-  async checkIA() {
-
-    //IA orphan status
-    this.urlFound = await this.checkParentLinks(this.breadcrumb, this.originalUrl);
-
-    //IA tree
-    this.iaChart = await this.buildIaTree([this.originalUrl], this.depth); // depth defaults to 4 but user can select 2 to 6
-
-    //Set focus to first element in chart
-    setTimeout(() => {
-      const firstNode = document.querySelector(".p-organizationchart-node a");
-      if (firstNode) (firstNode as HTMLElement).focus();
-    });
-
-  }
-
-  //Step 1: Check if breadcrumb orphan via parent page
-  async checkParentLinks(breadcrumbs: MenuItem[], originalUrl: string): Promise<boolean> {
-    if (!breadcrumbs?.length) return false;
-
-    const lastBreadcrumb = breadcrumbs[breadcrumbs.length - 1]; //get breadcrumb parent
-    const targetUrl = lastBreadcrumb.url;
-    if (!targetUrl) {
-      console.error('Last breadcrumb has no URL');
-      return false;
-    }
-
-    try {
-      const response = await fetch(targetUrl);
-      if (!response.ok) {
-        console.error(`Failed to fetch breadcrumb page: ${response.status}`);
-        return false;
-      }
-
-      const html = await response.text();
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-
-      const links = Array.from(doc.querySelectorAll('a')) //get all links on parent page
-        .map(a => a.getAttribute('href'))
-        .filter((href): href is string => !!href);
-
-      // Make links absolute
-      const absoluteLinks = links.map(href => {
-        try {
-          return new URL(href, targetUrl).href;
-        } catch {
-          return href; // fallback
-        }
-      });
-
-      const found = absoluteLinks.includes(originalUrl);
-      console.log(`Original URL ${found ? 'found' : 'NOT found'} in ${targetUrl}`);
-      return found;
-
-    } catch (err) {
-      console.error('Error checking breadcrumb target:', err);
-      return false;
+    if (data?.originalHtml) {
+      this.guidanceList = this.validator.collectGuidanceUrls(data.originalHtml);
+      console.log(this.guidanceList);
     }
   }
 
 
-
-  //Step 2a: Get single page IA data
-  async getPageMetaAndLinks(url: string): Promise<{ h1?: string; breadcrumb?: string[]; links?: string[], status: number } | null> {
-    try {
-      //Get HTML content
-      const res = await fetch(url);
-      const status = res.status;
-      if (!res.ok) return { status };
-      const html = await res.text();
-
-      //Parse HTML
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-
-      //Get H1 (or double H1)
-      const h1Elements = Array.from(doc.querySelectorAll('h1'));
-      const h1: string = h1Elements.map(e => e.textContent?.trim()).filter(Boolean).join('<br>');
-
-      //Get breadcrumb
-      const breadcrumb = Array.from(doc.querySelectorAll('.breadcrumb li a'))
-        .map(a => new URL((a as HTMLAnchorElement).getAttribute('href') || '', url).href);
-
-      //Get unique links
-      const anchors = Array.from(doc.querySelectorAll('main a[href]')) as HTMLAnchorElement[];
-      const baseUrl = new URL(url).origin;
-      const links = Array.from(
-        new Set( //unique set
-          anchors //from my array of anchors
-            .map(a => {
-              const u = new URL(a.getAttribute('href') || '', url); // map absolute link
-              u.hash = ''; // without #id's
-              return u.href;
-            })
-            .filter(u => u.startsWith(baseUrl) && u !== url) // on same domain but not self
-        )
-      );
-
-      return { h1, breadcrumb, links, status };
-    } catch (err) {
-      console.error(`Failed to fetch ${url}`, err);
-      return { status: 0 };
-    }
-  }
-  //Step 2b: Crawl all child pages for IA data
-  async buildIaTree(urls: string[], depth: number, parentUrl?: string, level: number = 0): Promise<TreeNode[]> {
-    if (depth <= 0) return [];
-
-    //reset progress tracker
-    if (!parentUrl && level === 0) {
-      this.isChartLoading = true;
-      this.iaProgress = 5;
-      this.processedUrls = 0;
-      this.totalUrls = urls.length;
-    }
-
-    const nodes: TreeNode[] = [];
-
-    //Set background color
-    const bgColors = [
-      "bg-purple-50",
-      "bg-blue-50",
-      "bg-green-50",
-      "bg-yellow-50",
-      "bg-orange-50",
-      "bg-red-50"
-    ];
-
-    const bgClass = bgColors[level % bgColors.length];
-
-    for (const url of urls) {
-      const meta = await this.getPageMetaAndLinks(url);
-
-      this.processedUrls++; //Increase processed URLs
-      this.iaProgress = Math.round((this.processedUrls / this.totalUrls) * 100); //Update progress
-
-      if (!meta || meta.status !== 200) {
-        this.brokenLinks.push({
-          parentUrl,
-          url,
-          status: meta?.status || 0
-        });
-        continue;
-      }
-      if (!meta.breadcrumb || !meta.links) continue;
-
-      // Check if child via breadcrumb parent
-      if (parentUrl && meta.breadcrumb.at(-1) !== parentUrl) {
-        continue;
-      }
-
-      const node: TreeNode = {
-        label: meta.h1,
-        data: {
-          h1: meta.h1,
-          url: url
-        },
-        expanded: true,
-        styleClass: `border-2 border-primary border-round ${bgClass} shadow-2`,
-        children: []
-      };
-
-      // Recurse into children
-      if (meta.links?.length && depth > 1) {
-        this.totalUrls += meta.links.length; // Increase total URLs by # of child links for progress tracker
-
-        const total = meta.links.length; //total links (used for limiting displayed child pages)
-
-        let limit = total; // default: no limit        
-        if (this.skipFormsAndPubs.has(url)) { limit = 5; } // limit forms & pubs pages
-
-        const links = meta.links.slice(0, limit); //trim excess links
-
-        node.children = await this.buildIaTree(links, depth - 1, url, level + 1); //get child nodes
-
-        if (total > limit) { //add dummy node if we limited the child nodes
-          node.children?.push({
-            label: `+ ${total - limit} more...`,
-            data: null,
-            styleClass: `border-2 border-primary border-round surface-100 shadow-2`,
-            children: []
-          });
-        }
-      }
-
-      nodes.push(node);
-    }
-
-    // Finalize progress tracker
-    if (!parentUrl && level === 0) {
-      this.iaProgress = 100;
-      setTimeout(() => {
-        this.isChartLoading = false;
-        this.iaProgress = 0;
-      }, 1000);
-    }
-
-    return nodes;
-  }
-
-  //Prevent default click on org chart links <-- Do we want this?? 
-  onNodeClick(event: MouseEvent) {
-    if (event.button === 0) {
-      event.preventDefault();
-    }
-  }
-
-  //Full screen element
-  @ViewChild('chartContainer') chartContainer!: ElementRef;
-  maximize(elRef: ElementRef) {
-    const element = elRef.nativeElement as HTMLElement;
-    if (element.requestFullscreen) { element.requestFullscreen(); }
-    else if ((element as any).webkitRequestFullscreen) { (element as any).webkitRequestFullscreen(); } // Safari
-    else if ((element as any).msRequestFullscreen) { (element as any).msRequestFullscreen(); }// IE11
-  }
-
-  /********************************
-   * End of breadcrumb analysis   *
-   *******************************/
-
-  /***************************
-   * Start of page structure *
-   ***************************/
-  headings: HeadingData[] = [];
-  selectedHeading!: HeadingData;
-  cols!: Column[];
-
-  headingTypes = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'summary'];
-
-  fetchHeadings() { //Note: this fxn may move to url-data.service
-    try {
-      const data = this.uploadState.getUploadData();
-      if (!data || !data.originalHtml) return;
-
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(data.originalHtml, 'text/html'); //future improvement: option to use data.modifiedHtml if we want the headings returned by the AI
-
-      const selector = this.headingTypes.join(', ');
-      const elements = doc.querySelectorAll(selector);
-
-      this.headings = Array.from(elements).map((el, index) => ({
-        order: index + 1, //this is so we can track the original order
-        type: el.tagName.toLowerCase(),
-        text: el.textContent?.trim() || ''
-      }));
-    } catch (err) {
-      console.error('Failed to get heading from HTML data', err);
-    }
-  }
-
-  //In-line styles
-  getTextStyle(row: any) {
-    switch (row.type) {
-      case 'h1': return { fontWeight: 'bold' };
-      case 'h2': return { fontWeight: 'bold' };
-      case 'h6': return { color: 'gray' };
-      case 'summary': return { color: 'blue' };
-      default: return {};
-    }
-  }
-  //Classes
-  getTextClass(heading: HeadingData) {
-    switch (heading.type) {
-      case 'h1': return { '': heading.type === 'h1' };
-      case 'h2': return { 'pl-4': heading.type === 'h2' };
-      case 'h3': return { 'pl-6': heading.type === 'h3' };
-      case 'h4': return { 'pl-7': heading.type === 'h4' };
-      case 'h5': return { 'pl-8': heading.type === 'h5' };
-      case 'h6': return { 'pl-8': heading.type === 'h6' };
-      case 'summary': return { 'pl-8': heading.type === 'summary' };
-      default: return {};
-    }
-  }
-  /***************************
-   * End of page structure   *
-   ***************************/
-
-  //EXPERIMENTAL <-- USE SIMILAR FOR CHECKING WHICH COMPONENTS ARE ON PAGE AND PULLING IN GUIDANCE
+  guidanceList: { name: string; url: string }[] = [];
   violations: any[] = [];
   allClassesForQA: string = '<p class="active affix alert alert-danger alert-dismissable alert-dismissible alert-info alert-link alert-success alert-warning align-bottom align-items-center align-items-sm-center align-middle align-self-center align-self-end align-top allow-wrap application-bar arrow atn atv audio avatar backgroundsize badge badge-dept basic-link bg-center bg-cover bg-danger bg-dark bg-darker bg-gctheme bg-img-hdng bg-info bg-light bg-norepeat bg-pnkDy bg-primary bg-success bg-warning blockquote-reverse blog blogger bluesky body bold-content bottom bottom-left bottom-right brand brdr-0 brdr-bttm brdr-lft brdr-rds-0 brdr-rght brdr-tp breadcrumb btn btn-all-services btn-block btn-call-to-action btn-cnt btn-danger btn-default btn-group btn-group-justified btn-group-lg btn-group-sm btn-group-vertical btn-group-xs btn-info btn-lg btn-link btn-primary btn-sm btn-success btn-toolbar btn-warning btn-xs bubble buttons ca cal-cnt-fluid cal-curr-day cal-days cal-evt cal-evt-lnk cal-nav canada caption caret carousel carousel-caption carousel-control carousel-indicators carousel-inner carousel-s1 carousel-s2 cc cc_on cell-border center center-block checkbox checkbox-inline checkbox-standalone chkbxrdio-grp choices chvrn circle clearfix clo close clr-lft-lg clr-lft-md clr-lft-sm clr-rght-lg clr-rght-md clr-rght-sm cmpgn-img cmpgn-sctns cndwrdmrk cnt-wdth-lmtd cntnt cntrls col-lg-1 col-lg-10 col-lg-11 col-lg-12 col-lg-2 col-lg-3 col-lg-4 col-lg-5 col-lg-6 col-lg-7 col-lg-8 col-lg-9 col-lg-auto col-lg-offset-0 col-lg-offset-1 col-lg-offset-10 col-lg-offset-11 col-lg-offset-12 col-lg-offset-2 col-lg-offset-3 col-lg-offset-4 col-lg-offset-5 col-lg-offset-6 col-lg-offset-7 col-lg-offset-8 col-lg-offset-9 col-lg-pull-0 col-lg-pull-1 col-lg-pull-10 col-lg-pull-11 col-lg-pull-12 col-lg-pull-2 col-lg-pull-3 col-lg-pull-4 col-lg-pull-5 col-lg-pull-6 col-lg-pull-7 col-lg-pull-8 col-lg-pull-9 col-lg-push-0 col-lg-push-1 col-lg-push-10 col-lg-push-11 col-lg-push-12 col-lg-push-2 col-lg-push-3 col-lg-push-4 col-lg-push-5 col-lg-push-6 col-lg-push-7 col-lg-push-8 col-lg-push-9 col-md-1 col-md-10 col-md-11 col-md-12 col-md-2 col-md-3 col-md-4 col-md-5 col-md-6 col-md-7 col-md-8 col-md-9 col-md-auto col-md-offset-0 col-md-offset-1 col-md-offset-10 col-md-offset-11 col-md-offset-12 col-md-offset-2 col-md-offset-3 col-md-offset-4 col-md-offset-5 col-md-offset-6 col-md-offset-7 col-md-offset-8 col-md-offset-9 col-md-pull-0 col-md-pull-1 col-md-pull-10 col-md-pull-11 col-md-pull-12 col-md-pull-2 col-md-pull-3 col-md-pull-4 col-md-pull-5 col-md-pull-6 col-md-pull-7 col-md-pull-8 col-md-pull-9 col-md-push-0 col-md-push-1 col-md-push-10 col-md-push-11 col-md-push-12 col-md-push-2 col-md-push-3 col-md-push-4 col-md-push-5 col-md-push-6 col-md-push-7 col-md-push-8 col-md-push-9 col-sm-1 col-sm-10 col-sm-11 col-sm-12 col-sm-2 col-sm-3 col-sm-4 col-sm-5 col-sm-6 col-sm-7 col-sm-8 col-sm-9 col-sm-auto col-sm-offset-0 col-sm-offset-1 col-sm-offset-10 col-sm-offset-11 col-sm-offset-12 col-sm-offset-2 col-sm-offset-3 col-sm-offset-4 col-sm-offset-5 col-sm-offset-6 col-sm-offset-7 col-sm-offset-8 col-sm-offset-9 col-sm-pull-0 col-sm-pull-1 col-sm-pull-10 col-sm-pull-11 col-sm-pull-12 col-sm-pull-2 col-sm-pull-3 col-sm-pull-4 col-sm-pull-5 col-sm-pull-6 col-sm-pull-7 col-sm-pull-8 col-sm-pull-9 col-sm-push-0 col-sm-push-1 col-sm-push-10 col-sm-push-11 col-sm-push-12 col-sm-push-2 col-sm-push-3 col-sm-push-4 col-sm-push-5 col-sm-push-6 col-sm-push-7 col-sm-push-8 col-sm-push-9 col-xs-1 col-xs-10 col-xs-11 col-xs-12 col-xs-2 col-xs-3 col-xs-4 col-xs-5 col-xs-6 col-xs-7 col-xs-8 col-xs-9 col-xs-auto col-xs-offset-0 col-xs-offset-1 col-xs-offset-10 col-xs-offset-11 col-xs-offset-12 col-xs-offset-2 col-xs-offset-3 col-xs-offset-4 col-xs-offset-5 col-xs-offset-6 col-xs-offset-7 col-xs-offset-8 col-xs-offset-9 col-xs-pull-0 col-xs-pull-1 col-xs-pull-10 col-xs-pull-11 col-xs-pull-12 col-xs-pull-2 col-xs-pull-3 col-xs-pull-4 col-xs-pull-5 col-xs-pull-6 col-xs-pull-7 col-xs-pull-8 col-xs-pull-9 col-xs-push-0 col-xs-push-1 col-xs-push-10 col-xs-push-11 col-xs-push-12 col-xs-push-2 col-xs-push-3 col-xs-push-4 col-xs-push-5 col-xs-push-6 col-xs-push-7 col-xs-push-8 col-xs-push-9 colcount-lg-2 colcount-lg-3 colcount-lg-4 colcount-md-2 colcount-md-3 colcount-md-4 colcount-no-break colcount-sm-2 colcount-sm-3 colcount-sm-4 colcount-xl-2 colcount-xl-3 colcount-xl-4 colcount-xs-2 colcount-xs-3 colcount-xs-4 colcount-xxs-2 colcount-xxs-3 colcount-xxs-4 collapse collapsing com commit compact container container-fluid context-labels control control-label controls conversation css css-implicite-input csstransitions curr-count current d-flex d-sm-flex danger dark-theme dataTable dataTables_empty dataTables_filter dataTables_info dataTables_length dataTables_paginate dataTables_processing dataTables_scroll dataTables_scrollBody dataTables_scrollHead dataTables_sizing dataTables_wrapper datatables_wrapper datemod datepicker-format dbl dec departments diigo disabled disc display divider dl-horizontal dl-inline dot1 dot2 dot3 dropdown dropdown-backdrop dropdown-header dropdown-menu dropdown-menu-left dropdown-menu-right dropdown-toggle dropup dshbrd dt-max email embed-responsive embed-responsive-16by9 embed-responsive-4by3 embed-responsive-item eot errmsg error ev-details even exclude-controls expand-collapse-buttons expanded expicon facebook fade fd-slider fd-slider-bar fd-slider-handle fd-slider-range fd-wdgt features feed feeds-cont feeds-date figcaption filterEmphasis flex-column flex-sm-wrap flickr fn-lnk fn-rtn fnt-hdng fnt-nrml focus followus force-style-gcweb-4-0-29 form-control form-control-feedback form-control-static form-group form-group-lg form-group-sm form-horizontal form-inline foursquare frstpnl fs full-width fun gc-advnc-srvc gc-arch gc-archv gc-byline gc-chckbxrdio gc-cntct-lst gc-contextual gc-contributors gc-crprt gc-drmt gc-dwnld gc-dwnld-img gc-dwnld-txt gc-featured-link gc-features gc-fld-srvy-container gc-fld-srvy-mbd gc-followus gc-font-2019 gc-instttn gc-main-footer gc-minister gc-most-requested gc-nttvs gc-nws gc-orgnztn gc-pft-no gc-prtts gc-rms-lngth gc-rprt-prblm-frm gc-rprt-prblm-tggl gc-rprt-prblm-thnk gc-srvinfo gc-stp-stp gc-sub-footer gc-subway gc-subway-index gc-subway-landmark-end gc-subway-pagination gc-subway-section gc-subway-wrapper gc-table gc-theme gc-topic-bg gcdscard gcdscardcontainer gcweb-menu generated geoloc-progress geomap-aoi geomap-clear-format geomap-geoloc geomap-geoloc-aoi-btn geomap-help-btn geomap-help-dialog geomap-legend-detail geomap-legend-element geomap-legend-label geomap-legend-symbol geomap-legend-symbol-text geomap-lgnd geomap-lgnd-layer geomap-progress github glyphicon glyphicon-adjust glyphicon-alert glyphicon-align-center glyphicon-align-justify glyphicon-align-left glyphicon-align-right glyphicon-apple glyphicon-arrow-down glyphicon-arrow-left glyphicon-arrow-right glyphicon-arrow-up glyphicon-asterisk glyphicon-baby-formula glyphicon-backward glyphicon-ban-circle glyphicon-barcode glyphicon-bed glyphicon-bell glyphicon-bishop glyphicon-bitcoin glyphicon-blackboard glyphicon-bold glyphicon-book glyphicon-bookmark glyphicon-briefcase glyphicon-btc glyphicon-bullhorn glyphicon-calendar glyphicon-camera glyphicon-cd glyphicon-certificate glyphicon-check glyphicon-chevron-down glyphicon-chevron-left glyphicon-chevron-right glyphicon-chevron-up glyphicon-circle-arrow-down glyphicon-circle-arrow-left glyphicon-circle-arrow-right glyphicon-circle-arrow-up glyphicon-cloud glyphicon-cloud-download glyphicon-cloud-upload glyphicon-cog glyphicon-collapse-down glyphicon-collapse-up glyphicon-comment glyphicon-compressed glyphicon-console glyphicon-copy glyphicon-copyright-mark glyphicon-credit-card glyphicon-cutlery glyphicon-dashboard glyphicon-download glyphicon-download-alt glyphicon-duplicate glyphicon-earphone glyphicon-edit glyphicon-education glyphicon-eject glyphicon-envelope glyphicon-equalizer glyphicon-erase glyphicon-error glyphicon-eur glyphicon-euro glyphicon-exclamation-sign glyphicon-expand glyphicon-export glyphicon-eye-close glyphicon-eye-open glyphicon-facetime-video glyphicon-fast-backward glyphicon-fast-forward glyphicon-file glyphicon-film glyphicon-filter glyphicon-fire glyphicon-flag glyphicon-flash glyphicon-floppy-disk glyphicon-floppy-open glyphicon-floppy-remove glyphicon-floppy-save glyphicon-floppy-saved glyphicon-folder-close glyphicon-folder-open glyphicon-font glyphicon-forward glyphicon-fullscreen glyphicon-gbp glyphicon-gift glyphicon-glass glyphicon-globe glyphicon-grain glyphicon-hand-down glyphicon-hand-left glyphicon-hand-right glyphicon-hand-up glyphicon-hd-video glyphicon-hdd glyphicon-header glyphicon-headphones glyphicon-heart glyphicon-heart-empty glyphicon-home glyphicon-hourglass glyphicon-ice-lolly glyphicon-ice-lolly-tasted glyphicon-import glyphicon-inbox glyphicon-indent-left glyphicon-indent-right glyphicon-info-sign glyphicon-italic glyphicon-jpy glyphicon-king glyphicon-knight glyphicon-lamp glyphicon-leaf glyphicon-level-up glyphicon-link glyphicon-list glyphicon-list-alt glyphicon-lock glyphicon-log-in glyphicon-log-out glyphicon-magnet glyphicon-map-marker glyphicon-menu-down glyphicon-menu-hamburger glyphicon-menu-left glyphicon-menu-right glyphicon-menu-up glyphicon-minus glyphicon-minus-sign glyphicon-modal-window glyphicon-move glyphicon-music glyphicon-new-window glyphicon-object-align-bottom glyphicon-object-align-horizontal glyphicon-object-align-left glyphicon-object-align-right glyphicon-object-align-top glyphicon-object-align-vertical glyphicon-off glyphicon-oil glyphicon-ok glyphicon-ok-circle glyphicon-ok-sign glyphicon-open glyphicon-open-file glyphicon-option-horizontal glyphicon-option-vertical glyphicon-paperclip glyphicon-paste glyphicon-pause glyphicon-pawn glyphicon-pencil glyphicon-phone glyphicon-phone-alt glyphicon-picture glyphicon-piggy-bank glyphicon-plane glyphicon-play glyphicon-play-circle glyphicon-plus glyphicon-plus-sign glyphicon-print glyphicon-pushpin glyphicon-qrcode glyphicon-queen glyphicon-question-sign glyphicon-random glyphicon-record glyphicon-refresh glyphicon-registration-mark glyphicon-remove glyphicon-remove-circle glyphicon-remove-sign glyphicon-repeat glyphicon-resize-full glyphicon-resize-horizontal glyphicon-resize-small glyphicon-resize-vertical glyphicon-retweet glyphicon-road glyphicon-rub glyphicon-ruble glyphicon-save glyphicon-save-file glyphicon-saved glyphicon-scale glyphicon-scissors glyphicon-screenshot glyphicon-sd-video glyphicon-search glyphicon-send glyphicon-share glyphicon-share-alt glyphicon-shopping-cart glyphicon-signal glyphicon-sort glyphicon-sort-by-alphabet glyphicon-sort-by-alphabet-alt glyphicon-sort-by-attributes glyphicon-sort-by-attributes-alt glyphicon-sort-by-order glyphicon-sort-by-order-alt glyphicon-sound-5-1 glyphicon-sound-6-1 glyphicon-sound-7-1 glyphicon-sound-dolby glyphicon-sound-stereo glyphicon-spin glyphicon-star glyphicon-star-empty glyphicon-stats glyphicon-step-backward glyphicon-step-forward glyphicon-stop glyphicon-subscript glyphicon-subtitles glyphicon-sunglasses glyphicon-superscript glyphicon-tag glyphicon-tags glyphicon-tasks glyphicon-tent glyphicon-text-background glyphicon-text-color glyphicon-text-height glyphicon-text-size glyphicon-text-width glyphicon-th glyphicon-th-large glyphicon-th-list glyphicon-thumbs-down glyphicon-thumbs-up glyphicon-time glyphicon-tint glyphicon-tower glyphicon-transfer glyphicon-trash glyphicon-tree-conifer glyphicon-tree-deciduous glyphicon-triangle-bottom glyphicon-triangle-left glyphicon-triangle-right glyphicon-triangle-top glyphicon-unchecked glyphicon-upload glyphicon-usd glyphicon-user glyphicon-volume-down glyphicon-volume-off glyphicon-volume-up glyphicon-warning-sign glyphicon-wrench glyphicon-xbt glyphicon-yen glyphicon-zoom-in glyphicon-zoom-out gmail googleplus grow gstatic h-100 h1 h2 h3 h4 h5 h6 has-error has-feedback has-success has-warning header header-rwd help-block hght-inhrt hidden hidden-hd hidden-lg hidden-md hidden-print hidden-sm hidden-xs hide history home home-most-requested home-your-gov hover html icn-sig-en icn-sig-fr icon icon-bar icon-next icon-prev icon-warning-light img-circle img-responsive img-rounded img-thumbnail in info info-banner info-banner-actions info-pnl infostripe initialism input-group input-group-addon input-group-btn input-group-lg input-group-sm input-lg input-sm inputs-zone instagram invisible io item jpg jumbotron kwd label label-danger label-default label-info label-inline label-primary label-success label-warning landscape largeview lastpnl lbx-hide-gal lead learnmore left legend-brdr-bttm legend-label-only linenums linkedin list-advanced list-col-lg-1 list-col-lg-2 list-col-lg-3 list-col-lg-4 list-col-md-1 list-col-md-2 list-col-md-3 list-col-md-4 list-col-sm-1 list-col-sm-2 list-col-sm-3 list-col-sm-4 list-col-xs-1 list-col-xs-2 list-col-xs-3 list-col-xs-4 list-group list-group-item list-group-item-danger list-group-item-heading list-group-item-info list-group-item-success list-group-item-text list-group-item-warning list-inline list-responsive list-unstyled lit lng-ofr lnkbx loader-dot loader-typing location lst-lwr-alph lst-lwr-rmn lst-none lst-num lst-spcd lst-spcd-2 lst-upr-alph lst-upr-rmn lt-ie9 m-0 m-1 m-2 m-3 m-4 m-5 m-auto m-lg-0 m-lg-1 m-lg-2 m-lg-3 m-lg-4 m-lg-5 m-lg-auto m-md-0 m-md-1 m-md-2 m-md-3 m-md-4 m-md-5 m-md-auto m-sm-0 m-sm-1 m-sm-2 m-sm-3 m-sm-4 m-sm-5 m-sm-auto margin-bottom-none margin-bottom-small margin-top-large margin-top-medium mark mathml max-content mb-0 mb-1 mb-2 mb-3 mb-4 mb-5 mb-auto mb-lg-0 mb-lg-1 mb-lg-2 mb-lg-3 mb-lg-4 mb-lg-5 mb-lg-auto mb-md-0 mb-md-1 mb-md-2 mb-md-3 mb-md-4 mb-md-5 mb-md-auto mb-menu mb-sm-0 mb-sm-1 mb-sm-2 mb-sm-3 mb-sm-4 mb-sm-5 mb-sm-auto media media-body media-bottom media-heading media-left media-list media-middle media-object media-right menu message mfp-ajax-cur mfp-ajax-holder mfp-align-top mfp-arrow mfp-arrow-left mfp-arrow-right mfp-auto-cursor mfp-b mfp-bg mfp-bottom-bar mfp-close mfp-close-btn-in mfp-container mfp-content mfp-counter mfp-figure mfp-gallery mfp-hide mfp-iframe-holder mfp-iframe-scaler mfp-image-holder mfp-img mfp-img-mobile mfp-inline-holder mfp-loading mfp-preloader mfp-s-error mfp-s-ready mfp-title mfp-wrap mfp-zoom mfp-zoom-out-cur minimize ml-0 ml-1 ml-2 ml-3 ml-4 ml-5 ml-auto ml-lg-0 ml-lg-1 ml-lg-2 ml-lg-3 ml-lg-4 ml-lg-5 ml-lg-auto ml-md-0 ml-md-1 ml-md-2 ml-md-3 ml-md-4 ml-md-5 ml-md-auto ml-sm-0 ml-sm-1 ml-sm-2 ml-sm-3 ml-sm-4 ml-sm-5 ml-sm-auto modal modal-backdrop modal-body modal-content modal-dialog modal-footer modal-header modal-lg modal-open modal-scrollbar-measure modal-sm modal-title more-ways mr-0 mr-1 mr-2 mr-3 mr-4 mr-5 mr-auto mr-lg-0 mr-lg-1 mr-lg-2 mr-lg-3 mr-lg-4 mr-lg-5 mr-lg-auto mr-md-0 mr-md-1 mr-md-2 mr-md-3 mr-md-4 mr-md-5 mr-md-auto mr-sm-0 mr-sm-1 mr-sm-2 mr-sm-3 mr-sm-4 mr-sm-5 mr-sm-auto mrgn-bttm-0 mrgn-bttm-lg mrgn-bttm-md mrgn-bttm-sm mrgn-bttm-xl mrgn-lft-0 mrgn-lft-lg mrgn-lft-md mrgn-lft-sm mrgn-lft-xl mrgn-rght-0 mrgn-rght-lg mrgn-rght-md mrgn-rght-sm mrgn-rght-xl mrgn-tp-0 mrgn-tp-lg mrgn-tp-md mrgn-tp-sm mrgn-tp-xl mt-0 mt-1 mt-2 mt-3 mt-4 mt-5 mt-auto mt-lg-0 mt-lg-1 mt-lg-2 mt-lg-3 mt-lg-4 mt-lg-5 mt-lg-auto mt-md-0 mt-md-1 mt-md-2 mt-md-3 mt-md-4 mt-md-5 mt-md-auto mt-sm-0 mt-sm-1 mt-sm-2 mt-sm-3 mt-sm-4 mt-sm-5 mt-sm-auto mx-0 mx-1 mx-2 mx-3 mx-4 mx-5 mx-auto mx-lg-0 mx-lg-1 mx-lg-2 mx-lg-3 mx-lg-4 mx-lg-5 mx-lg-auto mx-md-0 mx-md-1 mx-md-2 mx-md-3 mx-md-4 mx-md-5 mx-md-auto mx-sm-0 mx-sm-1 mx-sm-2 mx-sm-3 mx-sm-4 mx-sm-5 mx-sm-auto my-0 my-1 my-2 my-3 my-4 my-5 my-auto my-lg-0 my-lg-1 my-lg-2 my-lg-3 my-lg-4 my-lg-5 my-lg-auto my-md-0 my-md-1 my-md-2 my-md-3 my-md-4 my-md-5 my-md-auto my-sm-0 my-sm-1 my-sm-2 my-sm-3 my-sm-4 my-sm-5 my-sm-auto myspace nav nav-divider nav-justified nav-pills nav-stacked nav-tabs nav-tabs-justified navbar navbar-brand navbar-btn navbar-collapse navbar-default navbar-fixed-bottom navbar-fixed-top navbar-form navbar-header navbar-inverse navbar-left navbar-link navbar-nav navbar-right navbar-static-top navbar-text navbar-toggle next no-backgroundsize no-blink no-csstransitions no-details no-footer no-js no-mathml no-print no-sect no-undrln noheight nojs-col-sm-12 nojs-hide nojs-show nojs-text-left noline notif notif-close nowrap nvbar nws-tbl nws-tbl-date nws-tbl-dept nws-tbl-desc nws-tbl-ttl nws-tbl-type nxt odd ol-attribution ol-box ol-collapsed ol-compass ol-control ol-dragbox ol-full-screen ol-geolocate ol-hidden ol-logo-only ol-mouse-position ol-mouse-position-inner ol-overlay-container ol-overviewmap ol-overviewmap-box ol-overviewmap-map ol-popup ol-popup-closer ol-rotate ol-scale-line ol-scale-line-inner ol-touch ol-uncollapsible ol-unselectable ol-unsupported ol-viewport ol-zoom ol-zoom-extent ol-zoom-in ol-zoom-out olControlMousePosition olControlPanZoomBar one-dot opct-10 opct-100 opct-20 opct-30 opct-40 opct-50 opct-60 opct-70 opct-80 opct-90 open opn order-column out overlay-bg overlay-close overlay-def p-0 p-1 p-2 p-3 p-4 p-5 p-lg-0 p-lg-1 p-lg-2 p-lg-3 p-lg-4 p-lg-5 p-md-0 p-md-1 p-md-2 p-md-3 p-md-4 p-md-5 p-sm-0 p-sm-1 p-sm-2 p-sm-3 p-sm-4 p-sm-5 page-header page-type-ilp page-type-nav page-type-search page-type-theme pagebrand pagedetails pager paginate-next paginate-prev paginate_button pagination pagination-lg pagination-sm pagntn-prv-nxt panel panel-body panel-collapse panel-danger panel-default panel-footer panel-group panel-heading panel-info panel-primary panel-success panel-title panel-warning pb-0 pb-1 pb-2 pb-3 pb-4 pb-5 pb-lg-0 pb-lg-1 pb-lg-2 pb-lg-3 pb-lg-4 pb-lg-5 pb-md-0 pb-md-1 pb-md-2 pb-md-3 pb-md-4 pb-md-5 pb-sm-0 pb-sm-1 pb-sm-2 pb-sm-3 pb-sm-4 pb-sm-5 periscope pg-brk-aft pgntn-lbl picker-overlay pieLabel pinterest pl-0 pl-1 pl-2 pl-3 pl-4 pl-5 pl-lg-0 pl-lg-1 pl-lg-2 pl-lg-3 pl-lg-4 pl-lg-5 pl-md-0 pl-md-1 pl-md-2 pl-md-3 pl-md-4 pl-md-5 pl-sm-0 pl-sm-1 pl-sm-2 pl-sm-3 pl-sm-4 pl-sm-5 playing pln plypause png pnkDy-theme pop popover popover-content popover-title popup-content position-relative pr-0 pr-1 pr-2 pr-3 pr-4 pr-5 pr-lg-0 pr-lg-1 pr-lg-2 pr-lg-3 pr-lg-4 pr-lg-5 pr-md-0 pr-md-1 pr-md-2 pr-md-3 pr-md-4 pr-md-5 pr-sm-0 pr-sm-1 pr-sm-2 pr-sm-3 pr-sm-4 pr-sm-5 pre-scrollable prettyprint prev previous print-active priorities prm-flpr product-data-compressed product-data-expanded product-data-hidden product-department product-icon product-language product-link product-link-container product-link-list product-links product-listing product-longdescription product-name product-platforms product-record product-shortdescription profile progress progress-bar progress-bar-danger progress-bar-info progress-bar-striped progress-bar-success progress-bar-warning progress-striped progressBar progressText provisional prv pstn-bttm-lg pstn-bttm-md pstn-bttm-sm pstn-bttm-xs pstn-lft-lg pstn-lft-md pstn-lft-sm pstn-lft-xs pstn-rght-lg pstn-rght-md pstn-rght-sm pstn-rght-xs pstn-tp-lg pstn-tp-md pstn-tp-sm pstn-tp-xs pt-0 pt-1 pt-2 pt-3 pt-4 pt-5 pt-lg-0 pt-lg-1 pt-lg-2 pt-lg-3 pt-lg-4 pt-lg-5 pt-md-0 pt-md-1 pt-md-2 pt-md-3 pt-md-4 pt-md-5 pt-sm-0 pt-sm-1 pt-sm-2 pt-sm-3 pt-sm-4 pt-sm-5 pull-left pull-right pun px-0 px-1 px-2 px-3 px-4 px-5 px-lg-0 px-lg-1 px-lg-2 px-lg-3 px-lg-4 px-lg-5 px-md-0 px-md-1 px-md-2 px-md-3 px-md-4 px-md-5 px-sm-0 px-sm-1 px-sm-2 px-sm-3 px-sm-4 px-sm-5 py-0 py-1 py-2 py-3 py-4 py-5 py-lg-0 py-lg-1 py-lg-2 py-lg-3 py-lg-4 py-lg-5 py-md-0 py-md-1 py-md-2 py-md-3 py-md-4 py-md-5 py-sm-0 py-sm-1 py-sm-2 py-sm-3 py-sm-4 py-sm-5 question quiz radio radio-inline record-close record-expand redacted reddit required required-no-asterisk reset results reverse right row row-no-gutters rowborder rss sctn-desc search-description sec-pnl secondary sect-lnks section selected show show-thumbs shr-dscl shr-lnk shr-opn shr-pg site-related skeleton-lgnd-1 skeleton-lgnd-2 skeleton-lgnd-3 skn-lt slflnk slide slidefade slidevert sm sm-open sm-pnl small sorting sorting-cnt sorting-icons sorting_1 sorting_2 sorting_3 sorting_asc sorting_asc_disabled sorting_desc sorting_desc_disabled square sr-only sr-only-focusable srch-pnl srchbox steps-wrapper stepsquiz str stretched-link stripe subfields submit subtitle success svg tab-content tab-count tab-pane table table-bordered table-columnfloat table-condensed table-hover table-responsive table-striped tabpanels tabs-acc tag tbl-gridify test-textSpacing text-capitalize text-center text-danger text-hide text-info text-justify text-left text-lowercase text-muted text-nowrap text-primary text-right text-sm-left text-sm-right text-success text-uppercase text-warning text-white tgl-panel thumbnail tinyurl title tline toc tofpg tooltip tooltip-arrow tooltip-inner tooltip-txt top top-left top-right tp-rail trans-left trans-pulse trpl ttf tumblr twitter twitter-timeline twitter-timeline-loading twitter-timeline-rendered typ var video visible-lg visible-lg-block visible-lg-inline visible-lg-inline-block visible-md visible-md-block visible-md-inline visible-md-inline-block visible-print visible-print-block visible-print-inline visible-print-inline-block visible-sm visible-sm-block visible-sm-inline visible-sm-inline-block visible-xs visible-xs-block visible-xs-inline visible-xs-inline-block waiting warning wb-bar-b wb-bar-t wb-calevt-cal wb-cell-desc wb-cell-key wb-cell-layout wb-chtwzrd wb-chtwzrd-btn-extrnl wb-chtwzrd-bubble-wrap wb-chtwzrd-contained wb-chtwzrd-container wb-chtwzrd-mrgn wb-chtwzrd-noscroll wb-clndr wb-disable wb-dismissable-container wb-dismissable-wrapper wb-elps wb-enable wb-eqht-grd wb-feeds wb-fieldflow-form wb-fieldflow-label wb-filter wb-fltr-out wb-fnote wb-frm wb-frmvld wb-geomap wb-geomap-detail wb-geomap-geoloc-al wb-geomap-geoloc-al-cnt wb-geomap-map wb-group-summary wb-init wb-inv wb-inview wb-invisible wb-lng-lnk wb-lng-lnks-horiz wb-lng-lnks-rtl wb-lng-lnks-vert wb-menu wb-mltmd wb-mm-cc wb-mm-ctrls wb-mm-ovrly wb-mm-prgrss wb-mm-tmln-crrnt wb-mm-txtonly wb-modal wb-navcurr wb-overlay wb-overlay-dlg wb-paginate-pager wb-panel-l wb-panel-r wb-pgfltr-out wb-popup-full wb-popup-mid wb-progress-inited wb-server-error wb-share wb-share-inited wb-show-onfocus wb-sl wb-slc wb-srch-qry wb-steps wb-steps-active wb-steps-error wb-tabs wb-tagfilter-items wb-tagfilter-noresult wb-tgfltr-out wb-tggle-fildst wb-twitter wb-twitter-notice-end wb-twitter-notice-start wb-twitter-skip wb-twitter-skip-end wb-twitter-skip-start wb-zebra wb-zebra-col-hover well well-bold well-lg well-sm whatsapp whtwedo woff woff2 wtrmrk x x-social xlargeview xxsmallview yahoomail youtube zbra"> Banana </p>'
   runValidation() {
@@ -420,11 +58,6 @@ export class PageDetailsComponent implements OnInit {
     }
 
     return [...classes].sort();
-  }
-
-  //placeholder fxn for unfinished buttons
-  printMessage(text: string) {
-    console.log(text);
   }
 
 }

@@ -1,4 +1,4 @@
-import { PromptKey } from '../../../common/data.types'
+import { PromptKey } from './data.model'
 export const PromptTemplates: Record<PromptKey, string> = {
   [PromptKey.Headings]: `
 Role: You're an expert content designer with the government of Canada tasked with helping to organize content by task.

@@ -1,0 +1,122 @@
+<p>Use these tools to analyze and improve your web page. You can restructure headings, generate an IA diagram, find guidance on the components used in your page, integrate SEO and user insights into your updates, check your link quality, or convert your page to a different template.</p>
+
+<p-accordion [value]="[]" [multiple]="true" class="flex flex-column gap-3">
+    <p-accordion-panel value="0" class="border-1 border-round-md border-surface">
+        <p-accordion-header>Heading structure</p-accordion-header>
+        <ca-heading-structure></ca-heading-structure>
+        <p-accordion-content>
+
+        </p-accordion-content>
+    </p-accordion-panel>
+    <p-accordion-panel value="1" class="border-1 border-round-md border-surface">
+        <p-accordion-header>IA structure</p-accordion-header>
+        <p-accordion-content>
+
+            <!--UI-->
+            <div class="flex flex-row flex-wrap align-items-center gap-3 mt-0">
+                <p-iftalabel>
+                    <p-inputnumber [(ngModel)]="depth" inputId="depth" mode="decimal" [showButtons]="true" [min]="2" [max]="6" />
+                    <label for="depth">Depth</label>
+                </p-iftalabel>
+                <p-button label="Verify IA" severity="help" (click)="checkIA()" [loading]="isChartLoading" icon="pi pi-info-circle" />
+                <p-button label="Maximize IA chart" severity="secondary" (click)="maximize(chartContainer)" icon="pi pi-window-maximize" *ngIf="iaChart && iaChart.length > 0" />
+            </div>
+            <p-progressbar *ngIf="isChartLoading" [value]="iaProgress" [showValue]="false" [style]="{'height': '1rem'}" styleClass="mt-3" />
+
+            <!--Breadcrumb-->
+            <ng-container *ngIf="breadcrumb.length > 0">
+                <h2>Breadcrumb</h2>
+                <div class="flex flex-row align-items-center gap-3">
+                    <p-breadcrumb class="max-w-full" styleClass="pl-1" [model]="breadcrumb" />
+                    <i class="pi pi-check-circle text-green-400" *ngIf="urlFound===true"><span class="ml-1">Link found on parent page</span></i>
+                    <i class="pi pi-times-circle text-red-400" *ngIf="urlFound===false"><span class="ml-1">IA Orphan</span></i>
+                </div>
+            </ng-container>
+
+            <!--IA Chart-->
+            <h2 *ngIf="iaChart">IA structure</h2>
+            <p *ngIf="iaChart && iaChart.length === 0">No child pages found.</p>
+            <div #chartContainer *ngIf="iaChart && iaChart.length > 0" class="overflow-auto max-h-75vh surface-ground surface-border border-1 py-3 mb-3">
+                <p-organization-chart [value]="iaChart">
+                    <ng-template let-node pTemplate="default">
+                        <p><a [href]="node.data" target="_blank" (click)="onNodeClick($event)" [innerHTML]="node.label"></a></p>
+                    </ng-template>
+                </p-organization-chart>
+            </div>
+
+            <!--IA Table-->
+            <h2 *ngIf="iaChart">IA structure table</h2>
+            <p-treeTable *ngIf="iaChart" [value]="iaChart" styleClass="p-treetable-sm" [scrollable]="true">
+                <ng-template #header>
+                    <tr>
+                        <th>H1</th>
+                        <th>URL</th>
+                    </tr>
+                </ng-template>
+                <ng-template #body let-rowNode let-rowData="rowData">
+                    <tr [ttRow]="rowNode">
+                        <td>
+                            <p-treetable-toggler [rowNode]="rowNode" />
+                            <span [innerHTML]="rowData.h1" class="ia-label"></span>
+                        </td>
+                        <td>{{ rowData.url }}</td>
+                    </tr>
+                </ng-template>
+            </p-treeTable>
+
+            <!--Broken Links-->
+            <ng-container *ngIf="iaChart">
+                <h2>Broken links</h2>
+                <p *ngIf="iaChart && brokenLinks.length === 0">No broken links found on this page<span *ngIf="iaChart[0].children?.length"> or on any detected child pages</span>.</p>
+                <p-table [value]="brokenLinks" size="small" stripedRows [tableStyle]="{ 'min-width': '50rem' }" *ngIf="brokenLinks.length > 0">
+                    <ng-template #header>
+                        <tr>
+                            <th>Parent page</th>
+                            <th>Broken link</th>
+                            <th>Status</th>
+                        </tr>
+                    </ng-template>
+                    <ng-template #body let-rowData>
+                        <tr>
+                            <td>{{ rowData.parentUrl }}</td>
+                            <td>{{ rowData.url }}</td>
+                            <td>{{ rowData.status }}</td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+            </ng-container>
+
+        </p-accordion-content>
+    </p-accordion-panel>
+    <p-accordion-panel value="2" class="border-1 border-round-sm border-surface">
+        <p-accordion-header>Component guidance</p-accordion-header>
+        <p-accordion-content>
+            <ca-component-guidance></ca-component-guidance>
+        </p-accordion-content>
+    </p-accordion-panel>
+    <p-accordion-panel value="3" class="border-1 border-round-sm border-surface">
+        <p-accordion-header>SEO</p-accordion-header>
+        <p-accordion-content>
+            <ca-seo></ca-seo>
+        </p-accordion-content>
+    </p-accordion-panel>
+    <p-accordion-panel value="4" class="border-1 border-round-sm border-surface">
+        <p-accordion-header>User insights</p-accordion-header>
+        <p-accordion-content>
+            <ca-user-insights></ca-user-insights>
+        </p-accordion-content>
+    </p-accordion-panel>
+    <p-accordion-panel value="5" class="border-1 border-round-sm border-surface">
+        <p-accordion-header>Link report</p-accordion-header>
+        <p-accordion-content>
+            <ca-link-report></ca-link-report>
+        </p-accordion-content>
+    </p-accordion-panel>
+    <p-accordion-panel value="6" class="border-1 border-round-md border-surface">
+        <p-accordion-header>Template conversion</p-accordion-header>
+        <p-accordion-content>
+            <ca-template-conversion></ca-template-conversion>
+        </p-accordion-content>
+    </p-accordion-panel>
+
+</p-accordion>

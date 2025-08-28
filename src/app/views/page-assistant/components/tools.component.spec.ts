@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { PageUploadComponent } from './upload.component';
+import { PageToolsComponent } from './tools.component';
 
-describe('PageUploadComponent', () => {
-  let component: PageUploadComponent;
-  let fixture: ComponentFixture<PageUploadComponent>;
+describe('PageDetailsComponent', () => {
+  let component: PageToolsComponent;
+  let fixture: ComponentFixture<PageToolsComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [PageUploadComponent]
+      imports: [PageToolsComponent]
     })
       .compileComponents();
 
-    fixture = TestBed.createComponent(PageUploadComponent);
+    fixture = TestBed.createComponent(PageToolsComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
