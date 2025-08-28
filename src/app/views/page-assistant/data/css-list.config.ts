@@ -167,12 +167,13 @@ export const allowedClasses: (string | RegExp)[] = [
 
 export const disallowedAttributes: (string | RegExp)[] = [
     /^on.*/,       // inline JS handler like onclick, onmouseover
-    //'style'      // inline styles, these are added by page assistant so needs extra check to
+    //'style'      // inline styles, these are added by page assistant so needs extra check or change added styles to a class
 ];
 
 export const deprecatedClasses: (string | RegExp)[] = [
     'gc-byline',
-    /^carousel(-(caption|control|indicators|inner|s[12]))?$/
+    /^carousel(-(caption|control|indicators|inner|s[12]))?$/,
+    'gc-navseq'
 ];
 
 export const guidanceMap: {
@@ -244,17 +245,12 @@ export const guidanceMap: {
             url: 'page.tools.guidance.gcCore.calendar.url',
             patterns: ['wb-calevt'],
         },
-
-
-
-
     ];
-
 
 export const guidanceContentMap: {
     name: string;
     url: string;
-    tag: string;             // restrict check to certain elements
+    tag: string;
     patterns: (string | RegExp)[];
 }[] = [
         {
