@@ -3,7 +3,7 @@ import {
   ElementRef, //DOM utilities
   signal, effect, computed //Signals/reactivity
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, LocationStrategy } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -50,7 +50,7 @@ import { PageToolsComponent } from './components/tools.component';
 })
 export class PageAssistantCompareComponent implements OnInit {
 
-  constructor(private translate: TranslateService, private messageService: MessageService, private confirmationService: ConfirmationService, private uploadState: UploadStateService, private sourceDiffService: SourceDiffService, private shadowDomService: ShadowDomService, private urlDataService: UrlDataService, private router: Router) {
+  constructor(private translate: TranslateService, private messageService: MessageService, private confirmationService: ConfirmationService, private uploadState: UploadStateService, private sourceDiffService: SourceDiffService, private shadowDomService: ShadowDomService, private urlDataService: UrlDataService, private router: Router, private locationStrategy: LocationStrategy) {
     effect(async () => {
       const data = this.uploadState.getUploadData();
       const viewType = this.webSelectedView();
@@ -113,6 +113,7 @@ export class PageAssistantCompareComponent implements OnInit {
         );
       }
     });
+    this.baseHref = this.locationStrategy.getBaseHref();
   }
 
   //Disable AI if there are changes to accept/reject
@@ -320,7 +321,8 @@ export class PageAssistantCompareComponent implements OnInit {
     });
   }
 
-  canShare: boolean = false
+  canShare: boolean = false;
+  baseHref: string | null = null;
   shareLink() {
     console.log("Clicked share");
     const data = this.uploadState.getUploadData();
@@ -336,7 +338,7 @@ export class PageAssistantCompareComponent implements OnInit {
       params.compareUrl = data.modifiedUrl
     }
     const treeLink = this.router.createUrlTree(['page-assistant/share'], { queryParams: params });
-    const shareLink = `${window.location.origin}${this.router.serializeUrl(treeLink)}`;
+    const shareLink = `${window.location.origin}${this.baseHref}${this.router.serializeUrl(treeLink).replace(/^\//, '')}`;
 
     navigator.clipboard.writeText(shareLink)
       .then(() => {
