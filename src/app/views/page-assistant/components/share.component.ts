@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, Inject, Optional } from '@angular/core';
+import { CommonModule, APP_BASE_HREF } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Router } from '@angular/router';
@@ -46,7 +46,7 @@ import { htmlProcessingResult } from '../data/data.model';
 })
 export class ShareComponent implements OnInit {
 
-  constructor(private route: ActivatedRoute, private urlDataService: UrlDataService, private uploadState: UploadStateService, private router: Router, private translate: TranslateService) { }
+  constructor(private route: ActivatedRoute, private urlDataService: UrlDataService, private uploadState: UploadStateService, private translate: TranslateService, private router: Router, @Optional() @Inject(APP_BASE_HREF) private baseHref: string | null) { }
 
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {
@@ -64,8 +64,9 @@ export class ShareComponent implements OnInit {
     const params: any = {};
     params.url = url;
     params.compareUrl = compareUrl;
+    const base = this.baseHref ?? '/';
     const treeLink = this.router.createUrlTree(['page-assistant/share'], { queryParams: params });
-    const shareLink = `${window.location.origin}${this.router.serializeUrl(treeLink)}`;
+    const shareLink = `${window.location.origin}${base}${this.router.serializeUrl(treeLink).replace(/^\//, '')}`;
     return shareLink;
   }
 
