@@ -29,7 +29,7 @@ import { htmlProcessingResult } from '../data/data.model';
           </p-iftalabel>
           <p-iftalabel>
             <input pInputText id="compare" [(ngModel)]="compareUrl" autocomplete="off" fluid/>
-            <label for="compare">Comparison URL</label>
+            <label for="compare">Optional comparison URL</label>
           </p-iftalabel>
           <div>
             <p>Your share link:<br>
@@ -59,8 +59,8 @@ export class ShareComponent implements OnInit {
   }
 
   url: string = ""
-  compareUrl: string = ""
-  getShareLink(url: string, compareUrl: string) {
+  compareUrl: string | null = null
+  getShareLink(url: string, compareUrl: string | null) {
     const params: any = {};
     params.url = url;
     params.compareUrl = compareUrl;
