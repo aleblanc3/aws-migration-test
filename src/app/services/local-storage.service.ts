@@ -1,6 +1,3 @@
-/**
- * @deprecated This service is deprecated. Please use localStorage.setItem(key, value), localStorage.getItem(key), and localStorage.removeItem(key) instead.
- */
 import { Injectable } from '@angular/core';
 
 @Injectable({
@@ -8,7 +5,7 @@ import { Injectable } from '@angular/core';
 })
 export class LocalStorageService {
 
- constructor() { }
+  constructor() { }
 
   public saveData(key: string, value: string) {
     localStorage.setItem(key, value);
