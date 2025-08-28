@@ -41,7 +41,7 @@
                 [disabled]="form.invalid" severity="primary">
       </p-button>
       <p-button [label]="'page.upload.sample' | translate" icon="pi pi-file" (onClick)="loadSampleData()" severity="secondary"
-                *ngIf="showSampleDataButton">
+                *ngIf="showSampleDataButton && !production">
       </p-button>
     </div>
 
