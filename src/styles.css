@@ -39,6 +39,10 @@ main.container {
   flex: 1 0 auto;
 }
 
+.max-h-75vh {
+  max-height: 75vh;
+}
+
 footer {
   margin-top: auto;
 }
@@ -196,4 +200,10 @@ font-family: 'Noto Sans';
 
 html.dark-mode .p-button.p-button-primary {
   color: #ffffff;
+}
+
+/*override accordion style*/
+.p-accordion>.p-accordionpanel {
+  box-shadow: none !important;
+  margin: 0 !important;
 }

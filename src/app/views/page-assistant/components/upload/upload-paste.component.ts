@@ -2,6 +2,7 @@ import { Component, Output, EventEmitter, Input } from '@angular/core';
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { environment } from '../../../../../environments/environment';
 
 //primeNG
 import { ButtonModule } from 'primeng/button';
@@ -11,7 +12,7 @@ import { Message } from 'primeng/message';
 //Page assistant
 import { UrlDataService } from '../../services/url-data.service';
 import { UploadStateService } from '../../services/upload-state.service';
-import { UploadData, ModifiedData } from '../../../../common/data.types'
+import { UploadData, ModifiedData } from '../../data/data.model'
 
 @Component({
   selector: 'ca-upload-paste',
@@ -31,6 +32,7 @@ export class UploadPasteComponent {
   //Import data from parent component
   @Input() mode: 'original' | 'prototype' = 'original';
   @Input() showSampleDataButton = true;
+  production: boolean = environment.production;
 
   get labelKey(): string {
     return this.mode === 'prototype' ? 'page.upload.paste.modified' : 'page.upload.paste.original';

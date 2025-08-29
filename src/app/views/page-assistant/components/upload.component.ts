@@ -18,7 +18,7 @@ import { UploadWordComponent } from './upload/upload-word.component';
 import { UploadStateService } from '../services/upload-state.service';
 
 @Component({
-  selector: 'ca-page-assistant-upload',
+  selector: 'ca-page-upload',
   imports: [CommonModule, FormsModule,
     TranslateModule,
     RadioButtonModule,
@@ -27,7 +27,7 @@ import { UploadStateService } from '../services/upload-state.service';
   templateUrl: './upload.component.html',
   styles: ``
 })
-export class PageAssistantUploadComponent implements OnInit {
+export class PageUploadComponent implements OnInit {
 
   constructor(private uploadState: UploadStateService, private router: Router) { }
 

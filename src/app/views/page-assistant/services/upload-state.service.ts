@@ -1,5 +1,5 @@
 import { Injectable, signal, computed } from '@angular/core';
-import { UploadData, ModifiedData, OriginalData } from '../../../common/data.types'
+import { UploadData, ModifiedData, OriginalData } from '../data/data.model'
 
 @Injectable({
   providedIn: 'root'
@@ -75,7 +75,7 @@ export class UploadStateService {
     this.prevUploadData.push(current ? structuredClone(current) : null);
     // Remove oldest item if array gets too big
     if (this.prevUploadData.length > this.maxHistory) {
-      this.prevUploadData.shift(); 
+      this.prevUploadData.shift();
     }
   }
 

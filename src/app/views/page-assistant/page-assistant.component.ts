@@ -3,7 +3,7 @@ import {
   ElementRef, //DOM utilities
   signal, effect, computed //Signals/reactivity
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, LocationStrategy } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -31,26 +31,26 @@ import { SourceDiffService } from './services/source-diff.service';
 import { ShadowDomService } from './services/shadowdom.service';
 
 //Data
-import { UploadData, ViewOption, WebViewType, SourceViewType, PromptKey, AiModel } from '../../common/data.types';
-import { PromptTemplates } from './components/ai-prompts';
+import { UploadData, ViewOption, WebViewType, SourceViewType, PromptKey, AiModel } from './data/data.model';
+import { PromptTemplates } from './data/ai-prompts.constants';
 
 //Components
 import { AiOptionsComponent } from './components/ai-options.component';
 import { HorizontalRadioButtonsComponent } from '../../components/horizontal-radio-buttons/horizontal-radio-buttons.component';
-import { PageDetailsComponent } from './components/page-details.component';
+import { PageToolsComponent } from './components/tools.component';
 
 @Component({
   selector: 'ca-page-assistant-compare',
   imports: [CommonModule, FormsModule,
     TranslateModule,
     ButtonModule, MessageModule, Toast, CardModule, TabsModule, RadioButtonModule, ToolbarModule, ToggleButtonModule, TooltipModule, ConfirmDialogModule, SplitButtonModule,
-    AiOptionsComponent, HorizontalRadioButtonsComponent, PageDetailsComponent],
+    AiOptionsComponent, HorizontalRadioButtonsComponent, PageToolsComponent],
   templateUrl: './page-assistant.component.html',
   styleUrl: './page-assistant.component.css'
 })
 export class PageAssistantCompareComponent implements OnInit {
 
-  constructor(private translate: TranslateService, private messageService: MessageService, private confirmationService: ConfirmationService, private uploadState: UploadStateService, private sourceDiffService: SourceDiffService, private shadowDomService: ShadowDomService, private urlDataService: UrlDataService, private router: Router) {
+  constructor(private translate: TranslateService, private messageService: MessageService, private confirmationService: ConfirmationService, private uploadState: UploadStateService, private sourceDiffService: SourceDiffService, private shadowDomService: ShadowDomService, private urlDataService: UrlDataService, private router: Router, private locationStrategy: LocationStrategy) {
     effect(async () => {
       const data = this.uploadState.getUploadData();
       const viewType = this.webSelectedView();
@@ -91,6 +91,10 @@ export class PageAssistantCompareComponent implements OnInit {
           undoItem.disabled = this.uploadState.isUndoDisabled();
         }
       });
+      //Checks if content is shareable
+      const canShareOriginal = this.urlDataService.isValidUrl(data?.originalUrl);
+      const canShareModified = this.urlDataService.isValidUrl(data?.modifiedUrl);
+      this.canShare = canShareOriginal || canShareModified;
     });
     effect(() => {
       const data = this.uploadState.getUploadData();
@@ -109,6 +113,7 @@ export class PageAssistantCompareComponent implements OnInit {
         );
       }
     });
+    this.baseHref = this.locationStrategy.getBaseHref();
   }
 
   //Disable AI if there are changes to accept/reject
@@ -316,6 +321,37 @@ export class PageAssistantCompareComponent implements OnInit {
     });
   }
 
+  canShare: boolean = false;
+  baseHref: string | null = null;
+  shareLink() {
+    console.log("Clicked share");
+    const data = this.uploadState.getUploadData();
+    if (!data) return;
+    const params: any = {};
+    if (this.urlDataService.isValidUrl(data.originalUrl)) {
+      params.url = data.originalUrl;
+    }
+    else if (this.urlDataService.isValidUrl(data.modifiedUrl)) {
+      params.url = data.modifiedUrl
+    }
+    if (this.urlDataService.isValidUrl(data.originalUrl) && this.urlDataService.isValidUrl(data.modifiedUrl) && data.originalUrl !== data.modifiedUrl) {
+      params.compareUrl = data.modifiedUrl
+    }
+    const treeLink = this.router.createUrlTree(['page-assistant/share'], { queryParams: params });
+    const shareLink = `${window.location.origin}${this.baseHref}${this.router.serializeUrl(treeLink).replace(/^\//, '')}`;
+
+    navigator.clipboard.writeText(shareLink)
+      .then(() => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Copied share link to clipboard',
+          detail: `${shareLink}`,
+          life: 2000
+        });
+      })
+      .catch(err => console.error('Clipboard copy failed:', err));
+  }
+
   private darkModeObserver?: MutationObserver;
   private observeDarkMode(): void {
     this.darkModeObserver = new MutationObserver(() => {
@@ -340,11 +376,16 @@ export class PageAssistantCompareComponent implements OnInit {
     this.customPromptText = prompt;
   }
 
+  customEditText: string = '';
+  onPrependLevel(prompt: string) {
+    this.customEditText = prompt;
+  }
+
   get combinedPrompt(): string {
     const base = PromptTemplates[this.selectedPromptKey];
     const custom = this.customPromptText.trim();
 
-    return custom ? `${base}\n\n${custom}` : base; //Note: a heading can be added to the custom instructions here, something like ${base}\n\nPrioritize the following:\n${custom}
+    return custom ? `${this.customEditText}\n\n${base}\n\n${custom}` : `${this.customEditText}\n\n${base}`; //Note: a heading can be added to the custom instructions here, something like ${base}\n\nPrioritize the following:\n${custom}
   }
 
   //AI Model

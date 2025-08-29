@@ -2,6 +2,7 @@ import { Component, Output, EventEmitter, Input } from '@angular/core';
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { environment } from '../../../../../environments/environment';
 
 //primeNG
 import { ButtonModule } from 'primeng/button';
@@ -16,7 +17,7 @@ import { trigger, state, style, transition, animate } from '@angular/animations'
 //Page assistant
 import { UrlDataService } from '../../services/url-data.service';
 import { UploadStateService } from '../../services/upload-state.service';
-import { UploadData, ModifiedData } from '../../../../common/data.types'
+import { UploadData, ModifiedData } from '../../data/data.model'
 
 @Component({
   selector: 'ca-upload-url',
@@ -28,6 +29,12 @@ import { UploadData, ModifiedData } from '../../../../common/data.types'
   styles: `
     :host {
       display: block;
+    }
+    ::ng-deep button.p-button.nohover:hover {
+    background-color: transparent !important;
+    }
+    ::ng-deep button.p-button.nohover {
+    border: none !important;
     }
   `,
   animations: [
@@ -44,6 +51,7 @@ export class UploadUrlComponent {
   //Import data from parent component
   @Input() mode: 'original' | 'prototype' = 'original';
   @Input() showSampleDataButton = true;
+  production: boolean = environment.production;
 
   get labelKey(): string {
     return this.mode === 'prototype' ? 'page.upload.url.modified' : 'page.upload.url.original';
@@ -79,8 +87,10 @@ export class UploadUrlComponent {
           modifiedHtml: mainHTML.html,
           found: {
             original: mainHTML.found,
-            modified: mainHTML.found
-          }
+            modified: mainHTML.found,
+          },
+          metadata: mainHTML.metadata,
+          breadcrumb: mainHTML.breadcrumb
         });
       }
       if (this.mode === 'prototype') {
