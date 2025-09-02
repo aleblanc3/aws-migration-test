@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, from, of, throwError } from 'rxjs';
-import { catchError, map, retry, timeout, switchMap } from 'rxjs/operators';
+import { catchError, map, retry, delay, timeout, switchMap } from 'rxjs/operators';
 import { ApiKeyService } from './api-key.service';
 
 export interface MetadataResult {
@@ -12,15 +12,12 @@ export interface MetadataResult {
   frenchTranslatedDescription?: string;
   frenchTranslatedKeywords?: string;
   language: 'en' | 'fr';
-  modelUsed?: string;
-  fallbackUsed?: boolean;
 }
 
 export interface ProcessingOptions {
   urls: string[];
   model: string;
   translateToFrench: boolean;
-  fallbackModels?: string[];
 }
 
 // Allowed hosts that support CORS - same as page assistant
@@ -40,13 +37,6 @@ export class MetadataAssistantService {
   private readonly SCRAPING_TIMEOUT = 30000; // 30 seconds
   private readonly API_TIMEOUT = 60000; // 60 seconds
   private readonly TRANSLATION_TIMEOUT = 90000; // 90 seconds with retry
-  
-  // Default fallback models in order of preference
-  private readonly DEFAULT_FALLBACK_MODELS = [
-    'mistralai/mistral-small-3.2-24b-instruct:free',
-    'meta-llama/llama-3.3-70b-instruct:free',
-    'google/gemma-3-27b-it:free'
-  ];
 
   constructor(
     private http: HttpClient,
@@ -55,10 +45,9 @@ export class MetadataAssistantService {
 
   processUrls(options: ProcessingOptions): Observable<MetadataResult[]> {
     const results: MetadataResult[] = [];
-    const fallbackModels = options.fallbackModels || this.DEFAULT_FALLBACK_MODELS;
     
     return from(options.urls).pipe(
-      switchMap(url => this.processUrl(url, options.model, options.translateToFrench, fallbackModels)),
+      switchMap(url => this.processUrl(url, options.model, options.translateToFrench)),
       map(result => {
         results.push(result);
         return results;
@@ -70,7 +59,7 @@ export class MetadataAssistantService {
     );
   }
 
-  private processUrl(url: string, model: string, translateToFrench: boolean, fallbackModels: string[]): Observable<MetadataResult> {
+  private processUrl(url: string, model: string, translateToFrench: boolean): Observable<MetadataResult> {
     return this.scrapeUrl(url).pipe(
       switchMap(scrapedContent => {
         if (!scrapedContent || scrapedContent.length < 50) {
@@ -79,16 +68,14 @@ export class MetadataAssistantService {
 
         const language = this.detectLanguage(scrapedContent);
         
-        return this.generateMetadataWithFallback(scrapedContent, model, language, fallbackModels).pipe(
+        return this.generateMetadata(scrapedContent, model, language).pipe(
           switchMap(metadata => {
             const result: MetadataResult = {
               url,
               scrapedContent,
               metaDescription: metadata.description,
               metaKeywords: metadata.keywords,
-              language,
-              modelUsed: metadata.modelUsed,
-              fallbackUsed: metadata.fallbackUsed
+              language
             };
 
             if (translateToFrench && language === 'en') {
@@ -117,7 +104,7 @@ export class MetadataAssistantService {
           `Host not allowed: ${parsedUrl.host}. Only government domains are supported.`
         ));
       }
-    } catch {
+    } catch (error) {
       return throwError(() => new Error('Invalid URL format'));
     }
 
@@ -135,9 +122,9 @@ export class MetadataAssistantService {
         return from(response.text());
       }),
       map(html => this.extractTextContent(html)),
-      catchError((error) => {
+      catchError(error => {
         console.error('Error scraping URL:', error);
-        if (error.message?.includes('Host not allowed')) {
+        if (error.message.includes('Host not allowed')) {
           return throwError(() => error);
         }
         return throwError(() => new Error(
@@ -337,62 +324,6 @@ export class MetadataAssistantService {
     return frenchRatio > 0.05 ? 'fr' : 'en';
   }
 
-  private generateMetadataWithFallback(content: string, primaryModel: string, language: 'en' | 'fr', fallbackModels: string[]): Observable<{description: string, keywords: string, modelUsed: string, fallbackUsed: boolean}> {
-    // Try primary model first, then fallbacks
-    const modelsToTry = [primaryModel, ...fallbackModels.filter(m => m !== primaryModel)];
-    
-    return this.tryModelsInSequence(content, modelsToTry, language, 0, primaryModel);
-  }
-
-  private tryModelsInSequence(content: string, models: string[], language: 'en' | 'fr', attemptIndex: number, primaryModel: string): Observable<{description: string, keywords: string, modelUsed: string, fallbackUsed: boolean}> {
-    if (attemptIndex >= models.length) {
-      return throwError(() => new Error('All models failed due to rate limits or other errors'));
-    }
-
-    const currentModel = models[attemptIndex];
-    const fallbackUsed = attemptIndex > 0;
-    console.log(`Attempting metadata generation with model: ${currentModel} (attempt ${attemptIndex + 1}/${models.length})`);
-
-    return this.generateMetadata(content, currentModel, language).pipe(
-      map(result => ({
-        ...result,
-        modelUsed: currentModel,
-        fallbackUsed
-      })),
-      catchError(error => {
-        console.warn(`Model ${currentModel} failed:`, error.message);
-        
-        // Check if it's a rate limit error
-        if (this.isRateLimitError(error)) {
-          console.log(`Rate limit detected for ${currentModel}, trying next model...`);
-          return this.tryModelsInSequence(content, models, language, attemptIndex + 1, primaryModel);
-        }
-        
-        // For other errors, still try fallback if available
-        if (attemptIndex < models.length - 1) {
-          console.log(`Error with ${currentModel}, trying next model...`);
-          return this.tryModelsInSequence(content, models, language, attemptIndex + 1, primaryModel);
-        }
-        
-        // Re-throw the error if no more models to try
-        return throwError(() => error);
-      })
-    );
-  }
-
-  private isRateLimitError(error: unknown): boolean {
-    if (!error) return false;
-    
-    const errorMessage = (error as Error)?.message || (error as object)?.toString() || '';
-    const errorLower = errorMessage.toLowerCase();
-    
-    return errorLower.includes('rate limit') || 
-           errorLower.includes('quota exceeded') || 
-           errorLower.includes('too many requests') ||
-           errorLower.includes('429') ||
-           ((error as { status?: number })?.status === 429);
-  }
-
   private generateMetadata(content: string, model: string, language: 'en' | 'fr'): Observable<{description: string, keywords: string}> {
     const apiKey = this.apiKeyService.getCurrentKey();
     if (!apiKey) {
@@ -489,7 +420,7 @@ French keywords (comma-separated):`;
       temperature: 0.3
     };
 
-    return this.http.post<{ choices?: { message?: { content?: string } }[] }>(this.OPENROUTER_URL, payload, { headers }).pipe(
+    return this.http.post<any>(this.OPENROUTER_URL, payload, { headers }).pipe(
       timeout(timeoutMs),
       map(response => {
         if (response.choices && response.choices[0]?.message?.content) {
@@ -499,23 +430,7 @@ French keywords (comma-separated):`;
       }),
       catchError(error => {
         console.error('OpenRouter API error:', error);
-        
-        // Preserve the original error structure for better fallback detection
-        const httpError = error as { status?: number; error?: { error?: { code?: number; message?: string } }; message?: string };
-        if (httpError.status === 429 || (httpError.error?.error?.code === 429)) {
-          return throwError(() => {
-            const rateLimitError = new Error('Rate limit exceeded') as Error & { status: number; originalError: unknown };
-            rateLimitError.status = 429;
-            rateLimitError.originalError = error;
-            return rateLimitError;
-          });
-        }
-        
-        // For other errors, preserve status if available
-        const newError = new Error(httpError.error?.error?.message || httpError.message || 'Failed to generate content') as Error & { status?: number; originalError: unknown };
-        newError.status = httpError.status;
-        newError.originalError = error;
-        return throwError(() => newError);
+        return throwError(() => new Error('Failed to generate content'));
       })
     );
   }

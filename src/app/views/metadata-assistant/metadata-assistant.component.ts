@@ -5,8 +5,6 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
-import { ToastModule } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
 import { Subject, takeUntil } from 'rxjs';
 import { MetadataAssistantService } from '../../services/metadata-assistant.service';
 import { MetadataAssistantStateService, MetadataProcessingState } from '../../services/metadata-assistant-state.service';
@@ -27,14 +25,12 @@ import { CsvExportComponent } from './components/csv-export/csv-export.component
     ButtonModule,
     CardModule,
     MessageModule,
-    ToastModule,
     SharedModelSelectorComponent,
     ProgressIndicatorComponent,
     UrlInputComponent,
     MetadataResultComponent,
     CsvExportComponent
   ],
-  providers: [MessageService],
   templateUrl: './metadata-assistant.component.html',
   styleUrls: ['./metadata-assistant.component.css']
 })
@@ -79,8 +75,7 @@ export class MetadataAssistantComponent implements OnInit, OnDestroy {
     private translate: TranslateService,
     private metadataService: MetadataAssistantService,
     private stateService: MetadataAssistantStateService,
-    public apiKeyService: ApiKeyService,
-    private messageService: MessageService
+    public apiKeyService: ApiKeyService
   ) {}
 
   ngOnInit(): void {
@@ -139,16 +134,11 @@ export class MetadataAssistantComponent implements OnInit, OnDestroy {
       this.state.translateToFrench
     );
 
-    // Process URLs with fallback models
-    const fallbackModels = this.models
-      .map(m => m.value)
-      .filter(m => m !== this.state.selectedModel);
-
+    // Process URLs
     this.metadataService.processUrls({
       urls: this.urls,
       model: this.state.selectedModel,
-      translateToFrench: this.state.translateToFrench,
-      fallbackModels: fallbackModels
+      translateToFrench: this.state.translateToFrench
     }).pipe(
       takeUntil(this.destroy$)
     ).subscribe({
@@ -156,27 +146,13 @@ export class MetadataAssistantComponent implements OnInit, OnDestroy {
         // Results are accumulated in the state service
         results.forEach(result => {
           this.stateService.addResult(result);
-          
-          // Show fallback notification if fallback was used
-          if (result.fallbackUsed && result.modelUsed) {
-            this.messageService.add({
-              severity: 'info',
-              summary: this.translate.instant('metadata.fallback.usingModel', { model: this.getModelDisplayName(result.modelUsed) }),
-              life: 4000
-            });
-          }
         });
       },
       error: (error) => {
         console.error('Processing error:', error);
-        let errorMessage = error.message || this.translate.instant('metadata.errors.processingFailed');
-        
-        // Handle specific error for when all models fail
-        if (error.message?.includes('All models failed')) {
-          errorMessage = this.translate.instant('metadata.errors.allModelsFailed');
-        }
-        
-        this.stateService.setError(errorMessage);
+        this.stateService.setError(
+          error.message || this.translate.instant('metadata.errors.processingFailed')
+        );
       },
       complete: () => {
         this.stateService.completeProcessing();
@@ -205,10 +181,5 @@ export class MetadataAssistantComponent implements OnInit, OnDestroy {
       return this.translate.instant('metadata.progress.completeTitle');
     }
     return '';
-  }
-
-  private getModelDisplayName(modelValue: string): string {
-    const model = this.models.find(m => m.value === modelValue);
-    return model ? model.name : modelValue;
   }
 }
