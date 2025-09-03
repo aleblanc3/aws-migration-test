@@ -1,8 +1,9 @@
-<h1 id="wb-cont">{{ 'metadata.title' | translate }}</h1>
-<p>{{ 'metadata.description' | translate }}</p>
+<div class="metadata-assistant-container">
+  <h1 id="wb-cont">{{ 'metadata.title' | translate }}</h1>
+  <p>{{ 'metadata.description' | translate }}</p>
 
-<!-- API Key Status -->
-<section class="api-key-status mb-4">
+  <!-- API Key Status -->
+  <section class="api-key-status mb-4">
     <div>
       <strong>{{ 'page.apiKey.status' | translate }}</strong>
       <span *ngIf="apiKeyService.hasApiKey$ | async" class="text-green-600">
@@ -115,4 +116,5 @@
       [text]="'metadata.errors.noApiKey' | translate"
       styleClass="w-full">
     </p-message>
+  </div>
 </div>

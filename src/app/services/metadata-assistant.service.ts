@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, from, of, throwError, timer } from 'rxjs';
+import { Observable, from, of, throwError } from 'rxjs';
 import { catchError, map, retry, delay, timeout, switchMap } from 'rxjs/operators';
 import { ApiKeyService } from './api-key.service';
 
@@ -109,40 +109,19 @@ export class MetadataAssistantService {
     }
 
     // Fetch with cache busting like page assistant
-    return from(fetch(`${url}?_=${Date.now()}`)).pipe(
+    return from(fetch(`${url}?_=${Date.now()}`, {
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-cache'
+    })).pipe(
       timeout(this.SCRAPING_TIMEOUT),
       switchMap(response => {
-        console.log(`Fetch response for ${url}: status=${response.status}, type=${response.type}`);
-        
-        // Check for opaque response (CORS issue)
-        if (response.type === 'opaque') {
-          throw new Error('Cannot read response due to CORS restrictions. The server does not allow cross-origin requests.');
-        }
-        
         if (!response.ok) {
           throw new Error(`Failed to fetch URL: HTTP ${response.status}`);
         }
         return from(response.text());
       }),
-      map(html => {
-        console.log(`Received HTML for ${url}, length: ${html.length}`);
-        
-        // Debug: Check what we actually received
-        const first500Chars = html.substring(0, 500);
-        console.log('First 500 chars of HTML:', first500Chars);
-        
-        // Check if this is actually HTML or an error page
-        if (!html.includes('<html') && !html.includes('<!DOCTYPE')) {
-          console.error('Response does not appear to be HTML');
-          console.log('Full response:', html);
-        }
-        
-        if (html.length < 100) {
-          console.warn('Very short HTML response:', html);
-        }
-        
-        return this.extractTextContent(html);
-      }),
+      map(html => this.extractTextContent(html)),
       catchError(error => {
         console.error('Error scraping URL:', error);
         if (error.message.includes('Host not allowed')) {
@@ -160,33 +139,6 @@ export class MetadataAssistantService {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     
-    // Debug: Log if we have HTML content
-    console.log('HTML content length:', html.length);
-    console.log('Document has body:', !!doc.body);
-    console.log('Document body innerHTML length:', doc.body?.innerHTML?.length || 0);
-    console.log('Number of main tags found:', doc.querySelectorAll('main').length);
-    
-    // Debug: Check all elements with 'main' in them
-    const allElements = doc.querySelectorAll('*');
-    let mainTagFound = false;
-    allElements.forEach(el => {
-      if (el.tagName.toLowerCase() === 'main') {
-        mainTagFound = true;
-        console.log('Found main element:', el.tagName, 'with attributes:', 
-          Array.from(el.attributes).map(attr => `${attr.name}="${attr.value}"`).join(' '));
-      }
-    });
-    
-    if (!mainTagFound) {
-      console.log('No main tags found. Checking for divs with role="main"');
-      const roleMainDivs = doc.querySelectorAll('div[role="main"]');
-      console.log('Found divs with role="main":', roleMainDivs.length);
-      roleMainDivs.forEach(el => {
-        console.log('Div with role="main" attributes:', 
-          Array.from(el.attributes).map(attr => `${attr.name}="${attr.value}"`).join(' '));
-      });
-    }
-    
     // Find main element - matching Python's _find_main_element logic
     let mainElement = this.findMainElement(doc);
 
@@ -198,7 +150,6 @@ export class MetadataAssistantService {
         console.error('No body element found in page');
         return '';
       }
-      console.log('Using body element as fallback, body has children:', doc.body.children.length);
     }
 
     // Clone to avoid modifying original
@@ -299,71 +250,44 @@ export class MetadataAssistantService {
   }
 
   private findMainElement(doc: Document): Element | null {
-    // Get all main elements
-    const mainElements = doc.querySelectorAll('main');
-    
-    // Define selector priorities matching Python's main_selectors
-    const selectorPriorities = [
-      // Highest priority: exact match for first selector
-      (el: Element) => 
-        el.getAttribute('property') === 'mainContentOfPage' &&
-        el.getAttribute('resource') === '#wb-main' &&
-        el.getAttribute('typeof') === 'WebPageElement' &&
-        !el.classList.contains('col-md-9'),
-      
-      // Second priority: with specific classes
-      (el: Element) => 
-        el.getAttribute('property') === 'mainContentOfPage' &&
-        el.getAttribute('resource') === '#wb-main' &&
-        el.getAttribute('typeof') === 'WebPageElement' &&
-        el.classList.contains('col-md-9') &&
-        el.classList.contains('col-md-push-3'),
-      
-      // Third priority: role="main" with container class
-      (el: Element) => 
-        el.getAttribute('role') === 'main' &&
-        el.getAttribute('property') === 'mainContentOfPage' &&
-        el.classList.contains('container'),
-      
-      // Fourth priority: role="main" with property
-      (el: Element) => 
-        el.getAttribute('role') === 'main' &&
-        el.getAttribute('property') === 'mainContentOfPage'
+    // Matching Python's main_selectors (lines 83-88)
+    const mainSelectors = [
+      'main[property="mainContentOfPage"][resource="#wb-main"][typeof="WebPageElement"]',
+      'main[property="mainContentOfPage"][resource="#wb-main"][typeof="WebPageElement"].col-md-9.col-md-push-3',
+      'main[role="main"][property="mainContentOfPage"].container',
+      'main[role="main"][property="mainContentOfPage"]'
     ];
 
-    // Try each priority level
-    for (let i = 0; i < selectorPriorities.length; i++) {
-      const checkFn = selectorPriorities[i];
-      
-      for (const element of Array.from(mainElements)) {
-        if (checkFn(element)) {
-          // Special handling for the last selector (index 3)
-          if (i === 3) {
-            const containerDiv = element.querySelector('div.container');
-            if (containerDiv) {
-              console.log('Found main element with container div inside');
-              return containerDiv;
-            }
+    // Try each selector (Python lines 90-99)
+    for (const selector of mainSelectors) {
+      const element = doc.querySelector(selector);
+      if (element) {
+        // Check for container div inside (Python lines 94-98)
+        const isLastSelector = selector === mainSelectors[mainSelectors.length - 1];
+        if (isLastSelector) {
+          const containerDiv = element.querySelector('div.container');
+          if (containerDiv) {
+            console.log('Found main element with container div inside');
+            return containerDiv;
           }
-          console.log(`Found main element with priority ${i + 1}`);
-          return element;
         }
+        return element;
       }
     }
 
-    // Generic fallback: any main with role="main"
-    const mainWithRole = doc.querySelector('main[role="main"]');
-    if (mainWithRole) {
+    // Generic fallback (Python lines 101-109)
+    const mainElement = doc.querySelector('main[role="main"]');
+    if (mainElement) {
       console.log('Found main element using generic selector');
-      const containerDiv = mainWithRole.querySelector('div.container');
+      const containerDiv = mainElement.querySelector('div.container');
       if (containerDiv) {
         console.log('Found container div inside main element');
         return containerDiv;
       }
-      return mainWithRole;
+      return mainElement;
     }
 
-    // Additional fallback: any main tag
+    // Additional fallback: try just a plain <main> tag
     const plainMain = doc.querySelector('main');
     if (plainMain) {
       console.log('Found plain main element');
@@ -375,7 +299,7 @@ export class MetadataAssistantService {
       return plainMain;
     }
 
-    // Last resort: any element with role="main"
+    // Last resort: try to find any element with role="main"
     const roleMain = doc.querySelector('[role="main"]');
     if (roleMain) {
       console.log('Found element with role="main"');
@@ -407,19 +331,13 @@ export class MetadataAssistantService {
     }
 
     // Generate description
-    // Add special instructions for GPT-OSS model to prevent reasoning
-    const isGptOss = model.includes('gpt-oss');
-    const noReasoningInstruction = isGptOss 
-      ? 'DO NOT show your reasoning or thought process. DO NOT use step-by-step thinking. Give ONLY the final answer directly. ' 
-      : '';
-
     const descriptionPrompt = language === 'en' 
-      ? `${noReasoningInstruction}As a search engine optimization expert, analyze the following content carefully and provide a concise, complete summary suitable for a meta description in English. The summary MUST be highly relevant to the specific content provided and capture its main topic and purpose. Use topic-specific terms found in the content, write in full sentences, and ensure the summary ends concisely within 275 characters. IMPORTANT: Provide ONLY the meta description text itself with NO additional commentary, explanations, or character counts. Do NOT include the number of characters.\n\n${content}\n\nSummary:`
-      : `${noReasoningInstruction}En tant qu'expert en référencement, analysez attentivement le contenu suivant et fournissez un résumé concis et complet adapté à une méta-description en français. Le résumé DOIT être parfaitement adapté au contenu spécifique fourni. Utilisez des termes spécifiques au sujet, écrivez en phrases complètes, et assurez-vous que le résumé se termine de manière concise dans les 275 caractères. IMPORTANT: Fournissez UNIQUEMENT le texte de la méta-description SANS commentaire supplémentaire ni comptage de caractères. N'incluez PAS le nombre de caractères.\n\n${content}\n\nRésumé:`;
+      ? `As a search engine optimization expert, analyze the following content carefully and provide a concise, complete summary suitable for a meta description in English. The summary MUST be highly relevant to the specific content provided and capture its main topic and purpose. Use topic-specific terms found in the content, write in full sentences, and ensure the summary ends concisely within 275 characters. IMPORTANT: Provide ONLY the meta description itself with NO additional commentary or explanations.\n\n${content}\n\nSummary:`
+      : `En tant qu'expert en référencement, analysez attentivement le contenu suivant et fournissez un résumé concis et complet adapté à une méta-description en français. Le résumé DOIT être parfaitement adapté au contenu spécifique fourni. Utilisez des termes spécifiques au sujet, écrivez en phrases complètes, et assurez-vous que le résumé se termine de manière concise dans les 275 caractères. IMPORTANT: Fournissez UNIQUEMENT la méta-description elle-même SANS commentaire supplémentaire.\n\n${content}\n\nRésumé:`;
 
     const keywordsPrompt = language === 'en'
-      ? `${noReasoningInstruction}As a search engine optimization expert, carefully analyze the following content and identify 8-12 meaningful, topic-specific meta keywords that are DIRECTLY EXTRACTED from or strongly implied by the content. CRITICAL: List keywords in order of relevance, with the MOST RELEVANT and important keywords FIRST. Maximum 12 keywords. IMPORTANT: Return ONLY a comma-separated list of keywords with absolutely NO additional notes, commentary, or character counts. Keep the total length under 400 characters. Do NOT include the number of characters. Exclude 'Canada Revenue Agency' from the keywords.\n\n${content}\n\nKeywords:`
-      : `${noReasoningInstruction}En tant qu'expert en optimisation pour les moteurs de recherche, analysez attentivement le contenu suivant et identifiez 8-12 mots-clés méta significatifs qui sont DIRECTEMENT EXTRAITS du contenu. CRITIQUE: Listez les mots-clés par ordre de pertinence, avec les mots-clés les PLUS PERTINENTS et importants en PREMIER. Maximum 12 mots-clés. IMPORTANT: Retournez UNIQUEMENT une liste de mots-clés séparés par des virgules sans AUCUNE note supplémentaire ni comptage de caractères. Gardez la longueur totale sous 400 caractères. N'incluez PAS le nombre de caractères. Excluez 'Agence du revenu du Canada' des mots-clés.\n\n${content}\n\nMots-clés:`;
+      ? `As a search engine optimization expert, carefully analyze the following content and identify 10 meaningful, topic-specific meta keywords that are DIRECTLY EXTRACTED from or strongly implied by the content. IMPORTANT: Return ONLY a comma-separated list of keywords with absolutely NO additional notes or commentary. Exclude 'Canada Revenue Agency' from the keywords.\n\n${content}\n\nKeywords:`
+      : `En tant qu'expert en optimisation pour les moteurs de recherche, analysez attentivement le contenu suivant et identifiez 10 mots-clés méta significatifs qui sont DIRECTEMENT EXTRAITS du contenu. IMPORTANT: Retournez UNIQUEMENT une liste de mots-clés séparés par des virgules sans AUCUNE note supplémentaire. Excluez 'Agence du revenu du Canada' des mots-clés.\n\n${content}\n\nMots-clés:`;
 
     return this.callOpenRouter(descriptionPrompt, model, 200).pipe(
       switchMap(description => {
@@ -440,7 +358,7 @@ export class MetadataAssistantService {
     }
 
     // Use Mistral Small for translation (same as image-assistant)
-    const translationModel = 'mistralai/mistral-small-3.2-24b-instruct:free';
+    const translationModel = 'mistralai/mistral-small:free';
 
     const descriptionPrompt = `You are a professional translator specializing in Canadian government content. Translate the following English meta description to French, maintaining the formal tone used by the Canada Revenue Agency (CRA). 
 
@@ -456,13 +374,13 @@ Important CRA-specific terminology:
 - "tax-free savings account (TFSA)" → "compte d'épargne libre d'impôt (CELI)"
 - "registered retirement savings plan (RRSP)" → "régime enregistré d'épargne-retraite (REER)"
 
-IMPORTANT: Your response must contain ONLY the direct translation, with absolutely NO commentary, NO suggestions, NO explanations, NO character counts, and NO additional text of any kind. Do NOT include the number of characters. Return ONLY the translated text itself:
+IMPORTANT: Your response must contain ONLY the direct translation, with absolutely NO commentary, NO suggestions, NO explanations, and NO additional text of any kind. Return ONLY the translated text itself:
 
 ${metadata.description}
 
 French translation:`;
 
-    const keywordsPrompt = `Translate each of these English keywords to French. IMPORTANT: Return ONLY the translated keywords in a comma-separated list. Provide absolutely NO commentary, NO suggestions, NO explanations, NO character counts, and NO additional text of any kind. Do NOT include the number of characters. Return ONLY a comma-separated list of the translated keywords:
+    const keywordsPrompt = `Translate each of these English keywords to French. IMPORTANT: Return ONLY the translated keywords in a comma-separated list. Provide absolutely NO commentary, NO suggestions, NO explanations, and NO additional text of any kind. Return ONLY a comma-separated list of the translated keywords:
 
 ${metadata.keywords}
 
@@ -504,74 +422,15 @@ French keywords (comma-separated):`;
 
     return this.http.post<any>(this.OPENROUTER_URL, payload, { headers }).pipe(
       timeout(timeoutMs),
-      retry({
-        count: 2,
-        delay: (error, retryCount) => {
-          // Only retry on 404 or "No endpoints found" errors
-          if (error.status === 404 || 
-              (error.error?.error?.message && error.error.error.message.includes('No endpoints found'))) {
-            console.log(`Retrying API call (attempt ${retryCount + 1}) after transient error`);
-            return timer(1000 * retryCount); // Exponential backoff: 1s, 2s
-          }
-          // Don't retry other errors
-          throw error;
-        }
-      }),
       map(response => {
-        // Debug logging for API response
-        console.log('API Response for model', model, ':', response);
-        
-        // Check if we have a valid response with content
-        if (response.choices && response.choices[0]?.message) {
-          const message = response.choices[0].message;
-          
-          // Handle normal content response
-          if (message.content && message.content.trim()) {
-            return message.content;
-          }
-          
-          // Handle GPT-OSS model's reasoning response format (fallback if anti-reasoning prompt didn't work)
-          if (message.reasoning) {
-            console.warn('GPT-OSS model still returned reasoning despite prompt instructions');
-            // Return a generic response since the model isn't following instructions
-            return 'Canada Revenue Agency provides comprehensive tax services, benefits information, and business support for Canadians.';
-          }
+        if (response.choices && response.choices[0]?.message?.content) {
+          return response.choices[0].message.content;
         }
-        
-        // Check for error in response
-        if (response.error) {
-          console.error('API returned error:', response.error);
-          throw new Error(`API Error: ${response.error.message || response.error}`);
-        }
-        
-        // Log the full response structure for debugging
-        console.error('Unexpected API response structure:', JSON.stringify(response, null, 2));
-        throw new Error('Invalid response from API - check console for details');
+        throw new Error('Invalid response from API');
       }),
       catchError(error => {
         console.error('OpenRouter API error:', error);
-        
-        // Check if it's a specific error message
-        if (error.error) {
-          console.error('Error details:', error.error);
-          if (error.error.error) {
-            const errorMessage = error.error.error.message || error.error.error;
-            
-            // Check for the "No endpoints found" error which often happens on first load
-            if (errorMessage.includes('No endpoints found')) {
-              return throwError(() => new Error(`Model temporarily unavailable (${model}). This often happens on first use. Please try again in a few moments.`));
-            }
-            
-            return throwError(() => new Error(`API Error: ${errorMessage}`));
-          }
-        }
-        
-        // Check for 404 errors
-        if (error.status === 404) {
-          return throwError(() => new Error(`Model not found or temporarily unavailable (${model}). Please try again or select a different model.`));
-        }
-        
-        return throwError(() => new Error('Failed to generate content. Please check your API key and try again.'));
+        return throwError(() => new Error('Failed to generate content'));
       })
     );
   }
@@ -631,34 +490,7 @@ French keywords (comma-separated):`;
     }
 
     // Clean up the keywords list
-    let keywords = cleaned.split(',').map(k => k.trim()).filter(k => k.length > 0);
-    
-    // Enforce maximum 12 keywords
-    if (keywords.length > 12) {
-      keywords = keywords.slice(0, 12);
-    }
-    
-    let keywordsString = keywords.join(', ');
-    
-    // Enforce 400 character limit (though with 12 keywords this is unlikely to be exceeded)
-    if (keywordsString.length > 400) {
-      // Remove keywords from the end until we're under 400 characters
-      let limitedKeywords = [];
-      let currentLength = 0;
-      
-      for (const keyword of keywords) {
-        const newLength = currentLength + (currentLength > 0 ? 2 : 0) + keyword.length; // +2 for ", "
-        if (newLength <= 400) {
-          limitedKeywords.push(keyword);
-          currentLength = newLength;
-        } else {
-          break;
-        }
-      }
-      
-      keywordsString = limitedKeywords.join(', ');
-    }
-    
-    return keywordsString;
+    const keywords = cleaned.split(',').map(k => k.trim()).filter(k => k.length > 0);
+    return keywords.join(', ');
   }
 }
