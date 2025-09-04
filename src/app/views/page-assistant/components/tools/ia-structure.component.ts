@@ -1,4 +1,4 @@
-import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild, effect } from '@angular/core';
 import { CommonModule, LocationStrategy } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -19,12 +19,10 @@ import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 
 
 //Services
-import { UrlDataService } from '../../services/url-data.service';
 import { UploadStateService } from '../../services/upload-state.service';
-import { ValidatorService } from '../../services/validator.service';
 import { TranslateService, TranslateModule } from '@ngx-translate/core';
+import { ThemeService } from '../../../../services/theme.service';
 
-import { HttpClient } from '@angular/common/http';
 import { MenuItem, TreeNode, TreeDragDropService } from 'primeng/api';
 
 @Component({
@@ -35,20 +33,54 @@ import { MenuItem, TreeNode, TreeDragDropService } from 'primeng/api';
   providers: [TreeDragDropService],
   templateUrl: './ia-structure.component.html',
   styles: `
+    /* remove link style from tree & fix indentation for line breaks in table */
     .ia-label {
-      white-space: pre-line;
+      white-space: pre-line; 
       display: inline-block;
+      color: var(--text-color) !important; 
+      text-decoration: none !important;
+    } 
+
+    /* fix tree text color for dark backgrounds */
+    ::ng-deep .p-tree li[class*="text-white"] > .p-tree-node-content .ia-label {
+      color: #ffffff !important;
     }
-    ::ng-deep .p-tree-node-label > span {
-  display: flex !important;       /* or block */
-  width: 100% !important;         /* now it can actually expand */
-  align-items: center; /* vertically center icons and input */
-  gap: 0.5rem;         /* spacing between icon and input */
-}`
+
+    /* fix tree text color for light backgrounds */
+    ::ng-deep .p-tree li[class*="text-black"] > .p-tree-node-content .ia-label {
+      color: #000000 !important;
+    }
+
+    /* remove default hover style from tree nodes */
+    ::ng-deep .p-tree .p-tree-node-content:hover {
+      background-color: unset !important; 
+    }
+
+    /* remove link style from IA chart */
+    ::ng-deep .ia-chart-container .p-organizationchart-node a { 
+      color: var(--text-color) !important;
+      text-decoration: none !important;
+    }
+
+    /* fix chart text color for dark backgrounds */
+    ::ng-deep .ia-chart-container .p-organizationchart-node.text-white a {
+      color: #ffffff !important;
+    }
+
+    /* fix chart text color for light backgrounds */
+    ::ng-deep .ia-chart-container .p-organizationchart-node.text-black a {
+      color: #000000 !important;
+    }
+`
 })
 export class IaStructureComponent implements OnInit {
 
-  constructor(private urlDataService: UrlDataService, private uploadState: UploadStateService, private translate: TranslateService, private validator: ValidatorService, private http: HttpClient, private locationStrategy: LocationStrategy) { }
+  constructor(private uploadState: UploadStateService, private translate: TranslateService, private locationStrategy: LocationStrategy, private theme: ThemeService) {
+    effect(() => {
+      this.theme.darkMode(); // track dark mode changes
+      this.updateNodeStyles(this.iaChart, 0);
+    });
+  }
 
   ngOnInit() {
     const data = this.uploadState.getUploadData();
@@ -146,7 +178,57 @@ export class IaStructureComponent implements OnInit {
     }
   }
 
+  //Set background color
 
+  get bgColors(): string[] {
+    return this.theme.darkMode()
+      ? this.bgColorsDark
+      : this.bgColorsLight;
+  }
+
+  bgColorsLight: string[] = [
+    "surface-0 hover:bg-primary-50",
+    "bg-primary-50 hover:bg-primary-100",
+    "bg-primary-100 hover:bg-primary-200",
+    "bg-primary-200 hover:bg-primary-300",
+    "bg-primary-300 hover:bg-primary-400",
+    "bg-primary-400 hover:bg-primary-500",
+    "bg-primary-500 hover:bg-primary-600 text-white",
+    "bg-primary-600 hover:bg-primary-700 text-white",
+    "bg-primary-700 hover:bg-primary-800 text-white",
+    "bg-primary-800 hover:bg-primary-900 text-white",
+  ];
+
+  bgColorsDark: string[] = [
+    "surface-0 hover:bg-primary-900",
+    "bg-primary-900 hover:bg-primary-800",
+    "bg-primary-800 hover:bg-primary-700",
+    "bg-primary-700 hover:bg-primary-600",
+    "bg-primary-600 hover:bg-primary-500",
+    "bg-primary-500 hover:bg-primary-400",
+    "bg-primary-400 hover:bg-primary-300  text-black",
+    "bg-primary-300 hover:bg-primary-200 text-black",
+    "bg-primary-200 hover:bg-primary-100 text-black",
+    "bg-primary-100 hover:bg-primary-50 text-black",
+  ];
+
+  get contextStyles(): Record<string, string> {
+    return this.theme.darkMode()
+      ? this.contextStylesDark
+      : this.contextStylesLight;
+  }
+
+  contextStylesLight: Record<string, string> = {
+    new: 'bg-green-200 hover:bg-green-300 text-black',
+    rot: 'bg-red-200 hover:bg-red-300 text-black',
+    move: 'bg-yellow-200 hover:bg-yellow-300 text-black'
+  };
+
+  contextStylesDark: Record<string, string> = {
+    new: 'bg-green-700 hover:bg-green-600 text-white',
+    rot: 'bg-red-700 hover:bg-red-600 text-white',
+    move: 'bg-yellow-700 hover:bg-yellow-600 text-black'
+  };
 
   //Step 2a: Get single page IA data
   async getPageMetaAndLinks(url: string): Promise<{ h1?: string; breadcrumb?: string[]; links?: string[], status: number } | null> {
@@ -204,17 +286,7 @@ export class IaStructureComponent implements OnInit {
 
     const nodes: TreeNode[] = [];
 
-    //Set background color
-    const bgColors = [
-      "bg-purple-50",
-      "bg-blue-50",
-      "bg-green-50",
-      "bg-yellow-50",
-      "bg-orange-50",
-      "bg-red-50"
-    ];
-
-    const bgClass = bgColors[level % bgColors.length];
+    const bgClass = this.bgColors[level % this.bgColors.length];
 
     for (const url of urls) {
       const meta = await this.getPageMetaAndLinks(url);
@@ -242,10 +314,13 @@ export class IaStructureComponent implements OnInit {
         data: {
           h1: meta.h1,
           url: url,
-          editing: null
+          editing: null,
+          customStyle: false,
+          customStyleKey: null,
+          borderStyle: 'border-2 border-primary border-round shadow-2'
         },
         expanded: true,
-        styleClass: `border-2 border-primary border-round ${bgClass} shadow-2`,
+        styleClass: `border-2 border-primary border-round shadow-2 ${bgClass}`,
         children: []
       };
 
@@ -265,8 +340,16 @@ export class IaStructureComponent implements OnInit {
         if (total > limit) { //add dummy node if we limited the child nodes
           node.children?.push({
             label: `+ ${total - limit} more...`,
-            data: null,
-            styleClass: `border-2 border-primary border-round surface-100 shadow-2`,
+            data: {
+              h1: `+ ${total - limit} more...`,
+              url: null,
+              editing: null,
+              customStyle: true,
+              customStyleKey: null,
+              borderStyle: 'border-2 border-primary border-round shadow-2 border-dashed'
+            },
+            expanded: true,
+            styleClass: `border-2 border-primary border-round shadow-2 border-dashed surface-100 hover:surface-200`,
             children: []
           });
         }
@@ -306,6 +389,7 @@ export class IaStructureComponent implements OnInit {
   //Context menu
   @ViewChild('cm') cm!: ContextMenu;
   options: MenuItem[] = []; //options for editing chart nodes
+
   baseMenu: MenuItem[] = [
     {
       label: 'Edit label',
@@ -324,66 +408,7 @@ export class IaStructureComponent implements OnInit {
       }
     },
     {
-      label: 'Update IA color',
-      icon: 'pi pi-sitemap',
-      items: [
-        {
-          label: 'Root: pink',
-          icon: 'pi pi-palette',
-          command: () => {
-            this.selectedNode.styleClass = 'border-2 border-primary border-round bg-purple-50 shadow-2';
-            this.selectedNode = null!;
-          }
-        },
-        {
-          label: 'Level 1: blue',
-          icon: 'pi pi-palette',
-          command: () => {
-            this.selectedNode.styleClass = 'border-2 border-primary border-round bg-blue-50 shadow-2';
-            this.selectedNode = null!;
-          }
-        },
-        {
-          label: 'Level 2: green',
-          icon: 'pi pi-palette',
-          command: () => {
-            this.selectedNode.styleClass = 'border-2 border-primary border-round bg-green-50 shadow-2';
-            this.selectedNode = null!;
-          }
-        },
-        {
-          label: 'Level 3: yellow',
-          icon: 'pi pi-palette',
-          command: () => {
-            this.selectedNode.styleClass = 'border-2 border-primary border-round bg-yellow-50 shadow-2';
-            this.selectedNode = null!;
-          }
-        },
-        {
-          label: 'Level 4: orange',
-          icon: 'pi pi-palette',
-          command: () => {
-            this.selectedNode.styleClass = 'border-2 border-primary border-round bg-orange-50 shadow-2';
-            this.selectedNode = null!;
-          }
-        },
-        {
-          label: 'Level 5: red',
-          icon: 'pi pi-palette',
-          command: () => {
-            this.selectedNode.styleClass = 'border-2 border-primary border-round bg-red-50 shadow-2';
-            this.selectedNode = null!;
-          }
-        },
-        {
-          label: 'Dashed border',
-          icon: 'pi pi-palette',
-          command: () => {
-            this.selectedNode.styleClass = 'border-2 border-primary border-round border-dashed surface-100 shadow-2';
-            this.selectedNode = null!;
-          }
-        }
-      ]
+      separator: true
     },
     {
       label: 'Add child page',
@@ -400,6 +425,59 @@ export class IaStructureComponent implements OnInit {
         console.log('Delete ', this.selectedNode)
         this.deleteNode();
       }
+    },
+    {
+      separator: true
+    },
+    {
+      label: 'Change style',
+      icon: 'pi pi-palette',
+      items: [
+        {
+          label: 'New page',
+          icon: 'pi pi-file-plus',
+          command: () => {
+            this.selectedNode.data.customStyleKey = 'new';
+            this.selectedNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
+            this.updateNodeStyles(this.iaChart, 0);
+            this.selectedNode = null!;
+          }
+        },
+        {
+          label: 'ROT',
+          icon: 'pi pi-trash',
+          command: () => {
+            this.selectedNode.data.customStyleKey = 'rot';
+            this.selectedNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
+            this.updateNodeStyles(this.iaChart, 0);
+            this.selectedNode = null!;
+          }
+        },
+        {
+          label: 'Page move',
+          icon: 'pi pi-sitemap',
+          command: () => {
+            this.selectedNode.data.customStyleKey = 'move';
+            this.selectedNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
+            this.updateNodeStyles(this.iaChart, 0);
+            this.selectedNode = null!;
+          }
+        },
+        {
+          separator: true
+        },
+        {
+          label: 'Reset custom style',
+          icon: 'pi pi-refresh',
+          command: () => {
+            this.selectedNode.data.customStyle = false;
+            this.selectedNode.data.customStyleKey = null;
+            this.selectedNode.data.borderStyle = 'border-2 border-primary border-round shadow-2';
+            this.updateNodeStyles(this.iaChart, 0);
+            this.selectedNode = null!;
+          }
+        },
+      ]
     },
     {
       separator: true
@@ -449,6 +527,12 @@ export class IaStructureComponent implements OnInit {
       this.editingNode.data.editing = null;
     }
     this.selectedNode = event.node;
+
+    this.options.forEach(item => {
+      if (item.label === 'Open page in new page assistant' || item.label === 'Open page in new tab') {
+        item.disabled = !this.selectedNode?.data?.url?.trim(); //disable if no URL
+      }
+    });
   }
 
   onInputKeydown(event: KeyboardEvent) {
@@ -502,8 +586,10 @@ export class IaStructureComponent implements OnInit {
         h1: 'New page',
         url: 'https://www.canada.ca/', // default URL
         editing: false,
+        customStyle: false,
+        customStyleKey: 'new',
+        borderStyle: 'border-2 border-primary border-round border-dashed shadow-2'
       },
-      styleClass: 'border-2 border-primary border-round surface-100 shadow-2',
       children: []
     };
 
@@ -518,6 +604,7 @@ export class IaStructureComponent implements OnInit {
     this.editNode('label');
 
     this.updateMenu(); // refresh context menu, undo, etc.
+    this.updateNodeStyles(this.iaChart, 0); // refresh styles
   }
 
   deleteNode() {
@@ -567,6 +654,9 @@ export class IaStructureComponent implements OnInit {
     }
 
     this.selectedNode = last.node;
+    this.selectedNode.data.customStyleKey = 'rot';
+    this.selectedNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
+    this.updateNodeStyles(this.iaChart, 0);
     this.updateMenu();
   }
 
@@ -601,6 +691,31 @@ export class IaStructureComponent implements OnInit {
     const shareLink = `${baseUrl}/page-assistant/share?url=${urlParam}`;
     console.log('Open in page assistant: ', shareLink);
     window.open(shareLink, '_blank');
+  }
+
+  //Change color on drag/drop
+  handleNodeDrop(event: any): void {
+    event.dragNode.data.customStyleKey = 'move';
+    event.dragNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
+    this.updateNodeStyles(this.iaChart, 0);
+  }
+
+  private updateNodeStyles(nodes: TreeNode[] | null, level: number = 0): void {
+    if (!nodes) return;
+
+    for (const node of nodes) {
+      if (!node.data?.customStyle) {
+        const borderStyle = node.data?.borderStyle || 'border-2 border-primary border-round shadow-2';
+
+        const bgClass = this.bgColors[level % this.bgColors.length];
+        const bgStyle = this.contextStyles[node.data?.customStyleKey] ?? bgClass;
+
+        node.styleClass = `${borderStyle} ${bgStyle}`;
+      }
+      if (node.children && node.children.length > 0) {
+        this.updateNodeStyles(node.children, level + 1);
+      }
+    }
   }
 
 

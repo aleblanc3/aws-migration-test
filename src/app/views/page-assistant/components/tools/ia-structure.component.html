@@ -23,10 +23,10 @@
 <ng-container *ngIf="iaChart">
     <h2>IA structure</h2>
     <p *ngIf="iaChart.length === 0">No child pages found.</p>
-    <div #chartContainer *ngIf="iaChart.length > 0" class="overflow-auto max-h-75vh surface-ground surface-border border-1 py-3 mb-3">
+    <div #chartContainer *ngIf="iaChart.length > 0" class="overflow-auto max-h-75vh surface-ground surface-border border-1 py-3 mb-3 ia-chart-container">
         <p-organization-chart [value]="iaChart">
             <ng-template let-node pTemplate="default">
-                <p><a [href]="node.data.url" target="_blank" (click)="onNodeClick($event)" [innerHTML]="node.label"></a></p>
+                <p><a [href]="node.data.url" target="_blank" (click)="onNodeClick($event)" [innerHTML]="node.label" class="ia-label"></a></p>
             </ng-template>
         </p-organization-chart>
     </div>
@@ -39,7 +39,7 @@
     <h2>IA structure tree</h2>
     <p-tree [value]="iaChart" styleClass="w-full md:w-[30rem]"
             [selectionMode]="selectable ? 'single' : null" [(selection)]="selectedNode"
-            [draggableNodes]="draggable" [droppableNodes]="true" draggableScope="self" droppableScope="self"
+            [draggableNodes]="draggable" [droppableNodes]="true" draggableScope="self" droppableScope="self" (onNodeDrop)="handleNodeDrop($event)"
             [contextMenu]="cm" (onNodeContextMenuSelect)="onNodeContextMenu($event)">
         <ng-template pTemplate="default" let-node>
             <div class="flex flex-row align-items-center gap-2 w-full">
