@@ -30,7 +30,7 @@ import { ThemeService } from '../services/theme.service';
   `
 })
 export class FooterComponent {
-  constructor(public theme: ThemeService) { }
+  constructor(private theme: ThemeService) { }
   get logoSrc() {
     return this.theme.darkMode() ? 'canada-logo-dark.png' : 'canada-logo.png';
   }
