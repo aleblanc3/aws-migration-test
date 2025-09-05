@@ -221,13 +221,15 @@ export class IaStructureComponent implements OnInit {
   contextStylesLight: Record<string, string> = {
     new: 'bg-green-200 hover:bg-green-300 text-black',
     rot: 'bg-red-200 hover:bg-red-300 text-black',
-    move: 'bg-yellow-200 hover:bg-yellow-300 text-black'
+    move: 'bg-yellow-200 hover:bg-yellow-300 text-black',
+    template: 'surface-200 hover:surface-300 text-black'
   };
 
   contextStylesDark: Record<string, string> = {
     new: 'bg-green-700 hover:bg-green-600 text-white',
     rot: 'bg-red-700 hover:bg-red-600 text-white',
-    move: 'bg-yellow-700 hover:bg-yellow-600 text-black'
+    move: 'bg-yellow-700 hover:bg-yellow-600 text-black',
+    template: 'surface-700 hover:surface-600 text-white'
   };
 
   //Step 2a: Get single page IA data
@@ -314,6 +316,7 @@ export class IaStructureComponent implements OnInit {
         data: {
           h1: meta.h1,
           url: url,
+          originalParent: parentUrl,
           editing: null,
           customStyle: false,
           customStyleKey: null,
@@ -343,9 +346,10 @@ export class IaStructureComponent implements OnInit {
             data: {
               h1: `+ ${total - limit} more...`,
               url: null,
+              originalParent: parentUrl,
               editing: null,
               customStyle: true,
-              customStyleKey: null,
+              customStyleKey: 'template',
               borderStyle: 'border-2 border-primary border-round shadow-2 border-dashed'
             },
             expanded: true,
@@ -430,6 +434,28 @@ export class IaStructureComponent implements OnInit {
       separator: true
     },
     {
+      label: 'Change template',
+      icon: 'pi pi-sync',
+      items: [
+        {
+          label: 'Split into subway pattern',
+          icon: 'pi pi-sitemap',
+          command: () => {
+            console.log('Change template ', this.selectedNode)
+            this.addParentNode('subway');
+          }
+        },
+        {
+          label: 'Combine into single page',
+          icon: 'pi pi-file-check',
+          command: () => {
+            console.log('Change template ', this.selectedNode)
+            this.addParentNode('combine');
+          }
+        },
+      ]
+    },
+    {
       label: 'Change style',
       icon: 'pi pi-palette',
       items: [
@@ -468,7 +494,7 @@ export class IaStructureComponent implements OnInit {
         },
         {
           label: 'Reset custom style',
-          icon: 'pi pi-refresh',
+          icon: 'pi pi-replay',
           command: () => {
             this.selectedNode.data.customStyle = false;
             this.selectedNode.data.customStyleKey = null;
@@ -527,10 +553,14 @@ export class IaStructureComponent implements OnInit {
       this.editingNode.data.editing = null;
     }
     this.selectedNode = event.node;
+    const customStyle = this.selectedNode.data.customStyle;
 
     this.options.forEach(item => {
       if (item.label === 'Open page in new page assistant' || item.label === 'Open page in new tab') {
         item.disabled = !this.selectedNode?.data?.url?.trim(); //disable if no URL
+      }
+      if (item.label === 'Change template' || item.label === 'Change style') {
+        item.disabled = customStyle; //disable if custom style
       }
     });
   }
@@ -572,7 +602,7 @@ export class IaStructureComponent implements OnInit {
   }
 
   addChildNode() {
-    if (!this.selectedNode) return; // need a selected parent node
+    if (!this.selectedNode) return;
 
     // Ensure children array exists
     if (!this.selectedNode.children) {
@@ -605,6 +635,65 @@ export class IaStructureComponent implements OnInit {
 
     this.updateMenu(); // refresh context menu, undo, etc.
     this.updateNodeStyles(this.iaChart, 0); // refresh styles
+  }
+
+  //Will be used to create a container to mark pages for template change
+  addParentNode(action: 'subway' | 'combine') {
+    if (!this.selectedNode) return;
+
+    // Find the parent node and the array the selected node is in
+    const findParent = (nodes: TreeNode[], parentNode?: TreeNode): { parentContainer: TreeNode[]; parentNode: TreeNode | null } | null => {
+      for (const node of nodes) {
+        if (node === this.selectedNode) {
+          return {
+            parentContainer: nodes, // found at this level
+            parentNode: parentNode ?? null,
+          };
+        }
+        if (node.children) {
+          const searchChildNodes = findParent(node.children, node);
+          if (searchChildNodes) return searchChildNodes;
+        }
+      }
+      return null;
+    };
+
+    const location = findParent(this.iaChart || []);
+    if (!location) return; // if not found
+
+    const { parentContainer, parentNode } = location;
+
+    const label = action === 'subway' ? 'Split into subway pattern' : 'Combine into single page';
+
+    //Create new parent node
+    const newParentNode: TreeNode = {
+      label: label,
+      data: {
+        h1: label,
+        url: '',
+        originalParent: parentNode?.data?.url ?? '',
+        editing: false,
+        customStyle: true, // prevents style changes
+        customStyleKey: 'template',
+        isContainer: true, // used to keep child nodes at proper level and prevent drag/drop of these wrappers into each other
+        borderStyle: 'border-2 border-primary border-round border-dashed shadow-2'
+      },
+      expanded: true,
+      children: [this.selectedNode]
+    };
+
+    // Replace the original node with the new parent node (which contains the original node as a child)
+    const index = parentContainer.indexOf(this.selectedNode);
+    if (index !== -1) {
+      parentContainer.splice(index, 1, newParentNode);
+    }
+
+    // Make the new parent the selection
+    this.selectedNode = newParentNode;
+
+    // UI refresh
+    this.updateMenu();
+    this.updateNodeStyles(this.iaChart, 0);
   }
 
   deleteNode() {
@@ -654,9 +743,11 @@ export class IaStructureComponent implements OnInit {
     }
 
     this.selectedNode = last.node;
-    this.selectedNode.data.customStyleKey = 'rot';
-    this.selectedNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
-    this.updateNodeStyles(this.iaChart, 0);
+    if (!this.selectedNode.data.customStyle) {
+      this.selectedNode.data.customStyleKey = 'rot';
+      this.selectedNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
+      this.updateNodeStyles(this.iaChart, 0);
+    }
     this.updateMenu();
   }
 
@@ -669,7 +760,7 @@ export class IaStructureComponent implements OnInit {
     if (this.undoArray.length > 0 && deleteIndex !== -1) {
       this.options.splice(deleteIndex + 1, 0, {
         label: 'Restore page',
-        icon: 'pi pi-refresh',
+        icon: 'pi pi-history',
         command: () => this.restoreNode()
       });
     }
@@ -693,10 +784,68 @@ export class IaStructureComponent implements OnInit {
     window.open(shareLink, '_blank');
   }
 
-  //Change color on drag/drop
   handleNodeDrop(event: any): void {
-    event.dragNode.data.customStyleKey = 'move';
-    event.dragNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
+
+    if ((event.dropNode.data.isContainer || event.dropNode.parent?.data?.isContainer) && event.dragNode.data.isContainer) return; // not foolproof but tries to prevent dropping a container into another container
+    event.accept(); // accept the drop
+
+    //Reset move style so move style can be removed if user puts it back
+    if (event.dragNode.data.customStyleKey === 'move') {
+      event.dragNode.data.customStyleKey = '';
+      event.dragNode.data.borderStyle = 'border-2 border-primary border-round shadow-2';
+    }
+
+    //Get target element
+    const targetEl = event.originalEvent.target as HTMLElement;
+    const tag = targetEl.tagName.toLowerCase(); // will be <a> or <div> if dropped on a node or <li> if dropped between nodes
+    const droppedOnNode: boolean = tag !== 'li'
+
+    //Check if no change to IA structure
+    const dragParentUrl = event.dragNode.data.originalParent; //parentUrl is the original parent before any changes
+    const dropUrl = event.dropNode.data.url;
+    const dropParentUrl = event.dropNode.parent?.data?.url ?? '';
+    const dropGrandparentUrl = event.dropNode.parent?.data?.originalParent ?? '';
+
+    console.log('Tag should be a if dropped on node:\n', tag);
+    if (droppedOnNode) { console.log('Dropped on node'); console.log('Checking if parentUrl matches node Url:\n', dropUrl); }
+    else { console.log('Dropped between nodes'); console.log('Checking if parentUrl matches sibling parent Url:\n', dropParentUrl); }
+    console.log('Drag parentUrl:\n', dragParentUrl);
+
+    const droppedOnParent = droppedOnNode && dragParentUrl === dropUrl;
+    const reorderedSiblings = !droppedOnNode && dragParentUrl === dropParentUrl;
+
+    console.log('Sibling reorder: ', reorderedSiblings);
+    console.log('Dropped on parent: ', droppedOnParent);
+
+    //Check if dropping sibling onto a container
+    const droppedOnContainerSibling = event.dropNode.data.isContainer && droppedOnNode && dragParentUrl === dropParentUrl;
+    const droppedBetweenContainerSibling = event.dropNode.parent?.data?.isContainer && !droppedOnNode && dragParentUrl === dropGrandparentUrl;
+    console.log('Dropped on container sibling: ', droppedOnContainerSibling);
+    console.log('Dropped between container sibling: ', droppedBetweenContainerSibling);
+
+    //Check for custom style (containers & dummy nodes)
+    const isCustom = event.dragNode.data.customStyle
+    console.log('Container or dummy node: ', isCustom);
+
+    console.log('Event drop', event);
+
+    //Set parentUrl for drag node <-- don't do this. The point of the parentUrl was to track original parent for styling moves, not changing it will allow move style to be removed if user puts it back (need to remove move style on move and let it re-set itself)
+    //if (droppedOnNode && event.dropNode.data.isContainer) { event.dragNode.data.parentUrl = dropParentUrl ?? ''; }
+    //else if (!droppedOnNode && event.dropNode.parent?.data?.isContainer) { event.dragNode.data.parentUrl = dropGrandparentUrl ?? ''; }
+    //else { event.dragNode.data.parentUrl = droppedOnNode ? dropUrl : dropParentUrl ?? ''; console.log('Not a container event', droppedOnNode); }
+
+    //Set move style when not reordering siblings, moving siblings into a template container, dragging a custom style node, or moving a new page
+    if (!(droppedOnParent || reorderedSiblings || droppedOnContainerSibling || droppedBetweenContainerSibling || isCustom || event.dragNode.data.customStyleKey === 'new')) {
+      event.dragNode.data.customStyleKey = 'move';
+      event.dragNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
+    }
+
+    //Cleanup dragover style (happens when hovering on parent but dropping between parent and top child) NOT WORKING YET
+    //const el = (event.originalEvent.target as HTMLElement)
+    //  .closest('.p-tree-node-content') as HTMLElement | null;
+    //el?.classList.remove('p-tree-node-dragover');
+
+    console.log('Drag parent URL', event.dragNode.data.originalParent);
     this.updateNodeStyles(this.iaChart, 0);
   }
 
@@ -704,16 +853,18 @@ export class IaStructureComponent implements OnInit {
     if (!nodes) return;
 
     for (const node of nodes) {
-      if (!node.data?.customStyle) {
-        const borderStyle = node.data?.borderStyle || 'border-2 border-primary border-round shadow-2';
 
-        const bgClass = this.bgColors[level % this.bgColors.length];
-        const bgStyle = this.contextStyles[node.data?.customStyleKey] ?? bgClass;
+      const borderStyle = node.data?.borderStyle || 'border-2 border-primary border-round shadow-2';
 
-        node.styleClass = `${borderStyle} ${bgStyle}`;
-      }
+      const bgClass = this.bgColors[level % this.bgColors.length];
+      const bgStyle = this.contextStyles[node.data?.customStyleKey] ?? bgClass;
+
+      node.styleClass = `${borderStyle} ${bgStyle}`;
+
       if (node.children && node.children.length > 0) {
-        this.updateNodeStyles(node.children, level + 1);
+        //console.log('Node status', node.data.isContainer, level);
+        const nextLevel = node.data.isContainer ? level : level + 1;
+        this.updateNodeStyles(node.children, nextLevel);
       }
     }
   }

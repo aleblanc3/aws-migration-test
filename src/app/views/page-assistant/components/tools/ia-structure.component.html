@@ -38,8 +38,8 @@
     <p-contextMenu #cm [model]="options"></p-contextMenu>
     <h2>IA structure tree</h2>
     <p-tree [value]="iaChart" styleClass="w-full md:w-[30rem]"
-            [selectionMode]="selectable ? 'single' : null" [(selection)]="selectedNode"
-            [draggableNodes]="draggable" [droppableNodes]="true" draggableScope="self" droppableScope="self" (onNodeDrop)="handleNodeDrop($event)"
+            [selectionMode]="selectable ? 'multiple' : null" [(selection)]="selectedNode"
+            [draggableNodes]="draggable" [droppableNodes]="true" draggableScope="self" droppableScope="self" (onNodeDrop)="handleNodeDrop($event)" [validateDrop]="true"
             [contextMenu]="cm" (onNodeContextMenuSelect)="onNodeContextMenu($event)">
         <ng-template pTemplate="default" let-node>
             <div class="flex flex-row align-items-center gap-2 w-full">
