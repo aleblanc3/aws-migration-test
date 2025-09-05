@@ -1,7 +1,8 @@
-import { Component, Input } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from "@ngx-translate/core";
 import { ToolbarModule } from 'primeng/toolbar';
+import { ThemeService } from '../services/theme.service';
 
 @Component({
   selector: 'ca-footer',
@@ -29,8 +30,8 @@ import { ToolbarModule } from 'primeng/toolbar';
   `
 })
 export class FooterComponent {
-  @Input() darkMode = false;
+  constructor(private theme: ThemeService) { }
   get logoSrc() {
-    return this.darkMode ? 'canada-logo-dark.png' : 'canada-logo.png';
+    return this.theme.darkMode() ? 'canada-logo-dark.png' : 'canada-logo.png';
   }
 }

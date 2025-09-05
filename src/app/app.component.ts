@@ -27,11 +27,4 @@ export class AppComponent implements OnInit {
     //this.localStore.saveData('apiKey', ''); //clears value on init (for testing) <-- can also be used to set initial value for universal api key
     console.log('The initial API key is: ', this.localStore.getData('apiKey'));
   }
-
-  //Handle dark mode states
-  isDarkMode = false;
-
-  toggleDarkMode() {
-    this.isDarkMode = !this.isDarkMode;
-  }
 }

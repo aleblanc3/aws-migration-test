@@ -231,8 +231,8 @@ export const guidanceMap: {
         },
 
         {
-            name: 'page.tools.guidance.craVariant.borders.title',
-            url: 'page.tools.guidance.craVariant.borders.url',
+            name: 'page.tools.guidance.gcCore.borders.title',
+            url: 'page.tools.guidance.gcCore.borders.url',
             patterns: [/^brdr-(0|bttm|lft|rght|tp|rds-0)$/,],
         },
         {
