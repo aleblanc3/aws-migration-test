@@ -840,10 +840,11 @@ export class IaStructureComponent implements OnInit {
       event.dragNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
     }
 
-    //Cleanup dragover style (happens when hovering on parent but dropping between parent and top child) NOT WORKING YET
-    //const el = (event.originalEvent.target as HTMLElement)
-    //  .closest('.p-tree-node-content') as HTMLElement | null;
-    //el?.classList.remove('p-tree-node-dragover');
+    //Cleanup dragover style (happens when hovering on parent but dropping between parent and top child)
+    const treeRoot = targetEl.closest('.p-tree');
+    treeRoot?.querySelectorAll('.p-tree-node-dragover').forEach((el) => {
+      el.classList.remove('p-tree-node-dragover');
+    });
 
     console.log('Drag parent URL', event.dragNode.data.originalParent);
     this.updateNodeStyles(this.iaChart, 0);
