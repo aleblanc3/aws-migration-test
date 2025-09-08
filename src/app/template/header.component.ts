@@ -1,5 +1,6 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
 
 import { ToolbarModule } from 'primeng/toolbar';
@@ -8,10 +9,11 @@ import { ToggleButtonModule } from 'primeng/togglebutton';
 
 import { ApiResetComponent } from './api-reset.component';
 import { LocalStorageService } from '../services/local-storage.service';
+import { ThemeService } from '../services/theme.service';
 
 @Component({
   selector: 'ca-header',
-  imports: [CommonModule, TranslateModule, ToolbarModule, ButtonModule, ToggleButtonModule, ApiResetComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, ToolbarModule, ButtonModule, ToggleButtonModule, ApiResetComponent],
   template: `
   <header id="header" class="pb-2">
   <p-toolbar>
@@ -35,7 +37,8 @@ import { LocalStorageService } from '../services/local-storage.service';
         onIcon="pi pi-sun"
         onLabel=""
         class="p-button-rounded p-button-secondary p-button-outlined p-button-sm surface-border pr-0 darkmode-toggle"
-        (click)="toggleDarkMode()"
+        [ngModel] = "theme.darkMode()"
+        (click)="theme.toggle()"
         ariaLabel="Toggle between dark and light mode">
       </p-togglebutton>
 
@@ -72,14 +75,13 @@ import { LocalStorageService } from '../services/local-storage.service';
     `
 })
 export class HeaderComponent {
-  @Output() darkModeToggled = new EventEmitter<void>();
-  @Input() darkMode = false;
+
   get logoSrc() {
-    return this.darkMode ? 'cra-logo-dark.png' : 'cra-logo.png';
+    return this.theme.darkMode() ? 'cra-logo-dark.png' : 'cra-logo.png';
   }
 
   // constructor(public langToggle: LangToggleService){} //putting the code below into a service works but we aren't calling it anywhere else
-  constructor(private translate: TranslateService, public localStore: LocalStorageService) {
+  constructor(private translate: TranslateService, public localStore: LocalStorageService, public theme: ThemeService) {
     var curLang = this.localStore.getData('lang') || this.translate.getBrowserLang() || 'en';
     console.log(this.translate.getBrowserLang());
     this.translate.addLangs(['en', 'fr']);
@@ -95,9 +97,4 @@ export class HeaderComponent {
     this.localStore.saveData('lang', oppLang);
   }
 
-  toggleDarkMode() {
-    this.darkModeToggled.emit();
-    const element = document.querySelector('html');
-    if (element) { element.classList.toggle('dark-mode'); }
-  }
 }

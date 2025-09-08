@@ -1,9 +1,9 @@
 <body vocab="http://schema.org/" typeof="WebPage" class="mx-8 my-2 container">
   <main class="container">
-  <ca-header [darkMode]="isDarkMode" (darkModeToggled)="toggleDarkMode()"></ca-header>
-  <ca-sidebar></ca-sidebar>
-   <ca-api-key *ngIf="this.localStore.getData('apiKey') === null"></ca-api-key>
-  <router-outlet *ngIf="this.localStore.getData('apiKey') != null"></router-outlet>
+    <ca-header></ca-header>
+    <ca-sidebar></ca-sidebar>
+    <ca-api-key *ngIf="this.localStore.getData('apiKey') === null"></ca-api-key>
+    <router-outlet *ngIf="this.localStore.getData('apiKey') != null"></router-outlet>
   </main>
-  <ca-footer [darkMode]="isDarkMode"></ca-footer>
+  <ca-footer></ca-footer>
 </body>
