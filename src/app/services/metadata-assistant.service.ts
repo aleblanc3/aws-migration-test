@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, from, of, throwError } from 'rxjs';
 import { catchError, map, retry, timeout, switchMap } from 'rxjs/operators';
@@ -48,10 +48,8 @@ export class MetadataAssistantService {
     'google/gemma-3-27b-it:free'
   ];
 
-  constructor(
-    private http: HttpClient,
-    private apiKeyService: ApiKeyService
-  ) {}
+  private http = inject(HttpClient);
+  private apiKeyService = inject(ApiKeyService);
 
   processUrls(options: ProcessingOptions): Observable<MetadataResult[]> {
     const results: MetadataResult[] = [];
