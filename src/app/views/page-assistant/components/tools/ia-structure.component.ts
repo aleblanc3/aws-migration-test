@@ -806,33 +806,28 @@ export class IaStructureComponent implements OnInit {
     const dropParentUrl = event.dropNode.parent?.data?.url ?? '';
     const dropGrandparentUrl = event.dropNode.parent?.data?.originalParent ?? '';
 
-    console.log('Tag should be a if dropped on node:\n', tag);
+    //console.log('Tag should be a if dropped on node:\n', tag);
     if (droppedOnNode) { console.log('Dropped on node'); console.log('Checking if parentUrl matches node Url:\n', dropUrl); }
     else { console.log('Dropped between nodes'); console.log('Checking if parentUrl matches sibling parent Url:\n', dropParentUrl); }
-    console.log('Drag parentUrl:\n', dragParentUrl);
+    //console.log('Drag parentUrl:\n', dragParentUrl);
 
     const droppedOnParent = droppedOnNode && dragParentUrl === dropUrl;
     const reorderedSiblings = !droppedOnNode && dragParentUrl === dropParentUrl;
 
-    console.log('Sibling reorder: ', reorderedSiblings);
-    console.log('Dropped on parent: ', droppedOnParent);
+    //console.log('Sibling reorder: ', reorderedSiblings);
+    //console.log('Dropped on parent: ', droppedOnParent);
 
     //Check if dropping sibling onto a container
     const droppedOnContainerSibling = event.dropNode.data.isContainer && droppedOnNode && dragParentUrl === dropParentUrl;
     const droppedBetweenContainerSibling = event.dropNode.parent?.data?.isContainer && !droppedOnNode && dragParentUrl === dropGrandparentUrl;
-    console.log('Dropped on container sibling: ', droppedOnContainerSibling);
-    console.log('Dropped between container sibling: ', droppedBetweenContainerSibling);
+    //console.log('Dropped on container sibling: ', droppedOnContainerSibling);
+    //console.log('Dropped between container sibling: ', droppedBetweenContainerSibling);
 
     //Check for custom style (containers & dummy nodes)
     const isCustom = event.dragNode.data.customStyle
-    console.log('Container or dummy node: ', isCustom);
+    //console.log('Container or dummy node: ', isCustom);
 
-    console.log('Event drop', event);
-
-    //Set parentUrl for drag node <-- don't do this. The point of the parentUrl was to track original parent for styling moves, not changing it will allow move style to be removed if user puts it back (need to remove move style on move and let it re-set itself)
-    //if (droppedOnNode && event.dropNode.data.isContainer) { event.dragNode.data.parentUrl = dropParentUrl ?? ''; }
-    //else if (!droppedOnNode && event.dropNode.parent?.data?.isContainer) { event.dragNode.data.parentUrl = dropGrandparentUrl ?? ''; }
-    //else { event.dragNode.data.parentUrl = droppedOnNode ? dropUrl : dropParentUrl ?? ''; console.log('Not a container event', droppedOnNode); }
+    //console.log('Event drop', event);
 
     //Set move style when not reordering siblings, moving siblings into a template container, dragging a custom style node, or moving a new page
     if (!(droppedOnParent || reorderedSiblings || droppedOnContainerSibling || droppedBetweenContainerSibling || isCustom || event.dragNode.data.customStyleKey === 'new')) {

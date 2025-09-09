@@ -1,0 +1,112 @@
+<h1 id="wb-cont">{{ 'title.ia' | translate}}</h1>
+<p>{{'ia.description' | translate }}</p>
+
+<p-stepper [(value)]="activeStep" [linear]="true">
+    <p-step-list class="-mx-4">
+        <p-step [value]="1">Enter URLs and search criteria</p-step>
+        <p-step [value]="2">Validate URLs</p-step>
+        <p-step [value]="3">Build IA Tree</p-step>
+    </p-step-list>
+    <p-step-panels>
+
+        <p-step-panel [value]="1">
+            <ng-template #content let-activateCallback="activateCallback">
+                <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
+
+                    <p class="my-0">Paste some relevant URLs to get started.</p>
+
+                    <p-iftalabel>
+                        <textarea id="urls" autoResize="true" rows="5" pTextarea [(ngModel)]="rawUrls" fluid></textarea>
+                        <label for="urls">URLs</label>
+                    </p-iftalabel>
+
+                    <p-iftalabel>
+                        <textarea id="search" autoResize="true" rows="2" pTextarea [(ngModel)]="rawTerms" (input)="searchTerms()" fluid
+                                  placeholder="Enter terms separated by commas, semicolons or newlines. These will be used to include additional pages in your result, even if there is no direct breadcrumb IA relationship between the pages. Regex patterns should begin with 'regex:'."></textarea>
+                        <label for="search">Search terms (optional)</label>
+                    </p-iftalabel>
+
+                    <div class="flex gap-2 flex-wrap">
+                        <p-chip *ngFor="let term of terms" [label]="term.toString()" [styleClass]="isRegex(term) ? 'bg-blue-100' : 'bg-green-100'" />
+                    </div>
+
+                </div>
+                <div class="flex pt-4 gap-2 justify-content-between">
+                    <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="urls = []" *ngIf="urls.length > 0" />
+                    <p-button label="Validate URLs" icon="pi pi-arrow-right" iconPos="right" class="ml-auto" (onClick)="validateUrls(); activateCallback(2)" *ngIf="urls.length === 0" />
+                    <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(2)" *ngIf="urls.length > 0" />
+                </div>
+            </ng-template>
+        </p-step-panel>
+
+        <p-step-panel [value]="2">
+            <ng-template #content let-activateCallback="activateCallback">
+                <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
+
+                    <ng-container *ngIf="urls.length > 0">
+                        <h2 *ngIf="checkingUrls.length > 0">Validating links</h2>
+                        <h2 *ngIf="checkingUrls.length === 0">Validated links</h2>
+
+                        <p-progressbar [value]="urlPercent">
+                            <ng-template #content let-value>
+                                <span>{{urlChecked}}/{{urlTotal}}</span>
+                            </ng-template>
+                        </p-progressbar>
+
+                        <div class="flex flex-column gap-2 mt-3">
+                            <ng-container *ngFor="let url of checkingUrls">
+                                <p-chip styleClass="bg-yellow-100" class="max-w-max">
+                                    <i class="pi pi-spin pi-spinner"></i>
+                                    <span>{{ url.href }}</span>
+                                </p-chip>
+                            </ng-container>
+                        </div>
+                    </ng-container>
+
+                    <p-confirmpopup />
+                    <ca-link-list labelKey="Broken"
+                                  [links]="badUrls"
+                                  (approve)="approve($event.url, $event.event)"
+                                  (remove)="remove($event)">
+                    </ca-link-list>
+                    <ca-link-list labelKey="Redirected"
+                                  [links]="redirectedUrls"
+                                  (approve)="approve($event.url, $event.event)"
+                                  (remove)="remove($event)">
+                    </ca-link-list>
+                    <ca-link-list labelKey="Blocked"
+                                  [links]="blockedUrls"
+                                  (approve)="approve($event.url, $event.event)"
+                                  (remove)="remove($event)">
+                    </ca-link-list>
+
+                    <ng-container *ngIf="okUrls.length">
+                        <h2 class="mb-0">Valid links</h2>
+                        <ul class="my-0 list-none">
+                            <li *ngFor="let url of okUrls"><i class="pi pi-check text-green-500 mr-2"></i>{{ url.href }}</li>
+                        </ul>
+                    </ng-container>
+
+                </div>
+                <div class="flex pt-4 justify-content-between">
+                    <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(1)" />
+                    <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(3)" />
+                </div>
+            </ng-template>
+        </p-step-panel>
+
+        <p-step-panel [value]="3">
+            <ng-template #content let-activateCallback="activateCallback">
+                <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
+
+                    Content III
+
+                </div>
+                <div class="flex pt-4 justify-content-start">
+                    <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(2)" />
+                </div>
+            </ng-template>
+        </p-step-panel>
+
+    </p-step-panels>
+</p-stepper>
