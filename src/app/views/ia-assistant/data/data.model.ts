@@ -3,3 +3,8 @@ export interface UrlItem {
     status: 'ok' | 'bad' | 'redirect' | 'blocked' | 'checking';
     originalHref?: string;
 }
+
+export interface UrlPair {
+    production: UrlItem;
+    prototype?: UrlItem;
+}

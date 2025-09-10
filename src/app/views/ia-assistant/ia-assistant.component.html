@@ -13,28 +13,48 @@
             <ng-template #content let-activateCallback="activateCallback">
                 <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
 
-                    <p class="my-0">Paste some relevant URLs to get started.</p>
+                    <h2 class="my-0">Canada.ca URLs</h2>
+                    <p class="my-0 text-color-secondary text-xs">Paste some relevant Canada.ca URLs to get started. These links will be crawled to find any child pages to include in your inventory. Each link should begin on a new line. If you have prototype links, you can paste both columns or separate them with a comma or semicolon.</p>
+
 
                     <p-iftalabel>
-                        <textarea id="urls" autoResize="true" rows="5" pTextarea [(ngModel)]="rawUrls" fluid></textarea>
+                        <textarea id="urls" autoResize="true" rows="5" pTextarea [(ngModel)]="rawUrls" (blur)="setUrlPairs()" (paste)="onPasteUrls()" fluid></textarea>
                         <label for="urls">URLs</label>
                     </p-iftalabel>
 
+                    <!--Only show url pairs if prototype links were included-->
+                    <p-table [value]="urlPairs" *ngIf="includePrototypeLinks" size="small" stripedRows [scrollable]="true" scrollHeight="400px">
+                        <ng-template #header>
+                            <tr>
+                                <th>Production URL</th>
+                                <th>Prototype URL</th>
+                            </tr>
+                        </ng-template>
+                        <ng-template #body let-url>
+                            <tr>
+                                <td>{{ url.production.href }}</td>
+                                <td>{{ url.prototype?.href }}</td>
+                            </tr>
+                        </ng-template>
+                    </p-table>
+                    <h2 class="my-0">Search criteria</h2>
+                    <p class="my-0 text-color-secondary text-xs">Enter terms separated by semicolons or new lines. These will be used to include additional pages in your result, even if there is no direct breadcrumb IA relationship between the pages. The search is <strong>not</strong> case-sensitive. Regex patterns should begin with "regex:".</p>
                     <p-iftalabel>
-                        <textarea id="search" autoResize="true" rows="2" pTextarea [(ngModel)]="rawTerms" (input)="searchTerms()" fluid
-                                  placeholder="Enter terms separated by commas, semicolons or newlines. These will be used to include additional pages in your result, even if there is no direct breadcrumb IA relationship between the pages. Regex patterns should begin with 'regex:'."></textarea>
+                        <textarea id="search" autoResize="true" rows="2" pTextarea [(ngModel)]="rawTerms" (blur)="updateTerms(); updateRawTerms();" (keydown)="onKeydownTerm($event)" (paste)="onPasteTerm()" fluid
+                                  placeholder=""></textarea>
                         <label for="search">Search terms (optional)</label>
                     </p-iftalabel>
 
                     <div class="flex gap-2 flex-wrap">
-                        <p-chip *ngFor="let term of terms" [label]="term.toString()" [styleClass]="isRegex(term) ? 'bg-blue-100' : 'bg-green-100'" />
+                        <p-chip *ngFor="let term of terms" [label]="term.toString()" [styleClass]="getTermColor(term)" [removable]="true" (onRemove)="removeTerm(term)"><p-badge *ngIf="isRegex(term)" value="regex" severity="info"></p-badge></p-chip>
                     </div>
 
                 </div>
+                <!--FIX: blur event block button event if input is focused when button is clicked-->
                 <div class="flex pt-4 gap-2 justify-content-between">
-                    <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="urls = []" *ngIf="urls.length > 0" />
-                    <p-button label="Validate URLs" icon="pi pi-arrow-right" iconPos="right" class="ml-auto" (onClick)="validateUrls(); activateCallback(2)" *ngIf="urls.length === 0" />
-                    <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(2)" *ngIf="urls.length > 0" />
+                    <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="urlPairs = []" *ngIf="urlPairs.length > 0 && urlsChecking.length === 0" />
+                    <p-button label="Validate URLs" icon="pi pi-arrow-right" iconPos="right" class="ml-auto" (onClick)="validateUrlPairs(); activateCallback(2)" *ngIf="urlsChecking.length > 0" />
+                    <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" class="ml-auto" (onClick)="activateCallback(2)" *ngIf="urlsChecking.length === 0" [disabled]="urlPairs.length === 0" />
                 </div>
             </ng-template>
         </p-step-panel>
@@ -43,9 +63,9 @@
             <ng-template #content let-activateCallback="activateCallback">
                 <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
 
-                    <ng-container *ngIf="urls.length > 0">
-                        <h2 *ngIf="checkingUrls.length > 0">Validating links</h2>
-                        <h2 *ngIf="checkingUrls.length === 0">Validated links</h2>
+                    <ng-container *ngIf="urlPairs.length > 0">
+                        <h2 *ngIf="urlsChecking.length > 0">Validating links</h2>
+                        <h2 *ngIf="urlsChecking.length === 0">Validated links</h2>
 
                         <p-progressbar [value]="urlPercent">
                             <ng-template #content let-value>
@@ -53,9 +73,15 @@
                             </ng-template>
                         </p-progressbar>
 
-                        <div class="flex flex-column gap-2 mt-3">
-                            <ng-container *ngFor="let url of checkingUrls">
+                        <div class="flex flex-column gap-2 mt-3" *ngIf="urlsChecking.length > 0 || urlsProtoChecking.length > 0">
+                            <ng-container *ngFor="let url of urlsChecking">
                                 <p-chip styleClass="bg-yellow-100" class="max-w-max">
+                                    <i class="pi pi-spin pi-spinner"></i>
+                                    <span>{{ url.href }}</span>
+                                </p-chip>
+                            </ng-container>
+                            <ng-container *ngFor="let url of urlsProtoChecking">
+                                <p-chip styleClass="bg-orange-100" class="max-w-max">
                                     <i class="pi pi-spin pi-spinner"></i>
                                     <span>{{ url.href }}</span>
                                 </p-chip>
@@ -64,26 +90,57 @@
                     </ng-container>
 
                     <p-confirmpopup />
+                    <h2 *ngIf="urlsBad.length > 0 || urlsProtoBad.length > 0" class="mb-0">Broken links</h2>
                     <ca-link-list labelKey="Broken"
-                                  [links]="badUrls"
-                                  (approve)="approve($event.url, $event.event)"
-                                  (remove)="remove($event)">
+                                  [links]="urlsBad"
+                                  type="prod"
+                                  (approve)="approve($event.url, $event.event, 'prod')"
+                                  (remove)="remove($event, 'prod')"
+                                  *ngIf="urlsBad.length > 0">
+                    </ca-link-list>
+                    <ca-link-list labelKey="Broken"
+                                  [links]="urlsProtoBad"
+                                  type="proto"
+                                  (approve)="approve($event.url, $event.event, 'proto')"
+                                  (remove)="remove($event, 'proto')"
+                                  *ngIf="urlsProtoBad.length > 0">
+                    </ca-link-list>
+                    <h2 *ngIf="urlsRedirected.length > 0 || urlsProtoRedirected.length > 0" class="mb-0">Redirected links</h2>
+                    <ca-link-list labelKey="Redirected"
+                                  [links]="urlsRedirected"
+                                  type="prod"
+                                  (approve)="approve($event.url, $event.event, 'prod')"
+                                  (remove)="remove($event, 'prod')"
+                                  *ngIf="urlsRedirected.length > 0">
                     </ca-link-list>
                     <ca-link-list labelKey="Redirected"
-                                  [links]="redirectedUrls"
-                                  (approve)="approve($event.url, $event.event)"
-                                  (remove)="remove($event)">
+                                  [links]="urlsProtoRedirected"
+                                  type="proto"
+                                  (approve)="approve($event.url, $event.event, 'proto')"
+                                  (remove)="remove($event, 'proto')"
+                                  *ngIf="urlsProtoRedirected.length > 0">
+                    </ca-link-list>
+                    <h2 *ngIf="urlsBlocked.length > 0 || urlsProtoBlocked.length > 0" class="mb-0">Blocked links</h2>
+                    <ca-link-list labelKey="Blocked"
+                                  [links]="urlsBlocked"
+                                  type="prod"
+                                  (approve)="approve($event.url, $event.event, 'prod')"
+                                  (remove)="remove($event, 'prod')"
+                                  *ngIf="urlsBlocked.length > 0">
                     </ca-link-list>
                     <ca-link-list labelKey="Blocked"
-                                  [links]="blockedUrls"
-                                  (approve)="approve($event.url, $event.event)"
-                                  (remove)="remove($event)">
+                                  [links]="urlsProtoBlocked"
+                                  type="proto"
+                                  (approve)="approve($event.url, $event.event, 'proto')"
+                                  (remove)="remove($event, 'proto')"
+                                  *ngIf="urlsProtoBlocked.length > 0">
                     </ca-link-list>
 
-                    <ng-container *ngIf="okUrls.length">
+                    <ng-container *ngIf="urlsOk.length > 0 || urlsProtoOk.length > 0">
                         <h2 class="mb-0">Valid links</h2>
                         <ul class="my-0 list-none">
-                            <li *ngFor="let url of okUrls"><i class="pi pi-check text-green-500 mr-2"></i>{{ url.href }}</li>
+                            <li *ngFor="let url of urlsOk"><i class="pi pi-check text-green-500 mr-2"></i>{{ url.href }}</li>
+                            <li *ngFor="let url of urlsProtoOk"><i class="pi pi-check text-blue-500 mr-2"></i>{{ url.href }}</li>
                         </ul>
                     </ng-container>
 
@@ -99,7 +156,7 @@
             <ng-template #content let-activateCallback="activateCallback">
                 <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
 
-                    Content III
+                    To do: set up progress bars & fxns for checking relationship between pasted links, crawling root URLs to create IA tree, & referring link/search term/url structure crawl (for unique links that aren't in the IA tree)
 
                 </div>
                 <div class="flex pt-4 justify-content-start">
