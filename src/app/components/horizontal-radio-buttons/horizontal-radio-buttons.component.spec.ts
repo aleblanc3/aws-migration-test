@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { HorizontalRadioButtonsComponent } from '../../views/page-assistant/components/horizontal-radio-buttons.component';
+import { HorizontalRadioButtonsComponent } from './horizontal-radio-buttons.component';
 
 describe('HorizontalRadioButtonsComponent', () => {
   let component: HorizontalRadioButtonsComponent;
@@ -10,9 +10,9 @@ describe('HorizontalRadioButtonsComponent', () => {
     await TestBed.configureTestingModule({
       imports: [HorizontalRadioButtonsComponent]
     })
-    .compileComponents();
+      .compileComponents();
 
-    fixture = TestBed.createComponent(HorizontalRadioButtonsComponent);
+    fixture = TestBed.createComponent(HorizontalRadioButtonsComponent<string>);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

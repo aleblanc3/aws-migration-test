@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -28,8 +28,8 @@ import { UploadStateService } from '../services/upload-state.service';
   styles: ``
 })
 export class PageUploadComponent implements OnInit {
-
-  constructor(private uploadState: UploadStateService, private router: Router) { }
+  private uploadState = inject(UploadStateService);
+  private router = inject(Router);
 
   ngOnInit(): void {
     const data = this.uploadState.getUploadData();
@@ -38,7 +38,7 @@ export class PageUploadComponent implements OnInit {
     }
   }
 
-  selectedUploadType: string = 'url';  // Default to url radio button
+  selectedUploadType = 'url';  // Default to url radio button
   onUploadTypeChange(value: 'url' | 'paste' | 'word') { // Set variable in service
     this.selectedUploadType = value;
     this.uploadState.setUploadType(value);

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -21,6 +21,10 @@ interface Column {
   header: string;
 }
 
+interface RowData {
+  type: string;
+}
+
 @Component({
   selector: 'ca-heading-structure',
   imports: [CommonModule, FormsModule,
@@ -31,8 +35,8 @@ interface Column {
   styles: ``
 })
 export class HeadingStructureComponent implements OnInit {
-
-  constructor(private uploadState: UploadStateService, private translate: TranslateService) { }
+  private uploadState = inject(UploadStateService);
+  private translate = inject(TranslateService);
 
   ngOnInit() {
     this.fetchHeadings();
@@ -70,7 +74,7 @@ export class HeadingStructureComponent implements OnInit {
   }
 
   //In-line styles
-  getTextStyle(row: any) {
+  getTextStyle(row: RowData): Partial<CSSStyleDeclaration> {
     switch (row.type) {
       case 'h1': return { fontWeight: 'bold' };
       case 'h2': return { fontWeight: 'bold' };
@@ -80,7 +84,7 @@ export class HeadingStructureComponent implements OnInit {
     }
   }
   //Classes
-  getTextClass(heading: HeadingData) {
+  getTextClass(heading: HeadingData): { [className: string]: boolean } {
     switch (heading.type) {
       case 'h1': return { '': heading.type === 'h1' };
       case 'h2': return { 'pl-4': heading.type === 'h2' };

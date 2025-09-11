@@ -12,6 +12,7 @@ import { InventoryAssistantComponent } from './views/inventory-assistant/invento
 import { MetadataAssistantComponent } from './views/metadata-assistant/metadata-assistant.component';
 import { AboutComponent } from './views/static/about.component';
 import { TestComponent } from './views/example/test.component';
+import { IaAssistantComponent } from './views/ia-assistant/ia-assistant.component';
 
 export const routes: Routes = [
     {
@@ -46,6 +47,11 @@ export const routes: Routes = [
         path: 'page-assistant',
         component: PageUploadComponent,
         title: 'title.page',
+    },
+    {
+        path: 'ia-assistant',
+        component: IaAssistantComponent,
+        title: 'title.ia',
     },
     {
         path: 'image-assistant',

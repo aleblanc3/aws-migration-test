@@ -1,7 +1,9 @@
 import { definePreset } from '@primeng/themes';
+/****** Other base theme options ******
 import Lara from '@primeng/themes/lara';
 import Aura from '@primeng/themes/aura';
 import Nora from '@primeng/themes/nora';
+***************************************/
 import Material from '@primeng/themes/material';
 
 const MyPreset = definePreset(Material, {

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core'; //remove OnInit if not using
+import { Component, OnInit, inject } from '@angular/core'; //remove OnInit if not using
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
 
 //Shared components
@@ -18,11 +18,12 @@ import { Button } from 'primeng/button';
   templateUrl: './test.component.html',
   styles: ``
 })
-export class TestComponent implements OnInit { //remove implements OnInit if not using
-  //Initialize stuff here
-
-  //This runs first, use it to inject services & other dependencies (delete if not needed)
-  constructor(private urlDataService: UrlDataService, private uploadState: UploadStateService, private router: Router, private translate: TranslateService) { } //Add any services you're using
+export class TestComponent implements OnInit {
+  //inject any services you're using
+  private urlDataService = inject(UrlDataService);
+  private uploadState = inject(UploadStateService);
+  private router = inject(Router);
+  private translate = inject(TranslateService);
 
   //Your functions go here
 
@@ -48,7 +49,7 @@ export class TestComponent implements OnInit { //remove implements OnInit if not
 
   // Fetches URL content and navigates to page assistant compare tool
 
-  error: string = '';
+  error = '';
   loading = false;
 
   async fetchAndGoToCompare(url: string): Promise<void> {

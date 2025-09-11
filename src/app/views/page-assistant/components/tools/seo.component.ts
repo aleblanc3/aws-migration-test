@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -20,8 +20,8 @@ import { UploadStateService } from '../../services/upload-state.service';
   styles: ``
 })
 export class SeoComponent implements OnInit {
-
-  constructor(private uploadState: UploadStateService, private translate: TranslateService) { }
+  private uploadState = inject(UploadStateService);
+  private translate = inject(TranslateService);
 
   ngOnInit() {
     const data = this.uploadState.getUploadData();
@@ -35,18 +35,18 @@ export class SeoComponent implements OnInit {
 
   }
 
-  isLoading: boolean = false;
+  isLoading = false;
 
   //Initialize metadata & breadcrumb arrays (note: this data is part of UploadData)
   metadata: MetadataData[] = [];
   metadataMap: Record<string, string> = {};
-  originalUrl: string = "";
+  originalUrl = "";
 
   //UPD data (placeholders for future function)
-  canadaSearchTerms: string = "";
-  googleSearchTerms: string = "";
-  userFeedback: string = "";
-  uxFindings: string = "";
+  canadaSearchTerms = "";
+  googleSearchTerms = "";
+  userFeedback = "";
+  uxFindings = "";
 
   print(text: string) {
     console.log(text);

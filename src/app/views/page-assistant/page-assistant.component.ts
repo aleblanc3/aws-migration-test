@@ -1,5 +1,5 @@
 import {
-  Component, ViewChild, OnInit,  //decorators & lifecycle
+  Component, ViewChild, OnInit, inject,  //decorators & lifecycle
   ElementRef, //DOM utilities
   signal, effect, computed //Signals/reactivity
 } from '@angular/core';
@@ -49,8 +49,17 @@ import { PageToolsComponent } from './components/tools.component';
   styleUrl: './page-assistant.component.css'
 })
 export class PageAssistantCompareComponent implements OnInit {
+  private translate = inject(TranslateService);
+  private messageService = inject(MessageService);
+  private confirmationService = inject(ConfirmationService);
+  private uploadState = inject(UploadStateService);
+  private sourceDiffService = inject(SourceDiffService);
+  private shadowDomService = inject(ShadowDomService);
+  private urlDataService = inject(UrlDataService);
+  private router = inject(Router);
+  private locationStrategy = inject(LocationStrategy);
 
-  constructor(private translate: TranslateService, private messageService: MessageService, private confirmationService: ConfirmationService, private uploadState: UploadStateService, private sourceDiffService: SourceDiffService, private shadowDomService: ShadowDomService, private urlDataService: UrlDataService, private router: Router, private locationStrategy: LocationStrategy) {
+  constructor() {
     effect(async () => {
       const data = this.uploadState.getUploadData();
       const viewType = this.webSelectedView();
@@ -117,8 +126,8 @@ export class PageAssistantCompareComponent implements OnInit {
   }
 
   //Disable AI if there are changes to accept/reject
-  isDisabled: boolean = false;
-  aiDisabled: string = "";
+  isDisabled = false;
+  aiDisabled = "";
 
   acceptItems: MenuItem[] = []
   rejectItems: MenuItem[] = []
@@ -321,7 +330,7 @@ export class PageAssistantCompareComponent implements OnInit {
     });
   }
 
-  canShare: boolean = false;
+  canShare = false;
   baseHref: string | null = null;
   shareLink() {
     console.log("Clicked share");
@@ -371,12 +380,12 @@ export class PageAssistantCompareComponent implements OnInit {
     this.selectedPromptKey = key;
   }
 
-  customPromptText: string = '';
+  customPromptText = '';
   onAppendCustom(prompt: string) {
     this.customPromptText = prompt;
   }
 
-  customEditText: string = '';
+  customEditText = '';
   onPrependLevel(prompt: string) {
     this.customEditText = prompt;
   }
@@ -610,7 +619,7 @@ export class PageAssistantCompareComponent implements OnInit {
   //End of shadow DOM navigation
 
   //Edit
-  toggleEdit: boolean = false;
+  toggleEdit = false;
   async toolbarToggleEdit(view: WebViewType): Promise<void> {
     const shadowRoot = this.shadowDOM();
     const editable = shadowRoot?.getElementById('editable');
@@ -643,7 +652,7 @@ export class PageAssistantCompareComponent implements OnInit {
   }
 
   //Copy
-  toggleCopy: boolean = false;
+  toggleCopy = false;
   toolbarToggleCopy(view: WebViewType): void {
     const data = this.uploadState.getUploadData();
     if (!data) return;

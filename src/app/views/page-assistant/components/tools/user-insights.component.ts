@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -17,15 +17,14 @@ import { IftaLabel } from 'primeng/iftalabel';
   styles: ``
 })
 export class UserInsightsComponent {
+  private translate = inject(TranslateService);
 
-  constructor(private translate: TranslateService) { }
-
-  isLoading: boolean = false;
+  isLoading = false;
 
   //UPD data (placeholders for future function)
-  task: string = ""
-  userFeedback: string = "";
-  uxFindings: string = "";
+  task = ""
+  userFeedback = "";
+  uxFindings = "";
 
   print(text: string) {
     console.log(text);

@@ -7,21 +7,21 @@
             <legend class="font-bold mb-3">Choose upload type:</legend>
 
             <div class="flex flex-column gap-3">
-                <label class="flex align-items-center">
-                    <p-radioButton name="uploadType" value="url" (onClick)="onUploadTypeChange('url')"
-                        [(ngModel)]="selectedUploadType"></p-radioButton>
+                <label for="url" class="flex align-items-center">
+                    <p-radioButton id="url" name="uploadType" value="url" (onClick)="onUploadTypeChange('url')"
+                                   [(ngModel)]="selectedUploadType"></p-radioButton>
                     <span class="ml-2">URL</span>
                 </label>
 
-                <label class="flex align-items-center">
-                    <p-radioButton name="uploadType" value="paste" (onClick)="onUploadTypeChange('paste')"
-                        [(ngModel)]="selectedUploadType"></p-radioButton>
+                <label for="paste" class="flex align-items-center">
+                    <p-radioButton id="paste" name="uploadType" value="paste" (onClick)="onUploadTypeChange('paste')"
+                                   [(ngModel)]="selectedUploadType"></p-radioButton>
                     <span class="ml-2">Copy & Paste</span>
                 </label>
 
-                <label class="flex align-items-center">
-                    <p-radioButton name="uploadType" value="word" (onClick)="onUploadTypeChange('word')"
-                        [(ngModel)]="selectedUploadType"></p-radioButton>
+                <label for="word" class="flex align-items-center">
+                    <p-radioButton id="word" name="uploadType" value="word" (onClick)="onUploadTypeChange('word')"
+                                   [(ngModel)]="selectedUploadType"></p-radioButton>
                     <span class="ml-2">Word doc (converts to HTML)</span>
                 </label>
             </div>

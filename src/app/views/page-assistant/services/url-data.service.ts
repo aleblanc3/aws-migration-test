@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { sampleHtmlO, sampleHtmlM, sampleSnippetO, sampleSnippetM, sampleWordO, sampleWordM } from '../data/sample-data.constants';
 import { htmlProcessingResult, MetadataData } from '../data/data.model'
 import { MenuItem } from 'primeng/api';
@@ -10,8 +10,7 @@ import * as parserHtml from 'prettier/parser-html';
   providedIn: 'root'
 })
 export class UrlDataService {
-
-  constructor(private uploadState: UploadStateService) { }
+  private uploadState = inject(UploadStateService);
 
   //Block unknown hosts
   private allowedHosts = new Set([

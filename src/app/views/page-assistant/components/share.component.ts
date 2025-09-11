@@ -1,7 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule, LocationStrategy } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Params } from '@angular/router';
 import { Router } from '@angular/router';
 
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
@@ -45,8 +45,12 @@ import { htmlProcessingResult } from '../data/data.model';
   styles: ``
 })
 export class ShareComponent implements OnInit {
-
-  constructor(private route: ActivatedRoute, private urlDataService: UrlDataService, private uploadState: UploadStateService, private translate: TranslateService, private router: Router, private locationStrategy: LocationStrategy) { }
+  private route = inject(ActivatedRoute);
+  private urlDataService = inject(UrlDataService);
+  private uploadState = inject(UploadStateService);
+  private translate = inject(TranslateService);
+  private router = inject(Router);
+  private locationStrategy = inject(LocationStrategy);
 
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {
@@ -59,19 +63,20 @@ export class ShareComponent implements OnInit {
     this.baseHref = this.locationStrategy.getBaseHref();
   }
 
-  url: string = ""
+  url = ""
   compareUrl: string | null = null
   baseHref: string | null = null;
   getShareLink(url: string, compareUrl: string | null) {
-    const params: any = {};
-    params.url = url;
-    params.compareUrl = compareUrl;
+    const params: Params = {
+      url,
+      compareUrl: compareUrl
+    };
     const treeLink = this.router.createUrlTree(['page-assistant/share'], { queryParams: params });
     const shareLink = `${window.location.origin}${this.baseHref}${this.router.serializeUrl(treeLink).replace(/^\//, '')}`;
     return shareLink;
   }
 
-  error: string = '';
+  error = '';
   loading = false;
 
   async fetchAndGoToCompare(url: string, compareUrl?: string): Promise<void> {

@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter } from '@angular/core';
+import { Component, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -29,6 +29,7 @@ import { UploadWordComponent } from './upload/upload-word.component';
   styles: ``,
 })
 export class AiOptionsComponent {
+  private uploadState = inject(UploadStateService);
 
   @Output() promptChange = new EventEmitter<PromptKey>();
   @Output() customPrompt = new EventEmitter<string>();
@@ -36,9 +37,7 @@ export class AiOptionsComponent {
   @Output() aiChange = new EventEmitter<AiModel>();
   @Output() aiSubmit = new EventEmitter<void>();
 
-  visible: boolean = false;
-
-  constructor(private uploadState: UploadStateService) { }
+  visible = false;
 
   //Gets upload type for task = compare with prototype
   get uploadType(): 'url' | 'paste' | 'word' {
@@ -129,8 +128,8 @@ export class AiOptionsComponent {
   }
 
   //Append custom instructions to prompt
-  addCustom: boolean = false;
-  customInstruction: string = '';
+  addCustom = false;
+  customInstruction = '';
   emitCustomPrompt(prompt: string): void {
     this.customPrompt.emit(prompt);
   }
@@ -142,7 +141,7 @@ export class AiOptionsComponent {
   }
 
   //Number of changes for AI to make
-  editLevel: number = 50;
+  editLevel = 50;
   editLevels = [
     { value: 0, label: 'Grammar and spelling only', prompt: 'Make minor edits to correct spelling or grammar errors only. Mostly ignore the other instructions provided.' },
     { value: 25, label: 'Minor edits', prompt: 'Make minor edits only to improve readability. Loosely follow the other instructions provided without making unnecessary changes.' },

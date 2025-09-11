@@ -1,4 +1,4 @@
-import { Component, OnInit, ElementRef, ViewChild, effect } from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild, effect, inject } from '@angular/core';
 import { CommonModule, LocationStrategy } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -24,6 +24,8 @@ import { TranslateService, TranslateModule } from '@ngx-translate/core';
 import { ThemeService } from '../../../../services/theme.service';
 
 import { MenuItem, TreeNode, TreeDragDropService } from 'primeng/api';
+
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'ca-ia-structure',
@@ -74,8 +76,14 @@ import { MenuItem, TreeNode, TreeDragDropService } from 'primeng/api';
 `
 })
 export class IaStructureComponent implements OnInit {
+  private uploadState = inject(UploadStateService);
+  private translate = inject(TranslateService);
+  private locationStrategy = inject(LocationStrategy);
+  private theme = inject(ThemeService);
 
-  constructor(private uploadState: UploadStateService, private translate: TranslateService, private locationStrategy: LocationStrategy, private theme: ThemeService) {
+  production: boolean = environment.production;
+
+  constructor() {
     effect(() => {
       this.theme.darkMode(); // track dark mode changes
       this.updateNodeStyles(this.iaChart, 0);
@@ -92,7 +100,7 @@ export class IaStructureComponent implements OnInit {
     this.baseHref = this.locationStrategy.getBaseHref();
   }
 
-  originalUrl: string = "";
+  originalUrl = "";
   //Breadcrumb & orphan status
   breadcrumb: MenuItem[] = [];
   urlFound: boolean | null = null;
@@ -100,13 +108,13 @@ export class IaStructureComponent implements OnInit {
   //IA chart
   iaChart: TreeNode[] | null = null;
   brokenLinks: { parentUrl?: string, url: string, status: number }[] = []
-  depth: number = 4 //default value
+  depth = 4 //default value
 
   //For tracking progress while building IA chart
-  isChartLoading: boolean = false;
-  iaProgress: number = 0;
-  totalUrls: number = 0;
-  processedUrls: number = 0;
+  isChartLoading = false;
+  iaProgress = 0;
+  totalUrls = 0;
+  processedUrls = 0;
 
   //Pages to skip children when building IA chart
   private readonly skipFormsAndPubs = new Set<string>([
@@ -806,33 +814,28 @@ export class IaStructureComponent implements OnInit {
     const dropParentUrl = event.dropNode.parent?.data?.url ?? '';
     const dropGrandparentUrl = event.dropNode.parent?.data?.originalParent ?? '';
 
-    console.log('Tag should be a if dropped on node:\n', tag);
+    //console.log('Tag should be a if dropped on node:\n', tag);
     if (droppedOnNode) { console.log('Dropped on node'); console.log('Checking if parentUrl matches node Url:\n', dropUrl); }
     else { console.log('Dropped between nodes'); console.log('Checking if parentUrl matches sibling parent Url:\n', dropParentUrl); }
-    console.log('Drag parentUrl:\n', dragParentUrl);
+    //console.log('Drag parentUrl:\n', dragParentUrl);
 
     const droppedOnParent = droppedOnNode && dragParentUrl === dropUrl;
     const reorderedSiblings = !droppedOnNode && dragParentUrl === dropParentUrl;
 
-    console.log('Sibling reorder: ', reorderedSiblings);
-    console.log('Dropped on parent: ', droppedOnParent);
+    //console.log('Sibling reorder: ', reorderedSiblings);
+    //console.log('Dropped on parent: ', droppedOnParent);
 
     //Check if dropping sibling onto a container
     const droppedOnContainerSibling = event.dropNode.data.isContainer && droppedOnNode && dragParentUrl === dropParentUrl;
     const droppedBetweenContainerSibling = event.dropNode.parent?.data?.isContainer && !droppedOnNode && dragParentUrl === dropGrandparentUrl;
-    console.log('Dropped on container sibling: ', droppedOnContainerSibling);
-    console.log('Dropped between container sibling: ', droppedBetweenContainerSibling);
+    //console.log('Dropped on container sibling: ', droppedOnContainerSibling);
+    //console.log('Dropped between container sibling: ', droppedBetweenContainerSibling);
 
     //Check for custom style (containers & dummy nodes)
     const isCustom = event.dragNode.data.customStyle
-    console.log('Container or dummy node: ', isCustom);
+    //console.log('Container or dummy node: ', isCustom);
 
-    console.log('Event drop', event);
-
-    //Set parentUrl for drag node <-- don't do this. The point of the parentUrl was to track original parent for styling moves, not changing it will allow move style to be removed if user puts it back (need to remove move style on move and let it re-set itself)
-    //if (droppedOnNode && event.dropNode.data.isContainer) { event.dragNode.data.parentUrl = dropParentUrl ?? ''; }
-    //else if (!droppedOnNode && event.dropNode.parent?.data?.isContainer) { event.dragNode.data.parentUrl = dropGrandparentUrl ?? ''; }
-    //else { event.dragNode.data.parentUrl = droppedOnNode ? dropUrl : dropParentUrl ?? ''; console.log('Not a container event', droppedOnNode); }
+    //console.log('Event drop', event);
 
     //Set move style when not reordering siblings, moving siblings into a template container, dragging a custom style node, or moving a new page
     if (!(droppedOnParent || reorderedSiblings || droppedOnContainerSibling || droppedBetweenContainerSibling || isCustom || event.dragNode.data.customStyleKey === 'new')) {
@@ -840,10 +843,11 @@ export class IaStructureComponent implements OnInit {
       event.dragNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
     }
 
-    //Cleanup dragover style (happens when hovering on parent but dropping between parent and top child) NOT WORKING YET
-    //const el = (event.originalEvent.target as HTMLElement)
-    //  .closest('.p-tree-node-content') as HTMLElement | null;
-    //el?.classList.remove('p-tree-node-dragover');
+    //Cleanup dragover style (happens when hovering on parent but dropping between parent and top child)
+    const treeRoot = targetEl.closest('.p-tree');
+    treeRoot?.querySelectorAll('.p-tree-node-dragover').forEach((el) => {
+      el.classList.remove('p-tree-node-dragover');
+    });
 
     console.log('Drag parent URL', event.dragNode.data.originalParent);
     this.updateNodeStyles(this.iaChart, 0);
