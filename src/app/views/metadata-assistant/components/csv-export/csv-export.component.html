@@ -24,41 +24,6 @@
             <span class="text-xs text-500 block mb-1">{{ 'metadata.csv.withTranslations' | translate }}</span>
             <span class="text-xl font-bold text-primary">{{ getTranslatedResultsCount() }}</span>
           </div>
-          <div class="stat-item">
-            <span class="text-xs text-500 block mb-1">{{ 'metadata.csv.columns' | translate }}</span>
-            <span class="text-xl font-bold text-primary">{{ includeTranslations ? 7 : 5 }}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="export-preview mb-3">
-        <h4 class="text-sm font-semibold mb-2">{{ 'metadata.csv.preview' | translate }}</h4>
-        <div class="preview-table p-2 surface-50 border-round">
-          <table class="w-full text-xs">
-            <thead>
-              <tr class="border-bottom-1 surface-border">
-                <th class="text-left p-1">{{ 'metadata.csv.url' | translate }}</th>
-                <th class="text-left p-1">{{ 'metadata.csv.metaDescription' | translate }}</th>
-                <th class="text-left p-1" *ngIf="includeTranslations">{{ 'metadata.csv.frenchDescription' | translate }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let result of results.slice(0, 2)" class="border-bottom-1 surface-border">
-                <td class="p-1 text-overflow-ellipsis white-space-nowrap overflow-hidden" [style.max-width]="'200px'">
-                  {{ result.url }}
-                </td>
-                <td class="p-1 text-overflow-ellipsis white-space-nowrap overflow-hidden" [style.max-width]="'250px'">
-                  {{ result.metaDescription }}
-                </td>
-                <td class="p-1 text-overflow-ellipsis white-space-nowrap overflow-hidden" [style.max-width]="'250px'" *ngIf="includeTranslations">
-                  {{ result.frenchTranslatedDescription || '-' }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="text-center text-xs text-500 mt-2" *ngIf="results.length > 2">
-            ... {{ 'metadata.csv.andMore' | translate: {count: results.length - 2} }}
-          </div>
         </div>
       </div>
 
@@ -67,14 +32,6 @@
           [label]="getExportButtonLabel()"
           icon="pi pi-file-export"
           severity="primary"
-          (onClick)="exportToCsv()">
-        </p-button>
-        <p-button 
-          [label]="'metadata.csv.copyForExcel' | translate"
-          icon="pi pi-copy"
-          severity="secondary"
-          [outlined]="true"
-          [pTooltip]="'metadata.csv.copyTooltip' | translate"
           (onClick)="exportToCsv()">
         </p-button>
       </div>
