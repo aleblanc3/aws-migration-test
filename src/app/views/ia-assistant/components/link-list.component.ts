@@ -65,7 +65,7 @@ import { TagModule } from 'primeng/tag';
 export class LinkListComponent {
   @Input() labelKey!: string;
   @Input() links!: UrlItem[];
-  @Input() type: string = 'prod';
+  @Input() type = 'prod';
   @Output() approve = new EventEmitter<{ url: UrlItem, event: Event }>();
   @Output() remove = new EventEmitter<UrlItem>();
 }

@@ -36,7 +36,8 @@
                     border-dashed border-round border-200 surface-100
                     hover:surface-200 hover:border-primary-400 transition-colors transition-duration-500 cursor-pointer"
                  (click)="fileUploadRef.choose()"
-                 tabindex="0">
+                 (keydown)="uploadOnKeydown($event)"
+                 tabindex="0" role="button">
                 <i class="pi pi-upload border-2 border-circle border-300 p-4 text-5xl text-color-secondary"></i>
                 <p class="m-0 mt-3">{{ 'page.upload.word.instruction' | translate }}</p>
             </div>

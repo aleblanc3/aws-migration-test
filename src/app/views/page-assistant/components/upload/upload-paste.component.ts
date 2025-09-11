@@ -79,8 +79,16 @@ export class UploadPasteComponent {
       }
 
       this.uploadComplete.emit();
-    } catch (err: any) {
-      this.error = `${tryError} ${err.message || err || unknownError}`;
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        this.error = `${tryError} ${err.message}`;
+      }
+      else if (typeof err === 'string') {
+        this.error = `${tryError} ${err}`;
+      }
+      else {
+        this.error = `${unknownError}`;
+      }
     } finally {
       this.loading = false;
     }

@@ -24,6 +24,7 @@ import { TranslateService, TranslateModule } from '@ngx-translate/core';
 import { ThemeService } from '../../../../services/theme.service';
 
 import { MenuItem, TreeNode, TreeDragDropService } from 'primeng/api';
+import { FullscreenHTMLElement } from '../../../ia-assistant/data/data.model';
 
 import { environment } from '../../../../../environments/environment';
 
@@ -283,7 +284,7 @@ export class IaStructureComponent implements OnInit {
     }
   }
   //Step 2b: Crawl all child pages for IA data
-  async buildIaTree(urls: string[], depth: number, parentUrl?: string, level: number = 0): Promise<TreeNode[]> {
+  async buildIaTree(urls: string[], depth: number, parentUrl?: string, level = 0): Promise<TreeNode[]> {
     if (depth <= 0) return [];
 
     //reset progress tracker
@@ -392,10 +393,8 @@ export class IaStructureComponent implements OnInit {
   //Full screen element
   @ViewChild('chartContainer') chartContainer!: ElementRef;
   maximize(elRef: ElementRef) {
-    const element = elRef.nativeElement as HTMLElement;
-    if (element.requestFullscreen) { element.requestFullscreen(); }
-    else if ((element as any).webkitRequestFullscreen) { (element as any).webkitRequestFullscreen(); } // Safari
-    else if ((element as any).msRequestFullscreen) { (element as any).msRequestFullscreen(); }// IE11
+    const element = elRef.nativeElement as FullscreenHTMLElement;
+    element.requestFullscreen?.() || element.webkitRequestFullscreen?.() || element.msRequestFullscreen?.(); //backup support for IE11 & Safari
   }
 
   //Context menu
@@ -546,8 +545,8 @@ export class IaStructureComponent implements OnInit {
     },
   ]
   selectedNode!: TreeNode;
-  draggable: boolean = true;
-  selectable: boolean = true;
+  draggable = true;
+  selectable = true;
 
   //For tracking previous states
   editingNode: TreeNode | null = null;
@@ -853,7 +852,7 @@ export class IaStructureComponent implements OnInit {
     this.updateNodeStyles(this.iaChart, 0);
   }
 
-  private updateNodeStyles(nodes: TreeNode[] | null, level: number = 0): void {
+  private updateNodeStyles(nodes: TreeNode[] | null, level = 0): void {
     if (!nodes) return;
 
     for (const node of nodes) {

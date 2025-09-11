@@ -409,7 +409,7 @@ export class PageAssistantCompareComponent implements OnInit {
   }
   //AI interaction
   isLoading = false;
-  statusMessage: string = '';
+  statusMessage = '';
   statusSeverity: 'info' | 'warn' | 'error' | 'success' = 'info';
 
   async sendToAI(): Promise<void> {
