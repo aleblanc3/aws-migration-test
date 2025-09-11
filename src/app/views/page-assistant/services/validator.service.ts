@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { allowedElements, allowedClasses, disallowedAttributes, guidanceMap, guidanceContentMap } from '../data/css-list.config';
+import { allowedElements, allowedClasses, disallowedAttributes, guidanceMap, guidanceExclusionMap, guidanceContentMap } from '../data/css-list.config';
 
 @Injectable({
   providedIn: 'root'
@@ -84,6 +84,7 @@ export class ValidatorService {
 
     this.walkForGuidance(doc.body, found);
     this.walkForContentGuidance(doc.body, found);
+    this.walkForGuidanceByExclusion(doc.body, found);
 
     return Array.from(found.values()); // unique by url
   }
@@ -118,7 +119,12 @@ export class ValidatorService {
       const text = node.textContent?.trim();
       if (text) {
         for (const group of guidanceContentMap) {
-          if (group.tag === tagName &&
+          const tagMatches =
+            typeof group.tag === 'string'
+              ? group.tag === tagName
+              : group.tag.test(tagName);
+
+          if (tagMatches &&
             group.patterns.some(pat =>
               typeof pat === 'string' ? pat === text : pat.test(text)
             )
@@ -134,6 +140,29 @@ export class ValidatorService {
         this.walkForContentGuidance(child as Element, found);
       }
     });
+  }
+
+  //Adds guidance if specific classes aren't found (example: it's probably a basic page if no doormats or subway pattern detected)
+  private walkForGuidanceByExclusion(
+    root: Element,
+    found: Map<string, { name: string; url: string }>
+  ) {
+    for (const group of guidanceExclusionMap) {
+
+      const hasExclusion = group.patterns.some(pat => {
+        if (typeof pat === 'string') {
+          return root.querySelector(`.${pat}`) !== null;
+        } else {
+          return Array.from(root.querySelectorAll('[class]')).some(el =>
+            el.className.split(/\s+/).some(cls => pat.test(cls))
+          );
+        }
+      });
+
+      if (!hasExclusion) {
+        found.set(group.url, { name: group.name, url: group.url });
+      }
+    }
   }
 
 }

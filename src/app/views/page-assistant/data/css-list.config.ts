@@ -176,6 +176,7 @@ export const deprecatedClasses: (string | RegExp)[] = [
     'gc-navseq'
 ];
 
+//These patterns are for matching classes only. Use guidanceContentMap for elements.
 export const guidanceMap: {
     name: string;
     url: string;
@@ -192,9 +193,9 @@ export const guidanceMap: {
             patterns: [/^alert(-(danger|dismissable|dismissible|info|link|success|warning))?$/],
         },
         {
-            name: 'page.tools.guidance.craVariant.headings.title',
-            url: 'page.tools.guidance.craVariant.headings.url',
-            patterns: [/^h[1-6]$/],
+            name: 'page.tools.guidance.craVariant.doormats.title',
+            url: 'page.tools.guidance.craVariant.doormats.url',
+            patterns: [/^(gc-srvinfo|list-group)$/],
         },
         {
             name: 'page.tools.guidance.craVariant.fieldflow.title',
@@ -245,12 +246,105 @@ export const guidanceMap: {
             url: 'page.tools.guidance.gcCore.calendar.url',
             patterns: ['wb-calevt'],
         },
+        {
+            name: 'page.tools.guidance.gcCore.carousel.title',
+            url: 'page.tools.guidance.gcCore.carousel.url',
+            patterns: [/^carousel(-(caption|control|indicators|inner|s[12]))?$/,
+                /\b(fd-(slider|wdgt)(-(bar|handle|range))?|slide|slidefade|slidevert)\b/,],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.charts.title',
+            url: 'page.tools.guidance.gcCore.charts.url',
+            patterns: ['wb-charts'],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.features.title',
+            url: 'page.tools.guidance.gcCore.features.url',
+            patterns: ['gc-features'],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.inview.title',
+            url: 'page.tools.guidance.gcCore.inview.url',
+            patterns: ['wb-inview'],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.dismissable.title',
+            url: 'page.tools.guidance.gcCore.dismissable.url',
+            patterns: ['wb-dismissable'],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.equalHeight.title',
+            url: 'page.tools.guidance.gcCore.equalHeight.url',
+            patterns: ['wb-eqht'],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.footnote.title',
+            url: 'page.tools.guidance.gcCore.footnote.url',
+            patterns: ['wb-fnote'],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.forms.title',
+            url: 'page.tools.guidance.gcCore.forms.url',
+            patterns: [/^btn(-(block|call-to-action|cnt|danger|default|group(-(justified|lg|sm|vertical|xs))?|info|lg|link|primary|sm|success|toolbar|warning|xs|all-services))?$/,
+                /^form-(control(-(feedback|static))?|group(-(lg|sm))?|horizontal|inline)$/,
+                /\b(checkbox(-inline|-standalone)?|radio(-inline)?|control(-label)?|controls|inputs-zone|submit|reset|picker-overlay|datepicker-format)\b/,
+                /^(input-(group(-(addon|btn|lg|sm))?|lg|sm)|form-(control(-(feedback|static))?|group(-(lg|sm))?|horizontal|inline))$/,
+                /\b(active|disabled|selected|hover|required(-no-asterisk)?)\b/,
+                /\b(buttons|basic-link|legend-brdr-bttm|legend-label-only)\b/,
+                /^dropdown-?(backdrop|header|menu-?(left|right)?|toggle)?$|^dropup$/,],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.forms.title',
+            url: 'page.tools.guidance.gcCore.forms.url',
+            patterns: [/^col-?(xs|sm|md|lg)?-?([0-9]{1,2}|auto)?$/,
+                /^col-(xs|sm|md|lg)-(offset|push|pull)-[0-9]{1,2}$/,
+                /^colcount-(xxs|xs|sm|md|lg|xl)-[2-4]$/,
+                'colcount-no-break',
+                /^row(border)?$/],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.hidden.title',
+            url: 'page.tools.guidance.gcCore.hidden.url',
+            patterns: [/^visible-(xs|sm|md|lg|print)(-(block|inline|inline-block))?$/,
+                /^hidden(-(xs|sm|md|lg|print|hd))?$/,
+                /^sr-only(-focusable)?$/],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.label.title',
+            url: 'page.tools.guidance.gcCore.label.url',
+            patterns: ['label'],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.checkboxAndRadio.title',
+            url: 'page.tools.guidance.gcCore.checkboxAndRadio.url',
+            patterns: ['gc-chckbxrdio'],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.margin.title',
+            url: 'page.tools.guidance.gcCore.margin.url',
+            patterns: [/^mrgn-(tp|bttm|lft|rght)-(0|xs|sm|md|lg|xl)$/,
+                /^(m|p)([trblxy]?)-(auto|[0-5])$/,
+                /^(m|p)([trblxy]?)-(lg|md|sm)-?(auto|[0-5])$/,
+                /^margin-(top|bottom)-(none|large|medium)$/,],
+        },
+    ];
+
+export const guidanceExclusionMap: {
+    name: string;
+    url: string;
+    patterns: (string | RegExp)[];
+}[] = [
+        {
+            name: 'page.tools.guidance.craVariant.basicPage.title',
+            url: 'page.tools.guidance.craVariant.basicPage.url',
+            patterns: [/^(gc-srvinfo|list-group)$/, /^gc-subway(-pagination)?$/],
+        },
     ];
 
 export const guidanceContentMap: {
     name: string;
     url: string;
-    tag: string;
+    tag: (string | RegExp),
     patterns: (string | RegExp)[];
 }[] = [
         {
@@ -278,15 +372,39 @@ export const guidanceContentMap: {
             patterns: [/^.*?$/],
         },
         {
-            name: 'page.tools.guidance.craVariant.basicPage.title',
-            url: 'page.tools.guidance.craVariant.basicPage.url',
-            tag: 'p',
-            patterns: [/^BANANA$/],
+            name: 'page.tools.guidance.craVariant.headings.title',
+            url: 'page.tools.guidance.craVariant.headings.url',
+            tag: /^h[1-6]$/,
+            patterns: [/^.*?$/],
         },
         {
             name: 'page.tools.guidance.craVariant.borders.title',
             url: 'page.tools.guidance.craVariant.borders.url',
             tag: 'br',
+            patterns: [/^.*?$/],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.code.title',
+            url: 'page.tools.guidance.gcCore.code.url',
+            tag: /^(code|pre)$/,
+            patterns: [/^.*?$/],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.exHide.title',
+            url: 'page.tools.guidance.gcCore.exHide.url',
+            tag: /^(details|summary)$/,
+            patterns: [/^.*?$/],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.images.title',
+            url: 'page.tools.guidance.gcCore.images.url',
+            tag: 'img',
+            patterns: [/^.*?$/],
+        },
+        {
+            name: 'page.tools.guidance.gcCore.keyboardKeys.title',
+            url: 'page.tools.guidance.gcCore.keyboardKeys.url',
+            tag: 'kbd',
             patterns: [/^.*?$/],
         },
     ];
