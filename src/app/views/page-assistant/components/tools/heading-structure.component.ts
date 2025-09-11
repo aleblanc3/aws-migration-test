@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -31,8 +31,8 @@ interface Column {
   styles: ``
 })
 export class HeadingStructureComponent implements OnInit {
-
-  constructor(private uploadState: UploadStateService, private translate: TranslateService) { }
+  private uploadState = inject(UploadStateService);
+  private translate = inject(TranslateService);
 
   ngOnInit() {
     this.fetchHeadings();

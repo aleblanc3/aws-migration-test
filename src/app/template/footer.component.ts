@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from "@ngx-translate/core";
 import { ToolbarModule } from 'primeng/toolbar';
@@ -30,7 +30,8 @@ import { ThemeService } from '../services/theme.service';
   `
 })
 export class FooterComponent {
-  constructor(private theme: ThemeService) { }
+  private theme = inject(ThemeService);
+
   get logoSrc() {
     return this.theme.darkMode() ? 'canada-logo-dark.png' : 'canada-logo.png';
   }

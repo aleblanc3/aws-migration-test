@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterModule } from '@angular/router';
 import { Title } from '@angular/platform-browser';
@@ -19,8 +19,10 @@ import { PrimeNG } from 'primeng/config';
   styleUrl: './app.component.css'
 })
 export class AppComponent implements OnInit {
-
-  constructor(public CustomTitle: CustomTitleStrategy, public titleService: Title, public localStore: LocalStorageService, private primeng: PrimeNG) { }
+  CustomTitle = inject(CustomTitleStrategy);
+  titleService = inject(Title);
+  localStore = inject(LocalStorageService);
+  private primeng = inject(PrimeNG);
 
   ngOnInit() {
     this.primeng.ripple.set(true);

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -23,10 +23,12 @@ import { environment } from '../../../../../environments/environment';
   styles: ``
 })
 export class ComponentGuidanceComponent implements OnInit {
+  private uploadState = inject(UploadStateService);
+  private translate = inject(TranslateService);
+  private validator = inject(ValidatorService);
+  private http = inject(HttpClient);
 
   production: boolean = environment.production;
-
-  constructor(private uploadState: UploadStateService, private translate: TranslateService, private validator: ValidatorService, private http: HttpClient) { }
 
   ngOnInit() {
     const data = this.uploadState.getUploadData();

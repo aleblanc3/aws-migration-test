@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -28,8 +28,8 @@ import { UploadStateService } from '../services/upload-state.service';
   styles: ``
 })
 export class PageUploadComponent implements OnInit {
-
-  constructor(private uploadState: UploadStateService, private router: Router) { }
+  private uploadState = inject(UploadStateService);
+  private router = inject(Router);
 
   ngOnInit(): void {
     const data = this.uploadState.getUploadData();

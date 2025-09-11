@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
@@ -33,8 +33,7 @@ import { environment } from '../../../environments/environment';
   styles: ``
 })
 export class IaAssistantComponent {
-
-  constructor(private confirmationService: ConfirmationService) { }
+  private confirmationService = inject(ConfirmationService);
 
   //Step
   activeStep: number = 1;

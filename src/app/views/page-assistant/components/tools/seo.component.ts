@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -20,8 +20,8 @@ import { UploadStateService } from '../../services/upload-state.service';
   styles: ``
 })
 export class SeoComponent implements OnInit {
-
-  constructor(private uploadState: UploadStateService, private translate: TranslateService) { }
+  private uploadState = inject(UploadStateService);
+  private translate = inject(TranslateService);
 
   ngOnInit() {
     const data = this.uploadState.getUploadData();

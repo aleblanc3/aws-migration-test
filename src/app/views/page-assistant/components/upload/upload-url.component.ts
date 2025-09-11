@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter, Input } from '@angular/core';
+import { Component, Output, EventEmitter, Input, inject } from '@angular/core';
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -17,7 +17,6 @@ import { trigger, state, style, transition, animate } from '@angular/animations'
 //Page assistant
 import { UrlDataService } from '../../services/url-data.service';
 import { UploadStateService } from '../../services/upload-state.service';
-import { UploadData, ModifiedData } from '../../data/data.model'
 
 @Component({
   selector: 'ca-upload-url',
@@ -47,6 +46,9 @@ import { UploadData, ModifiedData } from '../../data/data.model'
   ]
 })
 export class UploadUrlComponent {
+  private urlDataService = inject(UrlDataService);
+  private uploadState = inject(UploadStateService);
+  private translate = inject(TranslateService);
 
   //Import data from parent component
   @Input() mode: 'original' | 'prototype' = 'original';
@@ -65,9 +67,6 @@ export class UploadUrlComponent {
   error: string = '';
   loading = false;
   showHelp: boolean = false;
-
-  //This runs first, use it to inject services & other dependencies (delete if not needed)
-  constructor(private urlDataService: UrlDataService, private uploadState: UploadStateService, private translate: TranslateService) { }
 
   async getHtmlContent() {
     const unknownError = this.translate.instant('page.upload.error.unknown');

@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TranslateModule} from "@ngx-translate/core";
+import { TranslateModule } from "@ngx-translate/core";
 import { LocalStorageService } from '../services/local-storage.service';
 
 //PrimeNG
@@ -16,12 +16,11 @@ import { CardModule } from 'primeng/card';
   styles: ``
 })
 export class ApiKeyComponent {
+  localStore = inject(LocalStorageService);
+
   api: string = '';
   error: string = '';
   emailLink: string = '';
   messageTemplate: string = '';
   apiKeyInstructions: string = '';
-  constructor(public localStore: LocalStorageService) {
-    
-  }
 }

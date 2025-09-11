@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter, Input } from '@angular/core';
+import { Component, Output, EventEmitter, Input, inject } from '@angular/core';
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -49,6 +49,9 @@ import { UploadStateService } from '../../services/upload-state.service';
   `
 })
 export class UploadWordComponent {
+  private urlDataService = inject(UrlDataService);
+  private uploadState = inject(UploadStateService);
+  private translate = inject(TranslateService);
 
   //Import data from parent component
   @Input() mode: 'original' | 'prototype' = 'original';
@@ -57,8 +60,6 @@ export class UploadWordComponent {
 
   //Export upload complete
   @Output() uploadComplete = new EventEmitter<void>();
-
-  constructor(private urlDataService: UrlDataService, private uploadState: UploadStateService, private translate: TranslateService) { }
 
   //Initialize stuff
   error: string = '';

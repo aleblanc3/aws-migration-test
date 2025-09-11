@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { TranslateModule } from "@ngx-translate/core";
 import { LocalStorageService } from '../services/local-storage.service';
 import { ButtonModule } from 'primeng/button';
@@ -25,5 +25,6 @@ import { ButtonModule } from 'primeng/button';
   }`
 })
 export class ApiResetComponent {
-  constructor(public localStore: LocalStorageService) { }
+  localStore = inject(LocalStorageService);
+
 }

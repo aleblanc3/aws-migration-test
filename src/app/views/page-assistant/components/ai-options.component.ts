@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter } from '@angular/core';
+import { Component, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -29,6 +29,7 @@ import { UploadWordComponent } from './upload/upload-word.component';
   styles: ``,
 })
 export class AiOptionsComponent {
+  private uploadState = inject(UploadStateService);
 
   @Output() promptChange = new EventEmitter<PromptKey>();
   @Output() customPrompt = new EventEmitter<string>();
@@ -37,8 +38,6 @@ export class AiOptionsComponent {
   @Output() aiSubmit = new EventEmitter<void>();
 
   visible: boolean = false;
-
-  constructor(private uploadState: UploadStateService) { }
 
   //Gets upload type for task = compare with prototype
   get uploadType(): 'url' | 'paste' | 'word' {
