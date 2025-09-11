@@ -3,7 +3,7 @@
     <ca-header></ca-header>
     <ca-sidebar></ca-sidebar>
     <ca-api-key *ngIf="this.localStore.getData('apiKey') === null"></ca-api-key>
-    <router-outlet *ngIf="this.localStore.getData('apiKey') != null"></router-outlet>
+    <router-outlet *ngIf="this.localStore.getData('apiKey') !== null"></router-outlet>
   </main>
   <ca-footer></ca-footer>
 </body>
