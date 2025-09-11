@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -11,7 +11,7 @@ import { MessageService } from 'primeng/api';
 // Services
 import { ApiKeyService } from '../../services/api-key.service';
 import { ImageProcessorService, VisionAnalysisResult } from '../../services/image-processor';
-import { ImageAssistantStateService, FileProcessingResult } from '../../services/image-assistant-state.service';
+import { ImageAssistantStateService, FileProcessingResult, ProcessingState } from '../../services/image-assistant-state.service';
 import { PdfConverterService } from '../../services/pdf-converter.service';
 
 // Components
@@ -46,12 +46,12 @@ import { CsvDownloadComponent } from './components/csv-download/csv-download.com
 })
 export class ImageAssistantComponent implements OnInit, OnDestroy {
   // Processing State
-  selectedVisionModel: string = 'qwen/qwen2.5-vl-32b-instruct:free';
-  filesToProcess: Array<{file: File, displayName: string}> = [];
-  state$!: Observable<any>;
+  selectedVisionModel = 'qwen/qwen2.5-vl-32b-instruct:free';
+  filesToProcess: {file: File, displayName: string}[] = [];
+  state$!: Observable<ProcessingState>;
   
   // Timing tracking
-  private processingStartTime: number = 0;
+  private processingStartTime = 0;
   
   // Model options for the shared selector
   visionModels: ModelOption[] = [
@@ -69,17 +69,17 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
   
   private subscriptions: Subscription[] = [];
 
-  constructor(
-    public apiKeyService: ApiKeyService,
-    private imageProcessorService: ImageProcessorService,
-    private stateService: ImageAssistantStateService,
-    private translate: TranslateService,
-    private cdr: ChangeDetectorRef,
-    private route: ActivatedRoute,
-    private router: Router,
-    private pdfConverterService: PdfConverterService,
-    private messageService: MessageService
-  ) {
+  public readonly apiKeyService = inject(ApiKeyService);
+  private readonly imageProcessorService = inject(ImageProcessorService);
+  private readonly stateService = inject(ImageAssistantStateService);
+  private readonly translate = inject(TranslateService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly pdfConverterService = inject(PdfConverterService);
+  private readonly messageService = inject(MessageService);
+
+  constructor() {
     this.state$ = this.stateService.state$;
   }
 
@@ -109,14 +109,14 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
     this.filesToProcess = [];
     let actualFileCount = 0;
     
-    for (let i = 0; i < files.length; i++) {
+    for (const file of files) {
       this.filesToProcess.push({
-        file: files[i],
-        displayName: files[i].name
+        file: file,
+        displayName: file.name
       });
       
       // Only count non-PDF files for the progress indicator
-      if (files[i].type !== 'application/pdf') {
+      if (file.type !== 'application/pdf') {
         actualFileCount++;
       }
     }
@@ -228,7 +228,7 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
             this.stateService.incrementProcessedCount();
             this.processNextFile();
           },
-          error: (err: any) => {
+          error: (err: Error) => {
             console.error(`Error analyzing image ${displayName}:`, err);
             
             // Check for specific error types
@@ -265,8 +265,10 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
         this.stateService.incrementProcessedCount();
         this.processNextFile();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`Error processing file ${displayName}:`, error);
+      
+      const errorMessage = error instanceof Error ? error.message : this.translate.instant('image.error.failedToProcess');
       
       // Only update result if it's not a PDF (PDFs don't have result entries)
       if (file.type !== 'application/pdf') {
@@ -276,7 +278,7 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
             imageBase64: null,
             english: null,
             french: null,
-            error: error.message || this.translate.instant('image.error.failedToProcess')
+            error: errorMessage
           }
         });
         this.stateService.incrementProcessedCount();
@@ -310,7 +312,7 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
   }
 
   // Helper method for template to convert object to array
-  getResultsArray(results: { [key: string]: FileProcessingResult }): FileProcessingResult[] {
+  getResultsArray(results: Record<string, FileProcessingResult>): FileProcessingResult[] {
     return Object.values(results);
   }
   

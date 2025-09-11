@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ButtonModule } from 'primeng/button';
@@ -19,9 +19,9 @@ import { FileProcessingResult } from '../../../../services/image-assistant-state
   `]
 })
 export class CsvDownloadComponent {
-  @Input() results: { [fileName: string]: FileProcessingResult } = {};
+  @Input() results: Record<string, FileProcessingResult> = {};
   
-  constructor(private translate: TranslateService) {}
+  private readonly translate = inject(TranslateService);
   
   hasResults(): boolean {
     return Object.keys(this.results).length > 0;
