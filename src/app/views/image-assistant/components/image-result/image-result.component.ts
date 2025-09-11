@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ButtonModule } from 'primeng/button';
@@ -73,10 +73,8 @@ import { ImageProcessorService } from '../../../../services/image-processor';
 export class ImageResultComponent {
   @Input() result!: FileProcessingResult;
   
-  constructor(
-    private translate: TranslateService,
-    private imageProcessor: ImageProcessorService
-  ) {}
+  private readonly translate = inject(TranslateService);
+  private readonly imageProcessor = inject(ImageProcessorService);
 
   toggleFullText(): void {
     this.result.showFullText = !this.result.showFullText;
@@ -103,7 +101,7 @@ export class ImageResultComponent {
     return this.imageProcessor.formatDescription(text);
   }
 
-  getTruncatedText(text: string | null, maxLength: number = 150): string {
+  getTruncatedText(text: string | null, maxLength = 150): string {
     if (!text) return '';
     return text.length > maxLength ? text.substring(0, maxLength) : text;
   }
