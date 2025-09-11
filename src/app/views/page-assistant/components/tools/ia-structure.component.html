@@ -62,7 +62,7 @@
 </ng-container>
 
 <!--IA Table-->
-<ng-container *ngIf="iaChart">
+<ng-container *ngIf="iaChart && !production">
     <h2>IA structure table</h2>
     <p-treeTable [value]="iaChart" styleClass="p-treetable-sm" [scrollable]="true">
         <ng-template #header>

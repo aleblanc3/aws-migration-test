@@ -25,6 +25,8 @@ import { ThemeService } from '../../../../services/theme.service';
 
 import { MenuItem, TreeNode, TreeDragDropService } from 'primeng/api';
 
+import { environment } from '../../../../../environments/environment';
+
 @Component({
   selector: 'ca-ia-structure',
   imports: [CommonModule, FormsModule,
@@ -74,6 +76,8 @@ import { MenuItem, TreeNode, TreeDragDropService } from 'primeng/api';
 `
 })
 export class IaStructureComponent implements OnInit {
+
+  production: boolean = environment.production;
 
   constructor(private uploadState: UploadStateService, private translate: TranslateService, private locationStrategy: LocationStrategy, private theme: ThemeService) {
     effect(() => {

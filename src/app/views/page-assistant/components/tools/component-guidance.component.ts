@@ -12,6 +12,8 @@ import { ValidatorService } from '../../services/validator.service';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
+import { environment } from '../../../../../environments/environment';
+
 @Component({
   selector: 'ca-component-guidance',
   imports: [CommonModule, FormsModule,
@@ -21,6 +23,8 @@ import { firstValueFrom } from 'rxjs';
   styles: ``
 })
 export class ComponentGuidanceComponent implements OnInit {
+
+  production: boolean = environment.production;
 
   constructor(private uploadState: UploadStateService, private translate: TranslateService, private validator: ValidatorService, private http: HttpClient) { }
 

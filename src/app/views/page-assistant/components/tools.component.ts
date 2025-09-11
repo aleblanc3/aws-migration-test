@@ -16,6 +16,8 @@ import { UserInsightsComponent } from "./tools/user-insights.component";
 import { LinkReportComponent } from "./tools/link-report.component";
 import { TemplateConversionComponent } from "./tools/template-conversion.component";
 
+import { environment } from '../../../../environments/environment';
+
 @Component({
   selector: 'ca-page-tools',
   imports: [CommonModule, TranslateModule,
@@ -30,6 +32,7 @@ import { TemplateConversionComponent } from "./tools/template-conversion.compone
 })
 export class PageToolsComponent {
 
+  production: boolean = environment.production;
   activePanels: number[] = [];
 
   isPanelOpen(panelIndex: number): boolean {
