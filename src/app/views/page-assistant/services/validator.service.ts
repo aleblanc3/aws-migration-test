@@ -17,7 +17,7 @@ export class ValidatorService {
     return violations;
   }
 
-  private walkNodes(node: Element, violations: any[]) {
+  private walkNodes(node: Element, violations: { type: string, detail: string, node: Element }[]) {
     if (node.nodeType === Node.ELEMENT_NODE) {
       const tagName = node.tagName.toLowerCase();
 
@@ -80,7 +80,7 @@ export class ValidatorService {
   collectGuidanceUrls(html: string): { name: string; url: string }[] {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
-    const found: Map<string, { name: string; url: string }> = new Map();
+    const found = new Map<string, { name: string; url: string }>();
 
     this.walkForGuidance(doc.body, found);
     this.walkForContentGuidance(doc.body, found);

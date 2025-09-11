@@ -49,7 +49,7 @@ export class TestComponent implements OnInit {
 
   // Fetches URL content and navigates to page assistant compare tool
 
-  error: string = '';
+  error = '';
   loading = false;
 
   async fetchAndGoToCompare(url: string): Promise<void> {

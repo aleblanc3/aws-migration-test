@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { TranslateModule, TranslateService } from "@ngx-translate/core";
+import { TranslateModule } from "@ngx-translate/core";
 
 @Component({
   selector: 'ca-about',
@@ -11,6 +11,5 @@ import { TranslateModule, TranslateService } from "@ngx-translate/core";
   styles: ``
 })
 export class AboutComponent {
-  constructor(){}
-  
+
 }

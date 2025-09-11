@@ -36,12 +36,12 @@ export class IaAssistantComponent {
   private confirmationService = inject(ConfirmationService);
 
   //Step
-  activeStep: number = 1;
+  activeStep = 1;
 
   /****************
    * SEARCH TERMS *
    ****************/
-  rawTerms: string = '';
+  rawTerms = '';
   terms: (string | RegExp)[] = []
 
   updateTerms() {
@@ -104,9 +104,9 @@ export class IaAssistantComponent {
   /****************
    *     URLS     *
    ****************/
-  rawUrls: string = '';
+  rawUrls = '';
   urlPairs: UrlPair[] = [];
-  includePrototypeLinks: boolean = false;
+  includePrototypeLinks = false;
 
   //for progress bar
   urlTotal = 0;

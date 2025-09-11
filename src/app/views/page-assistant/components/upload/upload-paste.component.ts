@@ -44,8 +44,8 @@ export class UploadPasteComponent {
   @Output() uploadComplete = new EventEmitter<void>();
 
   //Initialize stuff
-  userInput: string = '';
-  error: string = '';
+  userInput = '';
+  error = '';
   loading = false;
 
   async getPasteContent(): Promise<void> {

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { WebDiffService } from './web-diff.service';
 
 type SelectionTypes = {
@@ -11,8 +11,7 @@ type SelectionTypes = {
   providedIn: 'root'
 })
 export class ShadowDomService {
-  constructor(private webDiffService: WebDiffService) { }
-
+  private webDiffService = inject(WebDiffService);
 
   //Initialize shadowDOM on an element
   initializeShadowDOM(element: HTMLElement): ShadowRoot | null {
@@ -507,14 +506,14 @@ export class ShadowDomService {
 
       if (!selectedText) return -1;
 
-      let idx = shadowText.indexOf(selectedText);
+      const idx = shadowText.indexOf(selectedText);
 
       //No match
       if (idx === -1) {
         throw new Error("Selection not found in shadowDOM."); //should never appear
       }
       //2nd match
-      let secondIdx = shadowText.indexOf(selectedText, idx + 1);
+      const secondIdx = shadowText.indexOf(selectedText, idx + 1);
       if (secondIdx !== -1) {
         throw new Error("Selected text is not unique in shadowDOM.");
       }
@@ -541,7 +540,7 @@ export class ShadowDomService {
     }
 
     //Include text on either side of match to confirm accuracy
-    function expandBestMatch(element: HTMLElement, maxLength: number, chars: number = 5): string {
+    function expandBestMatch(element: HTMLElement, maxLength: number, chars = 5): string {
       let text = normalize(element.textContent || "");
       // If already longer than maxLength, just trim
       if (text.length >= maxLength) return text.slice(0, maxLength);

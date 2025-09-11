@@ -5,8 +5,6 @@ import { DiffOptions } from '../data/data.model';
   providedIn: 'root'
 })
 export class WebDiffService {
-  constructor() { }
-
 
   //Generate HTML diff (web page view) using htmldiff-js
   async generateHtmlDiff(originalHtml: string, modifiedHtml: string): Promise<string> {

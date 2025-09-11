@@ -8,7 +8,6 @@ import type { Diff2HtmlUIConfig } from 'diff2html/lib/ui/js/diff2html-ui-slim';
   providedIn: 'root'
 })
 export class SourceDiffService {
-  constructor() { }
 
   //Update source code views
 

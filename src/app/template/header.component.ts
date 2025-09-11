@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
@@ -28,7 +28,7 @@ import { ThemeService } from '../services/theme.service';
     </div>
     <div class="flex align-items-center gap-3">
       <ca-api-reset
-        *ngIf="this.localStore.getData('apiKey') != null">
+        *ngIf="this.localStore.getData('apiKey') !== null">
       </ca-api-reset>
 
       <p-togglebutton
@@ -75,14 +75,17 @@ import { ThemeService } from '../services/theme.service';
     `
 })
 export class HeaderComponent {
+  private translate = inject(TranslateService);
+  public localStore = inject(LocalStorageService);
+  public theme = inject(ThemeService);
 
   get logoSrc() {
     return this.theme.darkMode() ? 'cra-logo-dark.png' : 'cra-logo.png';
   }
 
   // constructor(public langToggle: LangToggleService){} //putting the code below into a service works but we aren't calling it anywhere else
-  constructor(private translate: TranslateService, public localStore: LocalStorageService, public theme: ThemeService) {
-    var curLang = this.localStore.getData('lang') || this.translate.getBrowserLang() || 'en';
+  constructor() {
+    let curLang = this.localStore.getData('lang') || this.translate.getBrowserLang() || 'en';
     console.log(this.translate.getBrowserLang());
     this.translate.addLangs(['en', 'fr']);
     this.translate.setDefaultLang('en');
@@ -90,7 +93,7 @@ export class HeaderComponent {
   }
 
   selectLanguage(): void {
-    var oppLang = ""
+    let oppLang = ""
     if (this.translate.currentLang == "en") { oppLang = "fr" }
     else { oppLang = "en" }
     this.translate.use(oppLang);

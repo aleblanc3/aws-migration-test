@@ -1,4 +1,4 @@
-import { Component, OnInit, ElementRef, ViewChild, effect } from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild, effect, inject } from '@angular/core';
 import { CommonModule, LocationStrategy } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -76,10 +76,14 @@ import { environment } from '../../../../../environments/environment';
 `
 })
 export class IaStructureComponent implements OnInit {
+  private uploadState = inject(UploadStateService);
+  private translate = inject(TranslateService);
+  private locationStrategy = inject(LocationStrategy);
+  private theme = inject(ThemeService);
 
   production: boolean = environment.production;
 
-  constructor(private uploadState: UploadStateService, private translate: TranslateService, private locationStrategy: LocationStrategy, private theme: ThemeService) {
+  constructor() {
     effect(() => {
       this.theme.darkMode(); // track dark mode changes
       this.updateNodeStyles(this.iaChart, 0);
@@ -96,7 +100,7 @@ export class IaStructureComponent implements OnInit {
     this.baseHref = this.locationStrategy.getBaseHref();
   }
 
-  originalUrl: string = "";
+  originalUrl = "";
   //Breadcrumb & orphan status
   breadcrumb: MenuItem[] = [];
   urlFound: boolean | null = null;
@@ -104,13 +108,13 @@ export class IaStructureComponent implements OnInit {
   //IA chart
   iaChart: TreeNode[] | null = null;
   brokenLinks: { parentUrl?: string, url: string, status: number }[] = []
-  depth: number = 4 //default value
+  depth = 4 //default value
 
   //For tracking progress while building IA chart
-  isChartLoading: boolean = false;
-  iaProgress: number = 0;
-  totalUrls: number = 0;
-  processedUrls: number = 0;
+  isChartLoading = false;
+  iaProgress = 0;
+  totalUrls = 0;
+  processedUrls = 0;
 
   //Pages to skip children when building IA chart
   private readonly skipFormsAndPubs = new Set<string>([

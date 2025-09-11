@@ -63,10 +63,10 @@ export class UploadUrlComponent {
   @Output() uploadComplete = new EventEmitter<void>();
 
   //Initialize stuff
-  userInput: string = '';
-  error: string = '';
+  userInput = '';
+  error = '';
   loading = false;
-  showHelp: boolean = false;
+  showHelp = false;
 
   async getHtmlContent() {
     const unknownError = this.translate.instant('page.upload.error.unknown');

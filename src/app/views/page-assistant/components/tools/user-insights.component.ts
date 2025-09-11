@@ -19,12 +19,12 @@ import { IftaLabel } from 'primeng/iftalabel';
 export class UserInsightsComponent {
   private translate = inject(TranslateService);
 
-  isLoading: boolean = false;
+  isLoading = false;
 
   //UPD data (placeholders for future function)
-  task: string = ""
-  userFeedback: string = "";
-  uxFindings: string = "";
+  task = ""
+  userFeedback = "";
+  uxFindings = "";
 
   print(text: string) {
     console.log(text);

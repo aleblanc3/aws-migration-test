@@ -38,7 +38,7 @@ export class PageUploadComponent implements OnInit {
     }
   }
 
-  selectedUploadType: string = 'url';  // Default to url radio button
+  selectedUploadType = 'url';  // Default to url radio button
   onUploadTypeChange(value: 'url' | 'paste' | 'word') { // Set variable in service
     this.selectedUploadType = value;
     this.uploadState.setUploadType(value);

@@ -62,10 +62,10 @@ export class UploadWordComponent {
   @Output() uploadComplete = new EventEmitter<void>();
 
   //Initialize stuff
-  error: string = '';
+  error = '';
   loading = false;
-  extractedHtml: string = ''; //only needed if emit is a separate step
-  uploadedFileName: string = ''; //only needed if emit is a separate step
+  extractedHtml = ''; //only needed if emit is a separate step
+  uploadedFileName = ''; //only needed if emit is a separate step
 
   formatSize(bytes: number): string {
     const k = 1024;
@@ -112,7 +112,7 @@ export class UploadWordComponent {
       try {
         const mammoth = await import('mammoth/mammoth.browser');
         const result = await mammoth.convertToHtml({ arrayBuffer });
-        var html = result.value.trim();
+        let html = result.value.trim();
         if (!html) {
           this.error = docError;
           return;
