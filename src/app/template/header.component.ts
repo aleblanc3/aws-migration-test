@@ -42,12 +42,8 @@ import { ThemeService } from '../services/theme.service';
         ariaLabel="Toggle between dark and light mode">
       </p-togglebutton>
 
-      <a
-        class="cursor-pointer underline font-medium text-blue-600 hover:text-blue-700"
-        tabindex="0"
-        (click)="selectLanguage()">
-        {{ 'opp.lang' | translate }}
-      </a>
+      <p-button (onClick)="selectLanguage()" [rounded]="true" [text]="true" styleClass="underline text-blue-600 hover:text-blue-700 nohover w-5rem" severity="secondary" [label]="'opp.lang' | translate" [ariaLabel]="'opp.lang' | translate"></p-button>
+
     </div>
   </p-toolbar>
 </header>
@@ -85,7 +81,7 @@ export class HeaderComponent {
 
   // constructor(public langToggle: LangToggleService){} //putting the code below into a service works but we aren't calling it anywhere else
   constructor() {
-    let curLang = this.localStore.getData('lang') || this.translate.getBrowserLang() || 'en';
+    const curLang = this.localStore.getData('lang') || this.translate.getBrowserLang() || 'en';
     console.log(this.translate.getBrowserLang());
     this.translate.addLangs(['en', 'fr']);
     this.translate.setDefaultLang('en');

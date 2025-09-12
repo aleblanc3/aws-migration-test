@@ -84,7 +84,7 @@ export class HeadingStructureComponent implements OnInit {
     }
   }
   //Classes
-  getTextClass(heading: HeadingData): { [className: string]: boolean } {
+  getTextClass(heading: HeadingData): Record<string, boolean> {
     switch (heading.type) {
       case 'h1': return { '': heading.type === 'h1' };
       case 'h2': return { 'pl-4': heading.type === 'h2' };

@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter, Input, inject } from '@angular/core';
+import { Component, Output, EventEmitter, Input, inject, ViewChild } from '@angular/core';
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -6,7 +6,7 @@ import { environment } from '../../../../../environments/environment';
 
 //primeNG
 import { ButtonModule } from 'primeng/button';
-import { FileUploadModule } from 'primeng/fileupload';
+import { FileUploadModule, FileUploadHandlerEvent, FileUpload } from 'primeng/fileupload';
 import { Message } from 'primeng/message';
 
 //Page assistant
@@ -89,7 +89,7 @@ export class UploadWordComponent {
     return `${formattedSize} ${sizes[index]}`;
   }
 
-  getWordContent(event: any): void {
+  getWordContent(event: FileUploadHandlerEvent): void {
     this.loading = true;
     const uploadError = this.translate.instant('page.upload.word.error.upload');
     const docError = this.translate.instant('page.upload.word.error.doc');
@@ -142,8 +142,16 @@ export class UploadWordComponent {
         //Remove this line if we want to emit during the upload step
         this.extractedHtml = html;
 
-      } catch (err: any) {
-        this.error = `${tryError} ${err.message || err || unknownError}`;
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          this.error = `${tryError} ${err.message}`;
+        }
+        else if (typeof err === 'string') {
+          this.error = `${tryError} ${err}`;
+        }
+        else {
+          this.error = `${unknownError}`;
+        }
       } finally {
         this.loading = false;
       }
@@ -176,6 +184,14 @@ export class UploadWordComponent {
   async loadSampleData() {
     await this.urlDataService.loadSampleDataset('word');
     this.uploadComplete.emit();
+  }
+
+  //Choose file on enter or space (for accesibility since we don't have a button)
+  @ViewChild('fileUploadRef') fileUploadRef!: FileUpload;
+  uploadOnKeydown(event: KeyboardEvent) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      this.fileUploadRef?.choose();
+    }
   }
 
 }

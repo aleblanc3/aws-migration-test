@@ -97,3 +97,16 @@ export enum AiModel {
   Llama31 = 'meta-llama/llama-3.1-405b-instruct:free' //66k context = fine???
 }
 
+export interface LinkData {
+  text: string;
+  href: string;
+  insText: string;
+  element: Element;
+}
+
+export interface SelectionTypes {
+  count: number;
+  startId: number | null;
+  endId: number | null;
+};
+

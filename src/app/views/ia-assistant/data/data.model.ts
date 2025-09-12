@@ -8,3 +8,8 @@ export interface UrlPair {
     production: UrlItem;
     prototype?: UrlItem;
 }
+
+export interface FullscreenHTMLElement extends HTMLElement {
+    webkitRequestFullscreen?: () => Promise<void>;
+    msRequestFullscreen?: () => Promise<void>;
+}

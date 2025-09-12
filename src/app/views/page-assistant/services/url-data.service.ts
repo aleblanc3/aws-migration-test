@@ -137,7 +137,7 @@ export class UrlDataService {
     html = html.replace(/^<p>/, '').replace(/<\/p>$/, '').trim();
     const doc = new DOMParser().parseFromString(html, 'text/html');
     doc.querySelectorAll("p").forEach(p => {
-      let children = p.children;
+      const children = p.children;
       // If the <p> only contains one block-level element, unwrap it
       if (children.length === 1 && children[0].matches("div, section, ul, ol, table, h1, h2, h3, h4, h5, h6")) {
         p.replaceWith(...p.childNodes);
@@ -156,20 +156,23 @@ export class UrlDataService {
     return doc.body.outerHTML;
   }
 
+  //Get text or json content for AJAX or JSON calls
+  private async fetchUrl(url: string, type: 'json'): Promise<unknown>;
+  private async fetchUrl(url: string, type: 'text'): Promise<string>;
+  private async fetchUrl(url: string, type: 'json' | 'text'): Promise<unknown | string> {
+    try {
+      const response = await fetch(url);
+      return type === 'json' ? response.json() : response.text();
+    } catch (error) {
+      console.error(`Error fetching URL: ${url}`, error);
+      return type === 'json' ? {} : '';
+    }
+  };
+
   //Resolve AJAX-loaded content
   private async processAjaxReplacements(doc: Document): Promise<boolean> {
     let found = false;
     const baseUrl = 'https://www.canada.ca';
-
-    const fetchUrl = async (url: string, type: 'json' | 'text'): Promise<any> => {
-      try {
-        const response = await fetch(url);
-        return type === 'json' ? response.json() : response.text();
-      } catch (error) {
-        console.error(`Error fetching URL: ${url}`, error);
-        return type === 'json' ? {} : '';
-      }
-    };
 
     const processElements = async (): Promise<void> => {
       const ajaxElements = doc.querySelectorAll(
@@ -183,8 +186,7 @@ export class UrlDataService {
         const tag = element.tagName.toLowerCase();
         const attributes = element.attributes;
 
-        for (let i = 0; i < attributes.length; i++) {
-          const attr = attributes[i];
+        for (const attr of Array.from(attributes)) {
           const attrName = attr.name;
           const ajaxUrl = attr.value;
 
@@ -194,7 +196,7 @@ export class UrlDataService {
 
           const [url, anchor] = ajaxUrl.split('#');
           const fullUrl = `${baseUrl}${url}`;
-          const fetchedHtml = await fetchUrl(fullUrl, 'text');
+          const fetchedHtml = await this.fetchUrl(fullUrl, 'text');
 
           if (!fetchedHtml) continue;
 
@@ -246,43 +248,36 @@ export class UrlDataService {
     let found = false
     const baseUrl = 'https://www.canada.ca';
 
-    const fetchUrl = async (url: string, type: 'json' | 'text'): Promise<any> => {
-      try {
-        const response = await fetch(url);
-        return type === 'json' ? response.json() : response.text();
-      } catch (error) {
-        console.error(`Error fetching URL: ${url}`, error);
-        return type === 'json' ? {} : '';
-      }
-    };
-
     const parseJsonUrl = (url: string): { url: string; jsonKey: string } => {
       const [baseUrl, jsonKey = ''] = url.split('#');
       return { url: baseUrl, jsonKey: jsonKey.slice(1) };
     };
 
-    const parseJsonConfig = (config: string): Record<string, any> | null => {
+    const parseJsonConfig = (config: string): Record<string, unknown> | null => {
       try {
-        return JSON.parse(config.replace(/&quot;/g, '"'));
+        const parsed = JSON.parse(config.replace(/&quot;/g, '"'));
+        return (parsed && typeof parsed === 'object' && !Array.isArray(parsed))
+          ? (parsed as Record<string, unknown>)
+          : null;
       } catch (error) {
         console.error('Error parsing JSON config:', error);
         return null;
       }
     };
 
-    const resolveJsonPath = (obj: any, path: string): any => {
-      return path
-        .split('/')
-        .reduce(
-          (acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined),
-          obj,
-        );
+    const resolveJsonPath = (obj: unknown, path: string): unknown => {
+      return path.split('/').reduce((acc, key) => {
+        if (acc && typeof acc === 'object' && key in acc) {
+          return (acc as Record<string, unknown>)[key];
+        }
+        return undefined;
+      }, obj);
     };
 
-    const jsonElements = doc.querySelectorAll('[data-wb-jsonmanager]');
+    const jsonElements = doc.querySelectorAll<HTMLElement>('[data-wb-jsonmanager]');
     if (!jsonElements.length) return found;
 
-    const jsonDataMap = new Map<string, any>();
+    const jsonDataMap = new Map<string, unknown>();
 
     // Process all JSON manager elements and fetch their data
     await Promise.all(
@@ -293,13 +288,13 @@ export class UrlDataService {
         const jsonConfig = parseJsonConfig(jsonConfigAttr);
         if (!jsonConfig?.['url'] || !jsonConfig?.['name']) return;
 
-        const { url, jsonKey } = parseJsonUrl(jsonConfig['url']);
+        const { url, jsonKey } = parseJsonUrl(jsonConfig['url'] as string);
         const fullUrl = `${baseUrl}${url}`;
 
         try {
-          const jsonData = await fetchUrl(fullUrl, 'json');
+          const jsonData: unknown = await this.fetchUrl(fullUrl, 'json');
           const content = resolveJsonPath(jsonData, jsonKey);
-          jsonDataMap.set(jsonConfig['name'], content);
+          jsonDataMap.set(jsonConfig['name'] as string, content);
         } catch (error) {
           console.error(`Error fetching JSON for ${jsonConfig['name']}:`, error);
         }
@@ -307,7 +302,7 @@ export class UrlDataService {
     );
 
     // Process all JSON replace elements
-    const replaceElements = doc.querySelectorAll('[data-json-replace]');
+    const replaceElements = doc.querySelectorAll<HTMLElement>('[data-json-replace]');
     replaceElements.forEach((element) => {
       const replacePath = element.getAttribute('data-json-replace') || '';
       const match = replacePath.match(/^#\[(.*?)\](.*)$/);
@@ -335,9 +330,9 @@ export class UrlDataService {
     `;
 
       element.outerHTML = styledContent;
-      found = true
-
+      found = true;
     });
+
     return found;
   }
 
@@ -501,7 +496,7 @@ export class UrlDataService {
   private getBreadcrumb(doc: Document): MenuItem[] {
     const breadcrumbItems = doc.querySelectorAll('.breadcrumb li a');
     const breadcrumbArray: MenuItem[] = [];
-    breadcrumbItems.forEach((el, index) => {
+    breadcrumbItems.forEach((el) => {
       breadcrumbArray.push({
         label: el.textContent?.trim() || '',
         url: el.getAttribute('href') || ''

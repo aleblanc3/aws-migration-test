@@ -57,7 +57,7 @@ export class IaAssistantComponent {
           }
           else return term.toLowerCase();
         }
-        catch (error) { return `invalid ${term}`; }
+        catch (error) { console.log(error); return `invalid ${term}`; }
       });
 
     this.terms = Array.from(new Set(this.terms)); // unique set
@@ -191,6 +191,7 @@ export class IaAssistantComponent {
       }
     }
     catch (error) {
+      console.log(error);
       link.status = 'bad';
     }
   }
