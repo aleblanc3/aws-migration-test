@@ -1,11 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { WebDiffService } from './web-diff.service';
-
-type SelectionTypes = {
-  count: number;
-  startId: number | null;
-  endId: number | null;
-};
+import { SelectionTypes } from '../data/data.model';
+//import { LinkData, SelectionTypes } from '../data/data.model';
 
 @Injectable({
   providedIn: 'root'
@@ -88,21 +84,15 @@ export class ShadowDomService {
 
   //Adjust diff result (mark changed links, images, remove nested diff tags)
   private async adjustDOM(originalHtml: string, diffResult: string) {
-    interface LinkData {
-      text: string;
-      href: string;
-      insText: string;
-      element: Element;
-    }
-
-    type LinksMap = Map<string, LinkData[]>;
 
     // Parse current diff and before content
     const parser = new DOMParser();
     const diffDoc = parser.parseFromString(diffResult, 'text/html');
-    const beforeDoc = parser.parseFromString(originalHtml, 'text/html');
+    /*const beforeDoc = parser.parseFromString(originalHtml, 'text/html');
 
-    /*
+    type LinksMap = Map<string, LinkData[]>;
+
+    
     const newLinks: LinksMap = new Map();
 
     const cleanText = (text: string) => text?.trim().replace(/\s+/g, ' ') || '';

@@ -12,7 +12,7 @@ import { ProgressBarModule } from 'primeng/progressbar';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { TreeTableModule } from 'primeng/treetable';
-import { Tree } from 'primeng/tree';
+import { Tree, TreeNodeContextMenuSelectEvent, TreeNodeDropEvent } from 'primeng/tree';
 import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
 import { InputGroup } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
@@ -394,8 +394,15 @@ export class IaStructureComponent implements OnInit {
   @ViewChild('chartContainer') chartContainer!: ElementRef;
   maximize(elRef: ElementRef) {
     const element = elRef.nativeElement as FullscreenHTMLElement;
-    element.requestFullscreen?.() || element.webkitRequestFullscreen?.() || element.msRequestFullscreen?.(); //backup support for IE11 & Safari
+    if (element.requestFullscreen) {
+      element.requestFullscreen();
+    } else if (element.webkitRequestFullscreen) {
+      element.webkitRequestFullscreen(); // Safari
+    } else if (element.msRequestFullscreen) {
+      element.msRequestFullscreen(); // IE11
+    }
   }
+
 
   //Context menu
   @ViewChild('cm') cm!: ContextMenu;
@@ -555,7 +562,7 @@ export class IaStructureComponent implements OnInit {
   //for loading in page assistant
   baseHref: string | null = null;
 
-  onNodeContextMenu(event: any) {
+  onNodeContextMenu(event: TreeNodeContextMenuSelectEvent) {
     if (this.editingNode) { //auto-save before switching
       this.editingNode.data.editing = null;
     }
@@ -717,12 +724,13 @@ export class IaStructureComponent implements OnInit {
 
     // Child node
     const findAndDelete = (nodes: TreeNode[]): boolean => {
-      for (let i = 0; i < nodes.length; i++) {
-        const children = nodes[i].children || [];
+      for (const node of nodes) {
+        const children: TreeNode[] = node.children ?? [];
         const childIndex = children.findIndex(c => c === nodeToDelete);
         if (childIndex > -1) {
-          this.undoArray.push({ node: nodeToDelete, parent: nodes[i], index: childIndex });
+          this.undoArray.push({ node: nodeToDelete, parent: node, index: childIndex });
           children.splice(childIndex, 1);
+          node.children = children.length ? children : undefined;
           return true;
         }
         // recurse into grandchildren
@@ -791,27 +799,31 @@ export class IaStructureComponent implements OnInit {
     window.open(shareLink, '_blank');
   }
 
-  handleNodeDrop(event: any): void {
+  handleNodeDrop(event: TreeNodeDropEvent): void {
+    const dragNode = event.dragNode;
+    const dropNode = event.dropNode;
 
-    if ((event.dropNode.data.isContainer || event.dropNode.parent?.data?.isContainer) && event.dragNode.data.isContainer) return; // not foolproof but tries to prevent dropping a container into another container
-    event.accept(); // accept the drop
+    if (!dragNode || !dropNode) return;
+
+    if ((dropNode.data.isContainer || dropNode.parent?.data?.isContainer) && dragNode.data.isContainer) return; // not foolproof but tries to prevent dropping a container into another container
+    event.accept?.(); // accept the drop
 
     //Reset move style so move style can be removed if user puts it back
-    if (event.dragNode.data.customStyleKey === 'move') {
-      event.dragNode.data.customStyleKey = '';
-      event.dragNode.data.borderStyle = 'border-2 border-primary border-round shadow-2';
+    if (dragNode.data.customStyleKey === 'move') {
+      dragNode.data.customStyleKey = '';
+      dragNode.data.borderStyle = 'border-2 border-primary border-round shadow-2';
     }
 
     //Get target element
-    const targetEl = event.originalEvent.target as HTMLElement;
+    const targetEl = event.originalEvent?.target as HTMLElement;
     const tag = targetEl.tagName.toLowerCase(); // will be <a> or <div> if dropped on a node or <li> if dropped between nodes
     const droppedOnNode: boolean = tag !== 'li'
 
     //Check if no change to IA structure
-    const dragParentUrl = event.dragNode.data.originalParent; //parentUrl is the original parent before any changes
-    const dropUrl = event.dropNode.data.url;
-    const dropParentUrl = event.dropNode.parent?.data?.url ?? '';
-    const dropGrandparentUrl = event.dropNode.parent?.data?.originalParent ?? '';
+    const dragParentUrl = dragNode.data.originalParent; //parentUrl is the original parent before any changes
+    const dropUrl = dropNode.data.url;
+    const dropParentUrl = dropNode.parent?.data?.url ?? '';
+    const dropGrandparentUrl = dropNode.parent?.data?.originalParent ?? '';
 
     //console.log('Tag should be a if dropped on node:\n', tag);
     if (droppedOnNode) { console.log('Dropped on node'); console.log('Checking if parentUrl matches node Url:\n', dropUrl); }
@@ -825,21 +837,21 @@ export class IaStructureComponent implements OnInit {
     //console.log('Dropped on parent: ', droppedOnParent);
 
     //Check if dropping sibling onto a container
-    const droppedOnContainerSibling = event.dropNode.data.isContainer && droppedOnNode && dragParentUrl === dropParentUrl;
-    const droppedBetweenContainerSibling = event.dropNode.parent?.data?.isContainer && !droppedOnNode && dragParentUrl === dropGrandparentUrl;
+    const droppedOnContainerSibling = dropNode.data.isContainer && droppedOnNode && dragParentUrl === dropParentUrl;
+    const droppedBetweenContainerSibling = dropNode.parent?.data?.isContainer && !droppedOnNode && dragParentUrl === dropGrandparentUrl;
     //console.log('Dropped on container sibling: ', droppedOnContainerSibling);
     //console.log('Dropped between container sibling: ', droppedBetweenContainerSibling);
 
     //Check for custom style (containers & dummy nodes)
-    const isCustom = event.dragNode.data.customStyle
+    const isCustom = dragNode.data.customStyle
     //console.log('Container or dummy node: ', isCustom);
 
     //console.log('Event drop', event);
 
     //Set move style when not reordering siblings, moving siblings into a template container, dragging a custom style node, or moving a new page
-    if (!(droppedOnParent || reorderedSiblings || droppedOnContainerSibling || droppedBetweenContainerSibling || isCustom || event.dragNode.data.customStyleKey === 'new')) {
-      event.dragNode.data.customStyleKey = 'move';
-      event.dragNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
+    if (!(droppedOnParent || reorderedSiblings || droppedOnContainerSibling || droppedBetweenContainerSibling || isCustom || dragNode.data.customStyleKey === 'new')) {
+      dragNode.data.customStyleKey = 'move';
+      dragNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
     }
 
     //Cleanup dragover style (happens when hovering on parent but dropping between parent and top child)
@@ -848,7 +860,7 @@ export class IaStructureComponent implements OnInit {
       el.classList.remove('p-tree-node-dragover');
     });
 
-    console.log('Drag parent URL', event.dragNode.data.originalParent);
+    console.log('Drag parent URL', dragNode.data.originalParent);
     this.updateNodeStyles(this.iaChart, 0);
   }
 

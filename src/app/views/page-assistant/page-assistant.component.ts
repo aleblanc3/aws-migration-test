@@ -1,11 +1,11 @@
 import {
-  Component, ViewChild, OnInit, inject,  //decorators & lifecycle
+  Component, ViewChild, OnInit, AfterViewInit, OnDestroy, inject,  //decorators & lifecycle
   ElementRef, //DOM utilities
   signal, effect, computed //Signals/reactivity
 } from '@angular/core';
 import { CommonModule, LocationStrategy } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, Params } from '@angular/router';
 
 //Translation
 import { TranslateModule, TranslateService } from "@ngx-translate/core";
@@ -48,7 +48,7 @@ import { PageToolsComponent } from './components/tools.component';
   templateUrl: './page-assistant.component.html',
   styleUrl: './page-assistant.component.css'
 })
-export class PageAssistantCompareComponent implements OnInit {
+export class PageAssistantCompareComponent implements OnInit, AfterViewInit, OnDestroy {
   private translate = inject(TranslateService);
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
@@ -228,7 +228,7 @@ export class PageAssistantCompareComponent implements OnInit {
   sourceContainerSignal = signal<ElementRef | null>(null);
 
   //Runs when view is initialized
-  ngAfterViewInit() {
+  ngAfterViewInit(): void {
     const shadowRoot = this.shadowDomService.initializeShadowDOM(this.liveContainer.nativeElement);
     if (shadowRoot) {
       this.shadowDOM.set(shadowRoot);
@@ -288,7 +288,7 @@ export class PageAssistantCompareComponent implements OnInit {
     ];
 
   }
-  ngOnDestroy() {
+  ngOnDestroy(): void {
     if (this.shadowDOM) {
       this.shadowDomService.clearShadowDOM(this.shadowDOM()!);
       this.shadowDOM.set(null);
@@ -336,15 +336,15 @@ export class PageAssistantCompareComponent implements OnInit {
     console.log("Clicked share");
     const data = this.uploadState.getUploadData();
     if (!data) return;
-    const params: any = {};
+    const params: Params = {};
     if (this.urlDataService.isValidUrl(data.originalUrl)) {
-      params.url = data.originalUrl;
+      params['url'] = data.originalUrl;
     }
     else if (this.urlDataService.isValidUrl(data.modifiedUrl)) {
-      params.url = data.modifiedUrl
+      params['url'] = data.modifiedUrl
     }
     if (this.urlDataService.isValidUrl(data.originalUrl) && this.urlDataService.isValidUrl(data.modifiedUrl) && data.originalUrl !== data.modifiedUrl) {
-      params.compareUrl = data.modifiedUrl
+      params['compareUrl'] = data.modifiedUrl
     }
     const treeLink = this.router.createUrlTree(['page-assistant/share'], { queryParams: params });
     const shareLink = `${window.location.origin}${this.baseHref}${this.router.serializeUrl(treeLink).replace(/^\//, '')}`;
@@ -355,7 +355,7 @@ export class PageAssistantCompareComponent implements OnInit {
           severity: 'success',
           summary: 'Copied share link to clipboard',
           detail: `${shareLink}`,
-          life: 2000
+          life: 1000
         });
       })
       .catch(err => console.error('Clipboard copy failed:', err));
@@ -508,7 +508,7 @@ export class PageAssistantCompareComponent implements OnInit {
         console.log(`Your requested model may be down or you have exceeded the rate limit`);
         console.groupEnd();
         this.statusSeverity = 'warn';
-        this.statusMessage = `Your selected AI model was unavailable. Used `, usedModel, ` instead.`;
+        this.statusMessage = `Your selected AI model was unavailable. Used "${usedModel}" instead.`;
         this.messageService.add({
           severity: 'warn',
           summary: 'Fallback Model Used',
