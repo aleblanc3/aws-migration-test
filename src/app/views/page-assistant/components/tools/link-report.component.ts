@@ -1,11 +1,96 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
+import { OverlayPanelModule, OverlayPanel } from 'primeng/overlaypanel';
+import { CheckboxModule } from 'primeng/checkbox';
+import { ButtonModule } from 'primeng/button';
 import { UploadStateService } from '../../services/upload-state.service';
 
-type LinkType = 'anchor' | 'mailto' | 'tel' | 'file' | 'internal' | 'external';
+type LinkType =
+  | 'Canada.ca'
+  | 'external'
+  | 'anchor'
+  | 'tel'
+  | 'mailto'
+  | 'download';
 type MatchStatus = 'match' | 'mismatch' | 'unknown' | 'na';
+
+const CANADA_ORIGIN = 'https://www.canada.ca';
+
+/** Treat both apex and www as Canada.ca (no other subdomains). */
+function isCanadaHost(u: URL): boolean {
+  const h = u.hostname.toLowerCase().replace(/^www\./, '');
+  return h === 'canada.ca';
+}
+
+/** Canonicalize AEM repo paths to vanity paths/absolute URLs on canada.ca */
+function canonicalizeCanadaHref(href: string): string {
+  if (!href) return href;
+  href = href.replace(
+    /^https?:\/\/(?:www\.)?canada\.ca\/content\/canadasite/i,
+    CANADA_ORIGIN,
+  );
+  href = href.replace(/^\/content\/canadasite/i, '');
+  return href;
+}
+
+/** Drop any kind of footnote link (refs + “return to footnote … referrer”, etc.) */
+function isFootnoteLink(a: HTMLAnchorElement): boolean {
+  const hrefAttr = (a.getAttribute('href') || '').trim();
+  const textish =
+    (a.textContent || '') +
+    ' ' +
+    (a.getAttribute('aria-label') || '') +
+    ' ' +
+    (a.title || '');
+
+  if (
+    a.closest(
+      '.footnote, .footnotes, #footnotes, section.footnotes, ol.footnotes, ' +
+        '.ref-list, .references, [role="doc-footnote"], [role="doc-endnotes"], ' +
+        '[role="doc-backlink"], nav[aria-label="Footnotes"]',
+    )
+  )
+    return true;
+
+  if (a.closest('sup')) return true;
+
+  const hash = (() => {
+    try {
+      return new URL(hrefAttr, 'https://x').hash || hrefAttr;
+    } catch {
+      return hrefAttr;
+    }
+  })();
+  if (
+    /^#(?:fn|fnref|footnote)\w*/i.test(hash) ||
+    /#(?:fn|footnote)\d+(?:[-:_][\w]+)*$/i.test(hash)
+  )
+    return true;
+
+  if (/\b(return|back)\s+to\s+footnote\b/i.test(textish)) return true;
+  if (/\breferrer\b/i.test(textish) && /footnote/i.test(textish)) return true;
+
+  if (
+    /\b(doc-noteref|noteref|fnref|fn-rtn|return-footnote|footnote-back)\b/i.test(
+      a.className,
+    )
+  )
+    return true;
+
+  return false;
+}
+
+/** Strip visible footnote markers like “[1]”, “†”, “(footnote 3)” from link text */
+function stripFootnoteText(text: string): string {
+  return (text || '')
+    .replace(/\[\d+\]/g, '')
+    .replace(/(?:^|\s)\(\s*footnote\s*\d+\s*\)/gi, '')
+    .replace(/[*†‡§¶]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 interface HeadingData {
   order: number; // Index
@@ -13,11 +98,22 @@ interface HeadingData {
   text: string; // Link name on page
   href: string; // Original href
   absUrl: string | null; // Resolved absolute URL
-  destH1: string | null; // Destination (or guessed) title for col 4
+  destH1: string | null; // Guessed destination title
   matchStatus: MatchStatus;
+  // placeholders
+  searchTerm: string;
+  clicks: number | null;
 }
 
-type ColumnField = 'order' | 'type' | 'text' | 'destH1' | 'matchStatus';
+type ColumnField =
+  | 'order'
+  | 'type'
+  | 'text'
+  | 'destH1'
+  | 'matchStatus'
+  | 'searchTerm'
+  | 'clicks';
+
 interface LinkReportColumn {
   field: ColumnField;
   header: string;
@@ -26,19 +122,26 @@ interface LinkReportColumn {
 @Component({
   selector: 'ca-link-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, TableModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TableModule,
+    OverlayPanelModule,
+    CheckboxModule,
+    ButtonModule,
+  ],
   templateUrl: './link-report.component.html',
   styles: [
     `
       .text-ok {
         color: #16a34a;
-      } /* ✔ green */
+      }
       .text-bad {
         color: #dc2626;
-      } /* ✖ red   */
+      }
       .text-unk {
         color: #64748b;
-      } /* ? gray  */
+      }
       .break-all {
         word-break: break-all;
       }
@@ -52,30 +155,119 @@ interface LinkReportColumn {
       .justify-center {
         justify-content: center;
       }
+      .header-with-filter {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+      }
+      .p-button-sm {
+        padding: 0.15rem 0.35rem;
+        height: 1.6rem;
+        width: 1.6rem;
+      }
+      .filter-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding: 0.25rem 0.25rem 0.1rem;
+      }
+      .filter-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        line-height: 1.2;
+      }
+      .divider {
+        height: 1px;
+        background: #e5e7eb;
+        margin: 0.25rem 0;
+      }
+      .filter-label {
+        cursor: pointer;
+        user-select: none;
+      }
+      .filter-muted {
+        color: #6b7280;
+        font-size: 12px;
+      }
     `,
   ],
 })
 export class LinkReportComponent implements OnInit {
   constructor(private uploadState: UploadStateService) {}
 
-  // table data & selection
+  // Expose the overlay panel referenced as #typePanel in the template
+  @ViewChild('typePanel') typePanel!: OverlayPanel;
+
+  // data & selection
   headings: HeadingData[] = [];
   selectedHeading!: HeadingData;
 
-  // 5 columns exactly
+  // columns (with placeholders at the end)
   cols: LinkReportColumn[] = [
     { field: 'order', header: 'Index' },
     { field: 'type', header: 'Link Type' },
     { field: 'text', header: 'Link name on page' },
     { field: 'destH1', header: 'Destination link header (H1)' },
     { field: 'matchStatus', header: 'Match' },
+    { field: 'searchTerm', header: 'Search term' },
+    { field: 'clicks', header: 'Clicks' },
   ];
 
   sourceVersion: 'original' | 'modified' = 'original';
-  private concurrency = 4;
 
-  // Origin of the page being analyzed (from upload state / base tag / pageUrl)
-  private baseOrigin: string | null = null;
+  // ----- Filter state (dropdown with ALL + 6 types) -----
+  linkTypes: LinkType[] = [
+    'Canada.ca',
+    'external',
+    'anchor',
+    'tel',
+    'mailto',
+    'download',
+  ];
+
+  /** ALL is checked by default (means: include all types). */
+  allSelected = true;
+
+  /** Individual type checkboxes are listed, initially unchecked. */
+  typeChecks: Record<LinkType, boolean> = {
+    'Canada.ca': false,
+    external: false,
+    anchor: false,
+    tel: false,
+    mailto: false,
+    download: false,
+  };
+
+  /** Toggle ALL; when turning ALL on, keep individuals unchecked but ignored. */
+  onAllToggle(): void {
+    // nothing else needed; individuals remain as-is (unchecked) and ignored when ALL = true
+  }
+
+  /** Toggle an individual type; any individual selection disables ALL. */
+  onTypeToggle(_t: LinkType): void {
+    if (this.allSelected) this.allSelected = false;
+  }
+
+  /** Optional: click label to toggle (if your HTML uses a label click handler). */
+  toggleType(t: LinkType): void {
+    if (this.allSelected) this.allSelected = false;
+    this.typeChecks[t] = !this.typeChecks[t];
+  }
+
+  /** Active set used by the table. */
+  private activeTypes(): Set<LinkType> {
+    if (this.allSelected) return new Set(this.linkTypes);
+    const picked = this.linkTypes.filter((t) => this.typeChecks[t]);
+    return new Set(picked);
+  }
+
+  /** Table feeds from filtered rows */
+  get filteredHeadings(): HeadingData[] {
+    const active = this.activeTypes();
+    return this.headings.filter((r) => active.has(r.type));
+  }
 
   ngOnInit(): void {
     this.extractLinks();
@@ -89,66 +281,55 @@ export class LinkReportComponent implements OnInit {
     }
 
     const doc = new DOMParser().parseFromString(html, 'text/html');
+
+    // Collect anchors, drop all footnotes/backlinks
     const anchors = Array.from(
       doc.querySelectorAll<HTMLAnchorElement>('body a[href]'),
-    );
+    ).filter((a) => !isFootnoteLink(a));
 
-    // Build rows (no network here)
     this.headings = anchors.map((a, i): HeadingData => {
-      const href = (a.getAttribute('href') || '').trim();
-      const absUrl = this.resolveUrl(href, baseUrl);
-      const text = (
-        a.textContent ||
-        a.getAttribute('aria-label') ||
-        a.title ||
-        ''
-      ).trim();
-      const type = this.classify(href, absUrl);
+      const rawHref = (a.getAttribute('href') || '').trim();
+      const absUrl = this.resolveUrl(rawHref, baseUrl);
+
+      const visible =
+        a.textContent || a.getAttribute('aria-label') || a.title || '';
+      const text = stripFootnoteText(visible);
+
+      const type = this.classify(rawHref, absUrl, a);
 
       let destH1: string | null = null;
       let matchStatus: MatchStatus = 'unknown';
 
       if (type === 'anchor') {
-        // same page: use current doc's first H1
         const h1 = doc.querySelector('h1');
         destH1 = h1 ? (h1.textContent || '').trim() : null;
         matchStatus = this.smartMatch(text, destH1);
-      } else if (type === 'mailto' || type === 'tel' || type === 'file') {
+      } else if (type === 'mailto' || type === 'tel' || type === 'download') {
         matchStatus = 'na';
-      } else if (type === 'external') {
-        // NO server: guess from path segments (smart slug) + token-aware match
-        const { guess, pathTokens } = this.smartSlugGuess(text, absUrl || href);
+      } else {
+        const { guess, pathTokens } = this.smartSlugGuess(
+          text,
+          absUrl || rawHref,
+        );
         destH1 = guess;
         matchStatus = this.smartMatch(text, destH1, pathTokens);
       }
-      // internal, same-origin will be resolved below via fetch
 
       return {
         order: i + 1,
         type,
         text,
-        href,
+        href: rawHref,
         absUrl,
         destH1,
         matchStatus,
+        searchTerm: '', // placeholder
+        clicks: null, // placeholder
       };
     });
-
-    // For same-origin internal links, fetch and extract true H1
-    const tasks = this.headings
-      .filter(
-        (r) =>
-          r.type === 'internal' &&
-          !r.destH1 &&
-          r.absUrl &&
-          this.isSameOrigin(r.absUrl),
-      )
-      .map((r) => () => this.resolveDestH1(r));
-
-    await this.runWithConcurrency(tasks, this.concurrency);
   }
 
-  // ---------- helpers (no server required) ----------
+  // ---------- helpers ----------
 
   private getHtmlToAnalyze(): { html: string | null; baseUrl: string | null } {
     const data = this.uploadState.getUploadData?.() as any;
@@ -167,15 +348,7 @@ export class LinkReportComponent implements OnInit {
         if (b) baseUrl = b;
       } catch {}
     }
-    if (!baseUrl && data.pageUrl) baseUrl = data.pageUrl;
-
-    // Remember origin of the analyzed page (NOT location.origin)
-    this.baseOrigin = null;
-    if (baseUrl) {
-      try {
-        this.baseOrigin = new URL(baseUrl).origin;
-      } catch {}
-    }
+    if (!baseUrl && (data as any).pageUrl) baseUrl = (data as any).pageUrl;
 
     return { html, baseUrl };
   }
@@ -189,6 +362,19 @@ export class LinkReportComponent implements OnInit {
         href.startsWith('tel:')
       )
         return href;
+
+      // Canonicalize Canada.ca AEM repo paths & root-relative links
+      if (/^\/(?:content\/canadasite|en|fr)\//i.test(href)) {
+        const canon = canonicalizeCanadaHref(href);
+        return new URL(canon, CANADA_ORIGIN).toString();
+      }
+
+      // Absolute canada.ca URL that still has /content/canadasite
+      if (/^https?:\/\/(?:www\.)?canada\.ca\/content\/canadasite/i.test(href)) {
+        return canonicalizeCanadaHref(href);
+      }
+
+      // Normal resolution
       if (baseUrl) return new URL(href, baseUrl).toString();
       return new URL(href).toString();
     } catch {
@@ -196,57 +382,46 @@ export class LinkReportComponent implements OnInit {
     }
   }
 
-  private classify(href: string, absUrl: string | null): LinkType {
-    if (!href) return 'internal';
-    if (href.startsWith('#')) return 'anchor';
-    if (href.startsWith('mailto:')) return 'mailto';
-    if (href.startsWith('tel:')) return 'tel';
-    if (/\.(pdf|docx?|pptx?|xlsx?|zip)$/i.test(href)) return 'file';
-    if (/^https?:\/\//i.test(href)) {
-      if (absUrl && this.baseOrigin) {
-        try {
-          return new URL(absUrl).origin === this.baseOrigin
-            ? 'internal'
-            : 'external';
-        } catch {
-          return 'external';
-        }
-      }
-      return 'external';
-    }
-    // relative -> treat as internal to the analyzed page
-    return 'internal';
-  }
+  /** 6-type classifier; order matters. Canada.ca = apex or www only. */
+  private classify(
+    href: string,
+    absUrl: string | null,
+    anchorEl?: HTMLAnchorElement,
+  ): LinkType {
+    const raw = (href || '').trim();
 
-  private isSameOrigin(absUrl: string): boolean {
-    try {
-      return this.baseOrigin
-        ? new URL(absUrl).origin === this.baseOrigin
-        : false;
-    } catch {
-      return false;
-    }
-  }
+    // 1) anchor
+    if (raw.startsWith('#')) return 'anchor';
 
-  // same-origin internal: fetch and compute match against real H1
-  private async resolveDestH1(row: HeadingData): Promise<void> {
-    if (!row.absUrl) return;
+    // 2) special schemes
+    if (/^mailto:/i.test(raw)) return 'mailto';
+    if (/^tel:/i.test(raw)) return 'tel';
+
+    // 3) download (pdf / <a download> / /webform path)
+    const pathForTest = absUrl || raw;
+    const isPdf = /\.pdf(\?|#|$)/i.test(pathForTest);
+    const hasDownloadAttr = !!anchorEl?.hasAttribute('download');
+    let isWebform = false;
     try {
-      const resp = await fetch(row.absUrl, { credentials: 'same-origin' });
-      if (!resp.ok) throw new Error('fetch failed');
-      const html = await resp.text();
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      const h1 = doc.querySelector('h1');
-      row.destH1 = h1 ? (h1.textContent || '').trim() : null;
-      row.matchStatus = this.smartMatch(row.text, row.destH1);
+      const u = new URL(absUrl || raw, CANADA_ORIGIN);
+      isWebform = /\/webform(s)?\//i.test(u.pathname);
+    } catch {}
+    if (isPdf || hasDownloadAttr || isWebform) return 'download';
+
+    // 4) Canada.ca host (apex or www)
+    try {
+      const u = new URL(absUrl || raw, CANADA_ORIGIN);
+      if (isCanadaHost(u)) return 'Canada.ca';
     } catch {
-      if (!row.destH1) row.matchStatus = 'unknown';
+      // fall through
     }
+
+    // 5) everything else
+    return 'external';
   }
 
   // ---------- smart slug + smart match ----------
 
-  /** Normalize: strip accents, lowercase, treat /-_ as separators, remove punctuation */
   private normalizeText(s: string) {
     return s
       .normalize('NFD')
@@ -258,7 +433,6 @@ export class LinkReportComponent implements OnInit {
       .trim();
   }
 
-  /** Tokenize & drop light stopwords */
   private tokenize(s: string) {
     const STOP = new Set([
       'a',
@@ -293,7 +467,6 @@ export class LinkReportComponent implements OnInit {
       .filter((w) => w && !STOP.has(w));
   }
 
-  /** Decode path segments and strip common extensions */
   private pathSegments(urlStr?: string | null): string[] {
     if (!urlStr) return [];
     try {
@@ -307,11 +480,6 @@ export class LinkReportComponent implements OnInit {
     }
   }
 
-  /**
-   * Smart slug guess:
-   * - score each segment against link text (coverage + Jaccard)
-   * - return best segment as guess, plus all path tokens for matching
-   */
   private smartSlugGuess(
     linkText: string,
     absUrl?: string | null,
@@ -335,11 +503,11 @@ export class LinkReportComponent implements OnInit {
         const inter = [...setL].filter((w) => setS.has(w)).length;
         const union = new Set([...setL, ...setS]).size || 1;
         const jacc = inter / union;
-        const score = cover * 0.7 + jacc * 0.3; // weights can be tuned
+        const score = cover * 0.7 + jacc * 0.3;
 
         if (score > bestScore) {
           bestScore = score;
-          bestGuess = segTokens.join(' ') || seg; // human readable
+          bestGuess = segTokens.join(' ') || seg;
         }
       }
     }
@@ -353,7 +521,6 @@ export class LinkReportComponent implements OnInit {
     return { guess: bestGuess, pathTokens: allTokens };
   }
 
-  /** Token-aware loose match: exact → containment (with path tokens) → Jaccard */
   private smartMatch(
     linkText: string,
     candidate: string | null,
@@ -380,24 +547,7 @@ export class LinkReportComponent implements OnInit {
     const union = new Set([...setA, ...setB]).size || 1;
     const j = inter / union;
 
-    return j >= 0.6 ? 'match' : 'mismatch'; // tune threshold if needed
-  }
-
-  // Concurrency runner
-  private async runWithConcurrency(
-    tasks: Array<() => Promise<any>>,
-    limit: number,
-  ) {
-    const q = tasks.slice();
-    const workers: Promise<void>[] = [];
-    for (let i = 0; i < Math.min(limit, q.length); i++) {
-      workers.push(
-        (async () => {
-          while (q.length) await q.shift()!();
-        })(),
-      );
-    }
-    await Promise.all(workers);
+    return j >= 0.6 ? 'match' : 'mismatch';
   }
 
   // style hooks used by template
