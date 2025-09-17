@@ -1,5 +1,5 @@
 <p-table
-  [value]="headings"
+  [value]="filteredHeadings"
   size="small"
   stripedRows
   [tableStyle]="{ 'min-width': '50rem' }"
@@ -8,15 +8,29 @@
   dataKey="order"
   metaKeySelection="false"
 >
-  <!-- 只用你自己的 cols 渲染表头 -->
   <ng-template pTemplate="header">
     <tr>
       <th style="width: 3rem"></th>
-      <th *ngFor="let col of cols">{{ col.header }}</th>
+
+      <th *ngFor="let col of cols">
+        <div class="header-with-filter">
+          <span>{{ col.header }}</span>
+
+          <!-- Down-arrow filter button ONLY for Link Type -->
+          <button
+            *ngIf="col.field === 'type'"
+            pButton
+            type="button"
+            class="p-button-text p-button-sm"
+            icon="pi pi-chevron-down"
+            (click)="typePanel?.toggle($event)"
+            aria-label="Filter link types"
+          ></button>
+        </div>
+      </th>
     </tr>
   </ng-template>
 
-  <!-- 只用你自己的 cols 渲染表体 -->
   <ng-template pTemplate="body" let-rowData let-rowIndex="rowIndex">
     <tr [pReorderableRow]="rowIndex" [pSelectableRow]="rowData">
       <td><span class="pi pi-bars" pReorderableRowHandle></span></td>
@@ -24,6 +38,7 @@
       <td *ngFor="let col of cols">
         <ng-container [ngSwitch]="col.field">
           <span *ngSwitchCase="'order'">{{ rowData.order }}</span>
+
           <span *ngSwitchCase="'type'">{{ rowData.type }}</span>
 
           <span
@@ -60,9 +75,55 @@
             ></i>
           </span>
 
-          <span *ngSwitchDefault>{{ rowData[col.field] }}</span>
+          <!-- Search term / Clicks and any other fields -->
+          <span *ngSwitchDefault>{{ rowData[col.field] || "—" }}</span>
         </ng-container>
       </td>
     </tr>
   </ng-template>
 </p-table>
+
+<!-- Move the overlay OUTSIDE the table to avoid table parser issues -->
+<p-overlayPanel
+  #typePanel
+  [dismissable]="true"
+  [showCloseIcon]="true"
+  [appendTo]="'body'"
+>
+  <div class="filter-panel">
+    <!-- ALL (default checked) -->
+    <div class="filter-row">
+      <p-checkbox
+        [(ngModel)]="allSelected"
+        (onChange)="onAllToggle()"
+        inputId="allTypes"
+        binary="true"
+      ></p-checkbox>
+      <label class="filter-label" for="allTypes">ALL</label>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Six types (default unchecked; disabled while ALL is checked) -->
+    <div class="filter-row" *ngFor="let t of linkTypes; let i = index">
+      <p-checkbox
+        [(ngModel)]="typeChecks[t]"
+        (onChange)="onTypeToggle(t)"
+        [disabled]="allSelected"
+        [inputId]="'type-' + i"
+        binary="true"
+      ></p-checkbox>
+      <label
+        class="filter-label"
+        [attr.for]="'type-' + i"
+        (click)="toggleType(t)"
+      >
+        {{ t }}
+      </label>
+    </div>
+
+    <div class="filter-muted" *ngIf="allSelected">
+      All types are currently included.
+    </div>
+  </div>
+</p-overlayPanel>
