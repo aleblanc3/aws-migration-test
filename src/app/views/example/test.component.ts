@@ -12,6 +12,9 @@ import { Router } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { Button } from 'primeng/button';
 
+//Fetch service
+import { FetchService } from '../../services/fetch.service';
+
 @Component({
   selector: 'ca-test',
   imports: [TranslateModule, HorizontalRadioButtonsComponent, TableModule, Button],
@@ -24,6 +27,7 @@ export class TestComponent implements OnInit {
   private uploadState = inject(UploadStateService);
   private router = inject(Router);
   private translate = inject(TranslateService);
+  private fetchService = inject(FetchService);
 
   //Your functions go here
 
@@ -98,4 +102,20 @@ export class TestComponent implements OnInit {
     { title: 'Return a payment - Canada Dental Benefit - Closed', url: 'https://www.canada.ca/en/revenue-agency/services/child-family-benefits/dental-benefit/return-payment.html' },
 
   ];
+
+  //Example for fetch service
+  testUrls = ["https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit.html",
+    "https://cra-design.github.io/gst-hst-business/en/topics/gst-hst-businesses.html",
+    "https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit.htm",
+    "https://www.canada.ca/en/broken-link-example.html",
+    "https://test.canada.ca/cra-arc/payroll/index.html"]
+
+  async testFetch() {
+    for (const url of this.testUrls) {
+      try {
+        const data = await this.fetchService.fetchContent(url, "both", 5);
+        console.log(data);
+      } catch (error) { console.error(error); }
+    }
+  }
 }

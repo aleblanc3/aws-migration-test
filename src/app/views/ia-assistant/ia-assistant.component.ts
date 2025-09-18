@@ -2,45 +2,63 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
+import { environment } from '../../../environments/environment';
 
-import { TextareaModule } from 'primeng/textarea';
-import { IftaLabelModule } from 'primeng/iftalabel';
+import { StepperModule } from 'primeng/stepper';
 import { ProgressBarModule } from 'primeng/progressbar';
-import { InputTextModule } from 'primeng/inputtext';
-import { ButtonModule } from 'primeng/button';
-import { ButtonGroupModule } from 'primeng/buttongroup';
-import { InputGroupModule } from 'primeng/inputgroup';
-import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
-import { ChipModule } from 'primeng/chip';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
 import { ConfirmationService } from 'primeng/api';
-import { StepperModule } from 'primeng/stepper';
-import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { TextareaModule } from 'primeng/textarea';
+import { InputTextModule } from 'primeng/inputtext';
+import { IftaLabelModule } from 'primeng/iftalabel';
+import { InputGroupModule } from 'primeng/inputgroup';
+import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
+import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
+import { ChipModule } from 'primeng/chip';
 import { TableModule } from 'primeng/table';
 import { BadgeModule } from 'primeng/badge';
 
 import { UrlItem, UrlPair } from './data/data.model'
 import { LinkListComponent } from './components/link-list.component';
-import { environment } from '../../../environments/environment';
+import { IaRelationshipService, PageData, BreadcrumbNode } from './services/ia-relationship.service';
+import { FetchService } from '../../services/fetch.service';
 
 @Component({
   selector: 'ca-ia-assistant',
   imports: [CommonModule, FormsModule, TranslateModule,
-    TextareaModule, InputTextModule, IftaLabelModule, ProgressBarModule, ButtonModule, ButtonGroupModule, InputGroupModule, InputGroupAddonModule, ChipModule, StepperModule, ConfirmPopupModule, ToggleSwitchModule, TableModule,
-    BadgeModule,
+    TextareaModule, InputTextModule, IftaLabelModule, InputGroupModule, InputGroupAddonModule, ButtonModule,
+    ProgressBarModule, ChipModule, StepperModule, ConfirmPopupModule, TableModule, BadgeModule, TooltipModule,
     LinkListComponent,],
   templateUrl: './ia-assistant.component.html',
-  styles: ``
+  styles: `
+  :host ::ng-deep .p-breadcrumb .p-menuitem-link {
+  justify-content: flex-start !important;
+}
+
+:host ::ng-deep .custom-breadcrumb-link {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.5rem; /* matches gap-2 */
+}
+
+:host ::ng-deep .p-breadcrumb .p-breadcrumb-item > a {
+  justify-content: flex-start !important;
+}
+  `
 })
 export class IaAssistantComponent {
   private confirmationService = inject(ConfirmationService);
+  private iaService = inject(IaRelationshipService);
+  private fetchService = inject(FetchService);
 
   //Step
   activeStep = 1;
 
-  /****************
-   * SEARCH TERMS *
-   ****************/
+  /*****************
+   * SEARCH TERMS  *
+   *****************/
   rawTerms = '';
   terms: (string | RegExp)[] = []
 
@@ -100,10 +118,9 @@ export class IaAssistantComponent {
     else return 'bg-green-100';
   }
 
-
-  /****************
-   *     URLS     *
-   ****************/
+  /*****************
+   * VALIDATE URLS *
+   *****************/
   rawUrls = '';
   urlPairs: UrlPair[] = [];
   includePrototypeLinks = false;
@@ -121,7 +138,7 @@ export class IaAssistantComponent {
     this.urlPercent = 0;
   }
 
-  //Block unknown hosts <-- will probably separate canada.ca from GitHub repos so that only Canada.ca is crawled for the IA tree
+  //Block unknown hosts <-- TODO: separate canada.ca from GitHub repos so that only Canada.ca is crawled for the IA tree
   private allowedHosts = new Set([
     "cra-design.github.io",
     "cra-proto.github.io",
@@ -130,7 +147,7 @@ export class IaAssistantComponent {
     "www.canada.ca"
   ]);
 
-  /*** Set URL pairs from user input & boolean if any prototypes were included ***/
+  /*** Set URL pairs from user input & set boolean if any prototypes were included ***/
   setUrlPairs() {
     this.urlPairs = this.rawUrls
       .split(/\r?\n/) // split on new lines
@@ -155,6 +172,10 @@ export class IaAssistantComponent {
 
     //check for any prototype links
     this.includePrototypeLinks = this.urlPairs.some(p => p.prototype && p.prototype.href !== '')
+
+    //reset breadcrumb validation
+    this.breadcrumbs = [];
+    this.rootPages = [];
   }
 
   onPasteUrls() {
@@ -244,10 +265,19 @@ export class IaAssistantComponent {
   private goToStep3() {
     if (this.urlsOk.length + this.urlsProtoOk.length === this.urlTotal) {
       this.activeStep = 3;
+      this.checkBreadcrumbs();
     }
   }
 
-  //Filter based on status
+  /*** Advance to step 4 if all breadcrumbs are good ***/
+  private goToStep4() {
+    if (!this.hasBreakAfterRoot && !this.hasBreakBeforeRoot) {
+      this.activeStep = 4;
+      //add function to build IA tree
+    }
+  }
+
+  /*** Filter based on status***/
   get urlsChecking() { return this.urlPairs.map(p => p.production).filter(u => u.status === 'checking'); }
   get urlsBlocked() { return this.urlPairs.map(p => p.production).filter(u => u.status === 'blocked'); }
   get urlsBad() { return this.urlPairs.map(p => p.production).filter(u => u.status === 'bad'); }
@@ -260,6 +290,7 @@ export class IaAssistantComponent {
   get urlsProtoRedirected() { return this.urlPairs.map(p => p.prototype).filter((u): u is UrlItem => !!u && u.status === 'redirect'); }
   get urlsProtoOk() { return this.urlPairs.map(p => p.prototype).filter((u): u is UrlItem => !!u && u.status === 'ok'); }
 
+  /*** Remove a bad link pair or just the link for prototypes ***/
   remove(link: UrlItem, type: 'prod' | 'proto') {
     let decrement = 1;
     if (type === 'prod') {
@@ -277,6 +308,7 @@ export class IaAssistantComponent {
     this.goToStep3();
   }
 
+  /*** Approve an edited link for revalidation ***/
   approve(link: UrlItem, $event: Event, type: 'prod' | 'proto') {
     link.href = link.href.trim().toLowerCase(); //clean input
 
@@ -294,6 +326,7 @@ export class IaAssistantComponent {
     this.revalidate(link);
   }
 
+  /*** Revalidates a single link rather than the whole array ***/
   private revalidate(link: UrlItem) {
     link.status = 'checking';
     this.urlChecked -= 1;
@@ -305,6 +338,7 @@ export class IaAssistantComponent {
     });
   }
 
+  /*** Popup message for duplicate production links ***/
   confirmDuplicate(event: Event, link: UrlItem) {
     this.confirmationService.confirm({
       target: event.currentTarget as EventTarget,
@@ -328,6 +362,7 @@ export class IaAssistantComponent {
     });
   }
 
+  /*** Popup message for duplicate prototype links ***/
   confirmProtoDuplicate(event: Event, link: UrlItem) {
     this.confirmationService.confirm({
       target: event.currentTarget as EventTarget,
@@ -350,5 +385,54 @@ export class IaAssistantComponent {
       }
     });
   }
+
+  /******************************************
+   * GET ROOT URLS AND VALIDATE BREADCRUMBS *
+   ******************************************/
+  breadcrumbs: BreadcrumbNode[][] = [];
+  rootPages: PageData[] = [];
+  breadcrumbProgress = 0;
+  breadcrumbStep = '';
+  hasBreakBeforeRoot = false;
+  hasBreakAfterRoot = false;
+
+  async checkBreadcrumbs() {
+    this.breadcrumbProgress = 0;
+    this.breadcrumbStep = ""
+    this.breadcrumbProgress = 20;
+    this.breadcrumbStep = "Getting all breadcrumbs"
+
+    const allPages = await this.iaService.getAllBreadcrumbs(this.urlPairs);
+
+    this.breadcrumbProgress = 40;
+    this.breadcrumbStep = "Finding root pages"
+
+    await this.fetchService.simulateDelay(2000);
+    this.rootPages = this.iaService.getRoots(allPages);
+
+    this.breadcrumbProgress = 50;
+    this.breadcrumbStep = "Filtering breadcrumbs"
+
+    await this.fetchService.simulateDelay(2000);
+    this.breadcrumbs = this.iaService.filterBreadcrumbs(allPages);
+
+    this.breadcrumbProgress = 60;
+    this.breadcrumbStep = "Validating breadcrumbs"
+
+    this.breadcrumbs = await this.iaService.validateBreadcrumbs(this.breadcrumbs);
+
+    this.breadcrumbProgress = 90;
+    this.breadcrumbStep = "Highlighting breadcrumbs"
+
+    await this.fetchService.simulateDelay(2000);
+    ({ breadcrumbs: this.breadcrumbs, hasBreakAfterRoot: this.hasBreakAfterRoot, hasBreakBeforeRoot: this.hasBreakBeforeRoot } = this.iaService.highlightBreadcrumbs(this.breadcrumbs, this.rootPages));
+
+    this.breadcrumbProgress = 100;
+    this.breadcrumbStep = "Complete"
+
+    this.goToStep4();
+  }
+
 }
+
 
