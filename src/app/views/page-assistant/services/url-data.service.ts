@@ -52,13 +52,12 @@ export class UrlDataService {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const foundFlags = { hidden: false, modal: false, dynamic: false };
 
-    this.updateRelativeURLs(doc, "https://www.canada.ca");
-
     // Save extra data
     const metadata: MetadataData[] = this.getMetadata(doc);
-    const breadcrumb: MenuItem[] = this.getBreadcrumb(doc);
+    const breadcrumb: MenuItem[] = this.getBreadcrumb(doc, "https://www.canada.ca");
 
     //process HTML
+    this.updateRelativeURLs(doc, "https://www.canada.ca");
     this.cleanupUnnecessaryElements(doc);
     foundFlags.dynamic ||= await this.processAjaxReplacements(doc);
     foundFlags.dynamic ||= await this.processJsonReplacements(doc);
@@ -493,13 +492,20 @@ export class UrlDataService {
   }
 
   //Get Breadcrumb
-  private getBreadcrumb(doc: Document): MenuItem[] {
+  public getBreadcrumb(doc: Document, baseUrl: string): MenuItem[] {
     const breadcrumbItems = doc.querySelectorAll('.breadcrumb li a');
     const breadcrumbArray: MenuItem[] = [];
     breadcrumbItems.forEach((el) => {
+      const rawHref = el.getAttribute('href') || '';
+      let absoluteUrl = '';
+      try {
+        absoluteUrl = new URL(rawHref, baseUrl).href; // handles both relative + absolute
+      } catch {
+        console.warn(`Invalid breadcrumb href: ${rawHref}`);
+      }
       breadcrumbArray.push({
         label: el.textContent?.trim() || '',
-        url: el.getAttribute('href') || ''
+        url: absoluteUrl
       });
     });
     return breadcrumbArray;
