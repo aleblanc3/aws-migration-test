@@ -11,13 +11,13 @@ export class FetchService {
   private protoHosts = new Set([
     "cra-design.github.io",
     //"cra-proto.github.io", //Currently blocked by browser because it looks like a phishing site
-    //"gc-proto.github.io", //redirects to test.canada.ca
+    //"gc-proto.github.io", //CORS error but redirects to test.canada.ca which works
     "test.canada.ca",
   ]);
   private getAllowedHosts(mode: "prod" | "proto" | "both"): Set<string> {
     const allowed = new Set<string>();
     if (mode === "prod" || mode === "both") allowed.add(this.prodHost);
-    if (mode === "proto" || mode === "both") this.protoHosts.forEach(h => allowed.add(h));
+    if (mode === "proto" || mode === "both") this.protoHosts.forEach(host => allowed.add(host));
     return allowed;
   }
 
@@ -61,10 +61,10 @@ export class FetchService {
         if (attempt === retries) throw new Error(`${(error as Error).message}`);
       }
     }
-    throw new Error(`Unexpected error for ${url}`); //fallback, we shouldn't see this message
+    throw new Error(`Unexpected error for ${url}`); //fallback, could be CORS or URLs blocked for safety reasons (suspected phishing etc.)
   }
 
-  private async simulateDelay(delay: number | 'random' | 'none' = 'none'): Promise<void> {
+  public async simulateDelay(delay: number | 'random' | 'none' = 'none'): Promise<void> {
     if (environment.production || delay === 'none') return;
 
     if (delay === "random") {
