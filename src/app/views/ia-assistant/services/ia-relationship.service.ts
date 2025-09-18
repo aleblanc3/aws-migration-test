@@ -267,7 +267,7 @@ export class IaRelationshipService {
           isAfterRoot = true;
           broken = false;
           crumb.styleClass = `${this.Colors.blue} ${this.Modifiers.bold}`;
-          crumb.linkTooltip = 'Starting point for IA crawl';
+          crumb.linkTooltip = 'Starting point for IA crawl (user-added page)';
         } else if (isAfterRoot) {
           if (broken) { // If there is an invalid link after the root, the remainder of the trail turns red            
             crumb.styleClass = this.Colors.red;
