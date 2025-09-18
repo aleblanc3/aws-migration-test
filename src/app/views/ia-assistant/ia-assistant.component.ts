@@ -397,51 +397,41 @@ export class IaAssistantComponent {
   hasBreakAfterRoot = false;
 
   async checkBreadcrumbs() {
+    this.breadcrumbProgress = 0;
+    this.breadcrumbStep = ""
     this.breadcrumbProgress = 20;
     this.breadcrumbStep = "Getting all breadcrumbs"
-    console.time("Time to get all breadcrumbs");
+
     const allPages = await this.iaService.getAllBreadcrumbs(this.urlPairs);
-    console.timeEnd("Time to get all breadcrumbs");
 
     this.breadcrumbProgress = 40;
     this.breadcrumbStep = "Finding root pages"
-    console.time("Time to get roots");
+
     await this.fetchService.simulateDelay(2000);
     this.rootPages = this.iaService.getRoots(allPages);
-    console.timeEnd("Time to get roots");
-
-    this.breadcrumbProgress = 45;
-    this.breadcrumbStep = "Filtering breadcrumbs"
-    console.time("Time to filter breadcrumbs");
-    await this.fetchService.simulateDelay(2000);
-    this.breadcrumbs = this.iaService.filterBreadcrumbs(allPages);
-    console.timeEnd("Time to filter breadcrumbs");
 
     this.breadcrumbProgress = 50;
-    this.breadcrumbStep = "Validating breadcrumbs"
-    console.time("Time to validate breadcrumbs");
-    this.breadcrumbs = await this.iaService.validateBreadcrumbs(this.breadcrumbs);
-    console.timeEnd("Time to validate breadcrumbs");
+    this.breadcrumbStep = "Filtering breadcrumbs"
 
-    this.breadcrumbProgress = 95;
+    await this.fetchService.simulateDelay(2000);
+    this.breadcrumbs = this.iaService.filterBreadcrumbs(allPages);
+
+    this.breadcrumbProgress = 60;
+    this.breadcrumbStep = "Validating breadcrumbs"
+
+    this.breadcrumbs = await this.iaService.validateBreadcrumbs(this.breadcrumbs);
+
+    this.breadcrumbProgress = 90;
     this.breadcrumbStep = "Highlighting breadcrumbs"
-    console.time("Time to highlight breadcrumbs");
+
     await this.fetchService.simulateDelay(2000);
     ({ breadcrumbs: this.breadcrumbs, hasBreakAfterRoot: this.hasBreakAfterRoot, hasBreakBeforeRoot: this.hasBreakBeforeRoot } = this.iaService.highlightBreadcrumbs(this.breadcrumbs, this.rootPages));
-    console.log(this.hasBreakAfterRoot);
-    console.log(this.hasBreakBeforeRoot);
-    console.timeEnd("Time to highlight breadcrumbs");
 
     this.breadcrumbProgress = 100;
     this.breadcrumbStep = "Complete"
 
-    console.log(allPages);
-    console.log(this.breadcrumbs);
-    console.log(this.rootPages);
-
     this.goToStep4();
   }
-
 
 }
 
