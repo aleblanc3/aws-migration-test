@@ -6,7 +6,9 @@ import { OverlayPanelModule, OverlayPanel } from 'primeng/overlaypanel';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ButtonModule } from 'primeng/button';
 import { UploadStateService } from '../../services/upload-state.service';
-
+import { LinkAiService, AiVerdict } from '../../services/link-ai.service';
+import { ContentExtractorService } from '../../services/content-extractor.service';
+import type { DestMeta } from '../../services/content-extractor.service';
 type LinkType =
   | 'Canada.ca'
   | 'external'
@@ -98,11 +100,22 @@ interface HeadingData {
   text: string; // Link name on page
   href: string; // Original href
   absUrl: string | null; // Resolved absolute URL
-  destH1: string | null; // Guessed destination title
+  destH1: string | null; // Destination title (guessed/extracted)
   matchStatus: MatchStatus;
-  // placeholders
   searchTerm: string;
   clicks: number | null;
+
+  // Extracted fields (optional)
+  extractedSource?: 'canada' | 'external' | 'anchor';
+  extractedTitle?: string | null;
+  extractedIntro?: string | null;
+  extractedCandidate?: string | null;
+
+  // AI verdict (optional)
+  aiVerdict?: 'match' | 'mismatch' | 'uncertain';
+  aiConfidence?: number; // 0..1
+  aiMatchedFields?: AiVerdict['matchedFields'];
+  aiRationale?: string;
 }
 
 type ColumnField =
@@ -195,7 +208,11 @@ interface LinkReportColumn {
   ],
 })
 export class LinkReportComponent implements OnInit {
-  constructor(private uploadState: UploadStateService) {}
+  constructor(
+    private uploadState: UploadStateService,
+    private linkAi: LinkAiService,
+    private extractor: ContentExtractorService,
+  ) {}
 
   // Expose the overlay panel referenced as #typePanel in the template
   @ViewChild('typePanel') typePanel!: OverlayPanel;
@@ -287,6 +304,7 @@ export class LinkReportComponent implements OnInit {
       doc.querySelectorAll<HTMLAnchorElement>('body a[href]'),
     ).filter((a) => !isFootnoteLink(a));
 
+    // 1) Build initial rows using your current logic (kept as-is)
     this.headings = anchors.map((a, i): HeadingData => {
       const rawHref = (a.getAttribute('href') || '').trim();
       const absUrl = this.resolveUrl(rawHref, baseUrl);
@@ -323,10 +341,145 @@ export class LinkReportComponent implements OnInit {
         absUrl,
         destH1,
         matchStatus,
-        searchTerm: '', // placeholder
-        clicks: null, // placeholder
+        searchTerm: '',
+        clicks: null,
       };
     });
+
+    // 2) Enrich with extracted destination content and recompute matchStatus
+    await this.enrichWithExtractedContent(doc);
+  }
+
+  /**
+   * NEW: For each row, use ContentExtractorService to fetch a better "candidate text"
+   * (title + intro) and re-evaluate matchStatus.
+   */
+  private async enrichWithExtractedContent(sourceDoc: Document): Promise<void> {
+    const rows = this.headings;
+
+    // optional concurrency limit to be polite to remote hosts
+    const CONCURRENCY = 4;
+    let idx = 0;
+
+    const worker = async () => {
+      while (true) {
+        const i = idx++;
+        if (i >= rows.length) break;
+        const row = rows[i];
+
+        // Skip types we won't fetch
+        if (
+          row.type === 'mailto' ||
+          row.type === 'tel' ||
+          row.type === 'download'
+        ) {
+          continue; // already 'na'
+        }
+
+        // Decide source kind + run the right extractor
+        let result: Awaited<
+          ReturnType<ContentExtractorService['extractCanada']>
+        > | null = null;
+        let source: 'canada' | 'external' | 'anchor' | null = null;
+
+        try {
+          if (row.type === 'anchor') {
+            // anchor: use the current uploaded page without network
+            const res = this.extractor.extractAnchor(sourceDoc, row.href);
+            result = res;
+            source = 'anchor';
+          } else if (row.absUrl) {
+            // If the absolute URL is on canada.ca (apex/www only), treat as 'canada'
+            // (rely on your existing isCanadaHost helper)
+            let isCanada = false;
+            try {
+              const u = new URL(row.absUrl);
+              isCanada = isCanadaHost(u);
+            } catch {}
+
+            if (isCanada) {
+              result = await this.extractor.extractCanada(row.absUrl, {
+                retries: 2,
+                delay: 'none',
+              });
+              source = 'canada';
+            } else {
+              result = await this.extractor.extractExternal(row.absUrl, {
+                retries: 2,
+                delay: 'none',
+              });
+              source = 'external';
+            }
+          }
+        } catch {
+          // swallow – we'll keep the old matchStatus if fetch fails
+        }
+
+        // If we got content, use it to rebuild candidate and recompute match
+        // If we got content, use it to rebuild candidate and recompute match
+        if (result) {
+          const candidate = this.extractor.buildCandidateText(result);
+
+          // --- Build minimal DestMeta for AI from what we already have ---
+          const meta: DestMeta = {
+            finalUrl: row.absUrl ?? row.href ?? null,
+            h1: result.title ?? null,
+            title: result.title ?? null,
+            metaDescription: result.intro ?? null,
+            // Use prior destH1 guess as an extra heading signal if present
+            headings: row.destH1 ? [row.destH1] : [],
+            // external extractor may have contentText; otherwise fallback to intro
+            bodyPreview: (result as any).contentText || result.intro || null,
+          };
+
+          // --- Ask AI to judge ---
+          let ai: AiVerdict | null = null;
+          try {
+            ai = await this.linkAi.judge(row.text, meta);
+          } catch {
+            // swallow AI errors; we still have the heuristic
+          }
+
+          // --- Blend AI with your heuristic ---
+          const heuristic: MatchStatus = this.smartMatch(row.text, candidate);
+          const blend = (
+            v: AiVerdict | null,
+            fallback: MatchStatus,
+          ): MatchStatus => {
+            if (!v) return fallback;
+            if (v.verdict === 'match' && v.confidence >= 0.7) return 'match';
+            if (v.verdict === 'mismatch' && v.confidence >= 0.7)
+              return 'mismatch';
+            return fallback; // uncertain/low-confidence → keep heuristic
+          };
+
+          const base = heuristic === 'unknown' ? row.matchStatus : heuristic;
+          const finalStatus = blend(ai, base);
+
+          rows[i] = {
+            ...row,
+            extractedSource: source || undefined,
+            extractedTitle: result.title ?? null,
+            extractedIntro: result.intro ?? null,
+            extractedCandidate: candidate || null,
+            destH1: result.title ?? row.destH1,
+            matchStatus: finalStatus,
+
+            // AI extras (optional for UI/debugging)
+            aiVerdict: ai?.verdict,
+            aiConfidence: ai?.confidence,
+            aiMatchedFields: ai?.matchedFields,
+            aiRationale: ai?.rationale,
+          };
+        }
+      }
+    };
+
+    // Run N workers
+    await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
+
+    // trigger change detection by reassigning
+    this.headings = [...rows];
   }
 
   // ---------- helpers ----------

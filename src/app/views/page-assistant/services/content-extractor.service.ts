@@ -15,6 +15,15 @@ export interface ExtractOpts {
   retries?: number;
   delay?: DevDelay;
 }
+export interface DestMeta {
+  finalUrl: string | null;
+  h1?: string | null;
+  title?: string | null;
+  ogTitle?: string | null;
+  metaDescription?: string | null;
+  headings?: string[]; // H2/H3 etc.
+  bodyPreview?: string | null; // short paragraph blob
+}
 
 @Injectable({ providedIn: 'root' })
 export class ContentExtractorService {
@@ -142,6 +151,56 @@ export class ContentExtractorService {
       title: this.cleanText(h1),
       intro: this.cleanText(metaDesc) || this.cleanText(paras) || null,
       contentText: this.cleanText(paras) || null,
+    };
+  }
+  buildDestMetaFromDoc(doc: Document, finalUrl: string | null): DestMeta {
+    const h1 = doc.querySelector('h1')?.textContent?.trim() || null;
+    const title = doc.querySelector('title')?.textContent?.trim() || null;
+    const ogTitle =
+      doc
+        .querySelector('meta[property="og:title"]')
+        ?.getAttribute('content')
+        ?.trim() || null;
+    const metaDescription =
+      doc
+        .querySelector('meta[name="description"]')
+        ?.getAttribute('content')
+        ?.trim() || null;
+
+    const headings = Array.from(doc.querySelectorAll('h2, h3'))
+      .map((h) => (h.textContent || '').trim())
+      .filter(Boolean)
+      .slice(0, 10)
+      .map((t) => this.cleanText(t) || '')
+      .filter(Boolean);
+
+    const paras = Array.from(doc.querySelectorAll('p'))
+      .map((p) => (p.textContent || '').trim())
+      .filter((t) => this.isMeaningful(t))
+      .slice(0, 2)
+      .join('  ');
+
+    return {
+      finalUrl,
+      h1: this.cleanText(h1),
+      title: this.cleanText(title),
+      ogTitle: this.cleanText(ogTitle),
+      metaDescription: this.cleanText(metaDescription),
+      headings,
+      bodyPreview: this.cleanText(paras) || null,
+    };
+  }
+
+  /** Build a DestMeta from a same-page #anchor (no network). */
+  buildDestMetaFromAnchor(sourceDoc: Document, hashHref: string): DestMeta {
+    const res = this.extractAnchor(sourceDoc, hashHref);
+    return {
+      finalUrl: hashHref || null,
+      h1: res.title,
+      title: res.title,
+      metaDescription: res.intro,
+      headings: res.title ? [res.title] : [],
+      bodyPreview: res.intro || null,
     };
   }
 
