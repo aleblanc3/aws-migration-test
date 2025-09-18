@@ -56,6 +56,7 @@ export class FetchService {
         } else {
           console.warn(`Fetch attempt #${attempt} status: ${response.status}`);
           if (attempt === retries) throw new Error(`Fetch failed ${attempt} times. Status: ${response.status} for ${url}`);
+          await this.delay(50); //50ms delay before retry
         }
       } catch (error) {
         if (attempt === retries) throw new Error(`${(error as Error).message}`);
@@ -73,6 +74,10 @@ export class FetchService {
     else if (typeof delay === "number" && delay > 0) {
       await new Promise(resolve => setTimeout(resolve, delay)); //user input delay
     }
+  }
+
+  public async delay(delay: number): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, delay)); //user input delay
   }
 
   public fetchStatus() {
