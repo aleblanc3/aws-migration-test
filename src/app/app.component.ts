@@ -11,7 +11,6 @@ import { LocalStorageService } from './services/local-storage.service';
 import { CustomTitleStrategy } from './common/custom-title-strategy';
 import { PrimeNG } from 'primeng/config';
 
-
 @Component({
   selector: 'ca-root',
   imports: [CommonModule, RouterOutlet, RouterModule, TranslateModule, HeaderComponent, SidebarComponent, FooterComponent, ApiKeyComponent],
