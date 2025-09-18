@@ -15,7 +15,7 @@ export class UploadStateService {
 
   //Upload data
   private uploadData = signal<Partial<UploadData> | null>(null);
-  private originalUploadData: Partial<UploadData> | null = null; //for the compare with original button
+  private originalUploadData: Partial<UploadData> | null = null; //for the compare with original button (not implemented yet)
   private prevUploadData: (Partial<UploadData> | null)[] = []; //for the undo button
   private maxHistory = 20; //max size of undo array
   getUploadData = computed(() => this.uploadData());
