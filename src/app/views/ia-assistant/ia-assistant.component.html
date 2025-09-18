@@ -184,11 +184,11 @@ https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-ser
                         <ng-container *ngFor="let root of rootPages">
                             <li><a [href]="root.href" target="_blank" class="text-color-secondary hover:text-color no-underline flex-wrap">{{root.h1}}</a>
                                 <!--Display user-added children of roots-->
-                                <ul *ngIf="root.descendants.length > 0">
+                                <!--ul *ngIf="root.descendants.length > 0">
                                     <ng-container *ngFor="let page of root.descendants">
                                         <li>{{page}}</li>
                                     </ng-container>
-                                </ul>
+                                </ul-->
                             </li>
                         </ng-container>
                     </ol>
