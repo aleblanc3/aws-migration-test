@@ -21,9 +21,10 @@ export class FetchService {
     return allowed;
   }
 
+  //Validates URL and checks if it's in the specified allowed host list
   private validateHost(
     url: string,
-    hostMode: "prod" | "proto" | "both"
+    hostMode: "prod" | "proto" | "both" | "none"
   ): string {
     url = url.trim().toLowerCase();
 
@@ -34,16 +35,18 @@ export class FetchService {
       throw new Error(`Invalid URL: ${url}`)
     }
 
-    const allowedHosts = this.getAllowedHosts(hostMode);
-    if (!allowedHosts.has(hostname)) {
-      throw new Error(`Blocked host: ${hostname} blocked for url ${url}`);
+    if (hostMode !== "none") {
+      const allowedHosts = this.getAllowedHosts(hostMode);
+      if (!allowedHosts.has(hostname)) {
+        throw new Error(`Blocked host: ${hostname} blocked for url ${url}`);
+      }
     }
 
     return url;
   }
 
-  //Preferably use fetchContent or fetchStatus since they enforce our allowed hosts. Use this as a standalone only if you need to check external content.
-  public async fetchWithRetry(
+  //Uses specified fetch method and retries if initial fetch fails (can happen due to intermittent server issues etc.)
+  private async fetchWithRetry(
     url: string,
     mode: "GET" | "HEAD" = "HEAD",
     retries = 3,
@@ -71,7 +74,7 @@ export class FetchService {
 
   public async fetchContent(
     url: string,
-    hostMode: "prod" | "proto" | "both" = "both",
+    hostMode: "prod" | "proto" | "both" | "none" = "both",
     retries = 3,
     delay: number | "random" | "none" = "none"
   ): Promise<Document> {
@@ -83,7 +86,7 @@ export class FetchService {
 
   public async fetchStatus(
     url: string,
-    hostMode: "prod" | "proto" | "both" = "both",
+    hostMode: "prod" | "proto" | "both" | "none" = "both",
     retries = 3,
     delay: number | "random" | "none" = "none"
   ): Promise<Response> {
