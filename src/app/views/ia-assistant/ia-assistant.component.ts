@@ -414,108 +414,6 @@ export class IaAssistantComponent {
   /**********************
   *  BUILD THE IA TREE  *
   ***********************/
-  // Dummy breadcrumb data for testing
-  dummyBreadcrumbs: BreadcrumbNode[][] = [
-    [
-      {
-        label: "Canada.ca",
-        url: "https://www.canada.ca/en.html",
-        styleClass: "text-blue-500 hover:text-blue-600 font-bold",
-        linkTooltip: "Starting point for IA crawl (user-added page)",
-        isRoot: true,
-        isDescendant: false
-      },
-      {
-        label: "Canada Revenue Agency (CRA)",
-        url: "https://www.canada.ca/en/revenue-agency.html",
-        icon: "pi pi-times-circle text-red-500 hover:text-red-600",
-        iconTooltip: "No link from parent",
-        styleClass: "text-red-500 hover:text-red-600",
-        linkTooltip: "IA Orphan",
-        valid: false,
-        isRoot: false,
-        isDescendant: false
-      },
-      {
-        label: "Forms and publications - CRA",
-        url: "https://www.canada.ca/en/revenue-agency/services/forms-publications.html",
-        icon: "pi pi-arrow-circle-right text-green-500 hover:text-green-600",
-        iconTooltip: "Valid connection",
-        styleClass: "text-red-500 hover:text-red-600",
-        linkTooltip: "Descendant of IA orphan",
-        valid: true,
-        isRoot: false,
-        isDescendant: false
-      },
-      {
-        label: "Canada Revenue Agency publications listed by number",
-        url: "https://www.canada.ca/en/revenue-agency/services/forms-publications/publications.html",
-        icon: "pi pi-arrow-circle-right text-green-500 hover:text-green-600",
-        iconTooltip: "Valid connection",
-        styleClass: "text-red-500 hover:text-red-600 font-bold",
-        linkTooltip: "Descendant of IA orphan (user-added page)",
-        valid: true,
-        isRoot: false,
-        isDescendant: true
-      },
-      {
-        label: "T4001 Employers' Guide - Payroll Deductions and Remittances",
-        url: "https://www.canada.ca/en/revenue-agency/services/forms-publications/publications/t4001.html",
-        icon: "pi pi-arrow-circle-right text-green-500 hover:text-green-600",
-        iconTooltip: "Valid connection",
-        styleClass: "text-red-500 hover:text-red-600",
-        linkTooltip: "Descendant of IA orphan",
-        valid: true,
-        isRoot: false,
-        isDescendant: false
-      },
-      {
-        label: "Employers’ Guide – Payroll Deductions and Remittances",
-        url: "https://www.canada.ca/en/revenue-agency/services/forms-publications/publications/t4001/employers-guide-payroll-deductions-remittances.html",
-        icon: "pi pi-arrow-circle-right text-green-500 hover:text-green-600",
-        iconTooltip: "Valid connection",
-        styleClass: "text-red-500 hover:text-red-600 font-bold",
-        linkTooltip: "Descendant of IA orphan (user-added page)",
-        valid: true,
-        isRoot: false,
-        isDescendant: true
-      }
-    ],
-    [
-      {
-        label: "Canada.ca",
-        url: "https://www.canada.ca/en.html",
-        styleClass: "text-blue-500 hover:text-blue-600 font-bold",
-        linkTooltip: "Starting point for IA crawl (user-added page)",
-        isRoot: true,
-        isDescendant: false
-      },
-      {
-        label: "Taxes",
-        url: "https://www.canada.ca/en/services/taxes.html",
-        icon: "pi pi-arrow-circle-right text-green-500 hover:text-green-600",
-        iconTooltip: "Valid connection",
-        styleClass: "text-green-500 hover:text-green-600",
-        linkTooltip: "Valid child page",
-        valid: true,
-        isRoot: false,
-        isDescendant: false
-      },
-      {
-        label: "Income tax",
-        url: "https://www.canada.ca/en/services/taxes/income-tax.html",
-        icon: "pi pi-arrow-circle-right text-green-500 hover:text-green-600",
-        iconTooltip: "Valid connection",
-        styleClass: "text-green-500 hover:text-green-600 font-bold",
-        linkTooltip: "Valid child page (user-added page)",
-        valid: true,
-        isRoot: false,
-        isDescendant: true
-      }
-    ]
-  ];
-
-
   iaTree: TreeNode[] = [];
   async buildIaTree(): Promise<void> {
     this.setTreeContext();
@@ -611,8 +509,6 @@ export class IaAssistantComponent {
 
       const children = await this.iaTreeService.buildIaTree([root.data.url], depth, undefined, 0);
 
-      // buildIaTree will return a node array that *includes the root again*,
-      // so we need to grab its children instead of replacing the root
       if (children.length > 0) {
         const builtRoot = children[0];
         root.children = builtRoot.children; // attach discovered children
