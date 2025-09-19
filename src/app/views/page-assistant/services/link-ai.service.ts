@@ -1,16 +1,34 @@
 // src/app/views/page-assistant/services/link-ai.service.ts
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ApiKeyService } from '../../../services/api-key.service';
 import { DestMeta } from './content-extractor.service';
+
+/** Chat payload types (OpenRouter-compatible minimal shapes) */
+type ChatRole = 'system' | 'user' | 'assistant';
+interface ChatMessage {
+  role: ChatRole;
+  content: string;
+}
+interface OpenRouterChoice {
+  message?: { role?: string; content?: string };
+}
+interface OpenRouterResponse {
+  choices?: OpenRouterChoice[];
+}
 
 export interface AiVerdict {
   verdict: 'match' | 'mismatch' | 'uncertain';
   confidence: number; // 0..1
   rationale?: string;
-  matchedFields?: Array<
-    'h1' | 'title' | 'ogTitle' | 'metaDescription' | 'headings' | 'bodyPreview'
-  >;
+  matchedFields?: (
+    | 'h1'
+    | 'title'
+    | 'ogTitle'
+    | 'metaDescription'
+    | 'headings'
+    | 'bodyPreview'
+  )[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -18,7 +36,7 @@ export class LinkAiService {
   private openRouterApiUrl = 'https://openrouter.ai/api/v1/chat/completions';
 
   // Reuse your model rotation style
-  private models = [
+  private models: string[] = [
     'meta-llama/llama-3.3-70b-instruct:free',
     'google/gemini-2.0-flash-exp:free',
     'google/gemini-exp-1206:free',
@@ -28,10 +46,9 @@ export class LinkAiService {
     'deepseek/deepseek-r1:free',
   ];
 
-  constructor(
-    private http: HttpClient,
-    private apiKeyService: ApiKeyService,
-  ) {}
+  // prefer-inject over constructor DI
+  private readonly http = inject(HttpClient);
+  private readonly apiKeyService = inject(ApiKeyService);
 
   /**
    * Ask the model whether a link label matches the destination page content.
@@ -41,7 +58,7 @@ export class LinkAiService {
     const systemPrompt = `You judge if a link label matches its destination page.
 Use ONLY the provided extracted fields (h1,h2,h3, meta description,bodyPreview).
 Consider abbreviations and synonyms.Respond with a single compact JSON object and nothing else:
-{"verdict":"match|mismatch|uncertain","confidence":0..1,}`;
+{"verdict":"match|mismatch|uncertain","confidence":0..1}`;
 
     const userPayload = {
       linkText,
@@ -56,7 +73,7 @@ Consider abbreviations and synonyms.Respond with a single compact JSON object an
       },
     };
 
-    const messages = [
+    const messages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: JSON.stringify(userPayload) },
     ];
@@ -74,13 +91,13 @@ Consider abbreviations and synonyms.Respond with a single compact JSON object an
     return null;
   }
 
-  // ------- OpenRouter plumbing (matches your TranslationService approach) -------
+  // ------- OpenRouter plumbing -------
 
   private async callOpenRouter(
     model: string,
-    messages: any[],
+    messages: ChatMessage[],
     temperature = 0.0,
-  ): Promise<any | undefined> {
+  ): Promise<OpenRouterResponse | undefined> {
     const apiKey = this.apiKeyService.getCurrentKey();
     if (!apiKey) throw new Error('API key is required.');
 
@@ -94,17 +111,17 @@ Consider abbreviations and synonyms.Respond with a single compact JSON object an
     const payload = { model, messages, temperature };
 
     try {
-      const resp = await this.http
+      const resp = (await this.http
         .post(this.openRouterApiUrl, payload, {
           headers,
-          responseType: 'text', // IMPORTANT: prevents Angular JSON parser errors on non-JSON
+          responseType: 'text', // prevents Angular JSON parse issues on non-JSON
           observe: 'response',
         })
-        .toPromise();
+        .toPromise()) as HttpResponse<string> | null;
 
       const ct = resp?.headers.get('content-type') || '';
-      if (ct.includes('application/json')) {
-        return JSON.parse(resp!.body as string);
+      if (ct.includes('application/json') && typeof resp?.body === 'string') {
+        return JSON.parse(resp.body) as OpenRouterResponse;
       } else {
         console.error(
           `OpenRouter non-JSON (status ${resp?.status}, ${ct}):\n`,
@@ -112,12 +129,13 @@ Consider abbreviations and synonyms.Respond with a single compact JSON object an
         );
         return undefined;
       }
-    } catch (err: any) {
-      const status = err?.status;
+    } catch (err: unknown) {
+      const httpErr = err as { status?: number; error?: unknown };
+      const status = httpErr?.status;
       const bodySnippet =
-        typeof err?.error === 'string'
-          ? err.error.slice(0, 500)
-          : JSON.stringify(err?.error);
+        typeof httpErr?.error === 'string'
+          ? httpErr.error.slice(0, 500)
+          : JSON.stringify(httpErr?.error);
       console.error(
         `OpenRouter HTTP error (model: ${model}) status=${status}: ${bodySnippet}`,
       );
@@ -140,47 +158,64 @@ Consider abbreviations and synonyms.Respond with a single compact JSON object an
    * - First try direct JSON.parse
    * - Then try the first {...} block via regex
    */
-  private looseJsonParse(s: string): any | null {
+  private looseJsonParse(s: string): unknown | null {
     try {
       return JSON.parse(s);
-    } catch {}
+    } catch {
+      // fall through to regex extraction
+      void 0;
+    }
     const m = s.match(/\{[\s\S]*\}/);
     if (m) {
       try {
-        return JSON.parse(m[0]);
-      } catch {}
+        return JSON.parse(m[0] as string);
+      } catch {
+        // ignore and return null below
+        void 0;
+      }
     }
     return null;
   }
 
   /** Validate & coerce to AiVerdict */
-  private toVerdict(j: any): AiVerdict | null {
+  private toVerdict(j: unknown): AiVerdict | null {
     if (!j || typeof j !== 'object') return null;
-    const verdict = j.verdict;
-    if (!['match', 'mismatch', 'uncertain'].includes(verdict)) return null;
+    const obj = j as Record<string, unknown>;
 
-    let confidence = Number(j.confidence);
-    if (!isFinite(confidence)) confidence = 0;
+    const verdict = obj['verdict'];
+    if (
+      verdict !== 'match' &&
+      verdict !== 'mismatch' &&
+      verdict !== 'uncertain'
+    )
+      return null;
+
+    let confidence = Number(obj['confidence']);
+    if (!Number.isFinite(confidence)) confidence = 0;
     confidence = Math.max(0, Math.min(1, confidence));
 
     let matchedFields: AiVerdict['matchedFields'] | undefined;
-    if (Array.isArray(j.matchedFields)) {
-      matchedFields = j.matchedFields.filter((x: any) =>
-        [
-          'h1',
-          'title',
-          'ogTitle',
-          'metaDescription',
-          'headings',
-          'bodyPreview',
-        ].includes(x),
-      );
+    if (Array.isArray(obj['matchedFields'])) {
+      const arr = obj['matchedFields'] as unknown[];
+      const allowed = new Set([
+        'h1',
+        'title',
+        'ogTitle',
+        'metaDescription',
+        'headings',
+        'bodyPreview',
+      ]);
+      matchedFields = arr
+        .filter((x): x is NonNullable<AiVerdict['matchedFields']>[number] => {
+          return typeof x === 'string' && allowed.has(x);
+        })
+        .slice(); // copy
     }
 
     const out: AiVerdict = { verdict, confidence };
-    if (typeof j.rationale === 'string') out.rationale = j.rationale;
+    if (typeof obj['rationale'] === 'string') out.rationale = obj['rationale'];
     if (matchedFields && matchedFields.length)
-      out.matchedFields = matchedFields as any;
+      out.matchedFields = matchedFields;
     return out;
   }
 }

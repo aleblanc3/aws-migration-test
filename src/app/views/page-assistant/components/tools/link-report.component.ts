@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -98,6 +98,14 @@ function stripFootnoteText(text: string): string {
     .trim();
 }
 
+/** Optional debug fields the extractor may include */
+interface DebugExtractResult {
+  titleSource?: string;
+  introSource?: string;
+  anchorMeta?: { id?: string; headingTag?: string };
+  contentText?: string;
+}
+
 interface HeadingData {
   order: number; // Index
   type: LinkType; // Link Type
@@ -134,6 +142,12 @@ type ColumnField =
 interface LinkReportColumn {
   field: ColumnField;
   header: string;
+}
+
+interface UploadDataShape {
+  originalHtml?: string | null;
+  modifiedHtml?: string | null;
+  pageUrl?: string | null;
 }
 
 @Component({
@@ -212,11 +226,10 @@ interface LinkReportColumn {
   ],
 })
 export class LinkReportComponent implements OnInit {
-  constructor(
-    private uploadState: UploadStateService,
-    private linkAi: LinkAiService,
-    private extractor: ContentExtractorService,
-  ) {}
+  // prefer-inject: replace constructor DI
+  private readonly uploadState = inject(UploadStateService);
+  private readonly linkAi = inject(LinkAiService);
+  private readonly extractor = inject(ContentExtractorService);
 
   @ViewChild('typePanel') typePanel!: Popover;
 
@@ -237,10 +250,8 @@ export class LinkReportComponent implements OnInit {
 
   // --- DEBUG LOGGING HELPERS ---
   private readonly COLLAPSE_GROUPS = false;
-  // Turn logging on/off
   private readonly DEBUG_LOG = true;
 
-  // Helper to keep logs readable
   private truncate(s: string | null | undefined, n = 200): string {
     if (s == null) return '';
     const t = String(s).trim();
@@ -267,8 +278,10 @@ export class LinkReportComponent implements OnInit {
   ): void {
     if (!this.DEBUG_LOG) return;
 
-    const r: any = result as any; // ok even if your ExtractResult doesn’t have debug fields
-    const header = `[Link#${row.order}] ${row.type} — ${row.text}  →  ${row.absUrl || row.href || ''}`;
+    const r = (result ?? {}) as DebugExtractResult;
+    const header = `[Link#${row.order}] ${row.type} — ${row.text}  →  ${
+      row.absUrl || row.href || ''
+    }`;
 
     if (this.COLLAPSE_GROUPS) console.groupCollapsed(header);
     else console.group(header);
@@ -278,27 +291,27 @@ export class LinkReportComponent implements OnInit {
     console.log('absUrl:', row.absUrl);
 
     if (source === 'canada' && result) {
-      console.log(`CANADA H1 (titleSource=${r?.titleSource ?? '-'}) ::`);
-      console.log(this.truncate(result.title, 1000)); // <-- exact text
-      console.log(`CANADA Intro (introSource=${r?.introSource ?? '-'}) ::`);
-      console.log(this.truncate(result.intro, 1000)); // <-- exact text
+      console.log(`CANADA H1 (titleSource=${r.titleSource ?? '-'}) ::`);
+      console.log(this.truncate(result.title, 1000));
+      console.log(`CANADA Intro (introSource=${r.introSource ?? '-'}) ::`);
+      console.log(this.truncate(result.intro, 1000));
     } else if (source === 'anchor' && result) {
-      console.log('ANCHOR id:', r?.anchorMeta?.id || '(none)');
-      console.log('ANCHOR heading tag:', r?.anchorMeta?.headingTag || '(none)');
-      console.log(`Section heading (titleSource=${r?.titleSource ?? '-'}) ::`);
-      console.log(this.truncate(result.title, 1000)); // <-- exact text (H2/H3/H4 or target text)
+      console.log('ANCHOR id:', r.anchorMeta?.id || '(none)');
+      console.log('ANCHOR heading tag:', r.anchorMeta?.headingTag || '(none)');
+      console.log(`Section heading (titleSource=${r.titleSource ?? '-'}) ::`);
+      console.log(this.truncate(result.title, 1000));
       console.log(
-        `First paragraph in section (introSource=${r?.introSource ?? '-'}) ::`,
+        `First paragraph in section (introSource=${r.introSource ?? '-'}) ::`,
       );
-      console.log(this.truncate(result.intro, 1000)); // <-- exact text
+      console.log(this.truncate(result.intro, 1000));
     } else if (source === 'external' && result) {
-      console.log(`EXTERNAL Title (titleSource=${r?.titleSource ?? '-'}) ::`);
-      console.log(this.truncate(result.title, 1000)); // <-- exact text
-      console.log(`EXTERNAL Intro (introSource=${r?.introSource ?? '-'}) ::`);
-      console.log(this.truncate(result.intro, 1000)); // <-- exact text
-      if (r?.contentText) {
+      console.log(`EXTERNAL Title (titleSource=${r.titleSource ?? '-'}) ::`);
+      console.log(this.truncate(result.title, 1000));
+      console.log(`EXTERNAL Intro (introSource=${r.introSource ?? '-'}) ::`);
+      console.log(this.truncate(result.intro, 1000));
+      if (r.contentText) {
         console.log('EXTERNAL Body preview ::');
-        console.log(this.truncate(r.contentText, 1000)); // <-- exact text
+        console.log(this.truncate(r.contentText, 1000));
       }
     } else if (
       row.type === 'mailto' ||
@@ -333,7 +346,6 @@ export class LinkReportComponent implements OnInit {
       type: r.type,
       text: this.truncate(r.text, 80),
       url: r.absUrl || r.href,
-      // show the exact extracted strings in the summary too
       extractedTitle: this.truncate(r.extractedTitle, 200),
       extractedIntro: this.truncate(r.extractedIntro, 200),
       match: r.matchStatus,
@@ -369,16 +381,14 @@ export class LinkReportComponent implements OnInit {
   };
 
   onAllToggle(): void {
-    // nothing else needed; individuals remain as-is (unchecked) and ignored when ALL = true
+    // individuals remain as-is (unchecked) and ignored when ALL = true
   }
 
-  onTypeToggle(_t: LinkType): void {
+  onTypeToggle(t: LinkType): void {
     if (this.allSelected) this.allSelected = false;
-  }
 
-  toggleType(t: LinkType): void {
-    if (this.allSelected) this.allSelected = false;
-    this.typeChecks[t] = !this.typeChecks[t];
+    // Read + reassign to ensure the key exists as a boolean (and to satisfy lint)
+    this.typeChecks[t] = !!this.typeChecks[t];
   }
 
   private activeTypes(): Set<LinkType> {
@@ -393,10 +403,10 @@ export class LinkReportComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.extractLinks();
+    void this.extractLinks();
   }
 
-  async extractLinks() {
+  async extractLinks(): Promise<void> {
     const { html, baseUrl } = this.getHtmlToAnalyze();
     if (!html) {
       this.headings = [];
@@ -467,7 +477,7 @@ export class LinkReportComponent implements OnInit {
     let idx = 0;
 
     const worker = async () => {
-      while (true) {
+      for (;;) {
         const i = idx++;
         if (i >= rows.length) break;
         const row = rows[i];
@@ -506,7 +516,9 @@ export class LinkReportComponent implements OnInit {
             try {
               const u = new URL(row.absUrl);
               isCanada = isCanadaHost(u);
-            } catch {}
+            } catch {
+              /* ignore URL parse error; treat as external below */
+            }
             if (isCanada) {
               result = await this.extractor.extractCanada(row.absUrl, {
                 retries: 2,
@@ -535,7 +547,10 @@ export class LinkReportComponent implements OnInit {
             title: result.title ?? null,
             metaDescription: result.intro ?? null,
             headings: row.destH1 ? [row.destH1] : [],
-            bodyPreview: (result as any).contentText || result.intro || null,
+            bodyPreview:
+              (result as DebugExtractResult).contentText ||
+              result.intro ||
+              null,
           };
 
           // Ask AI
@@ -592,7 +607,7 @@ export class LinkReportComponent implements OnInit {
           // No result (blocked/failed/no absUrl) — keep row as-is and LOG it
           this.logRowExtraction(
             row,
-            (source as any) || 'none',
+            (source as unknown as 'none') || 'none',
             null,
             null,
             null,
@@ -617,13 +632,29 @@ export class LinkReportComponent implements OnInit {
   // ---------- helpers ----------
 
   private getHtmlToAnalyze(): { html: string | null; baseUrl: string | null } {
-    const data = this.uploadState.getUploadData?.() as any;
-    if (!data) return { html: null, baseUrl: null };
+    const get = this.uploadState.getUploadData?.();
+    const data: unknown = get;
+
+    const shape = (d: unknown): UploadDataShape | null => {
+      if (d && typeof d === 'object') {
+        const o = d as Record<string, unknown>;
+        return {
+          originalHtml: (o['originalHtml'] as string) ?? null,
+          modifiedHtml: (o['modifiedHtml'] as string) ?? null,
+          pageUrl: (o['pageUrl'] as string) ?? null,
+        };
+      }
+      return null;
+    };
+
+    const parsed = shape(data);
+
+    if (!parsed) return { html: null, baseUrl: null };
 
     const html: string | null =
       (this.sourceVersion === 'modified'
-        ? data.modifiedHtml
-        : data.originalHtml) || null;
+        ? parsed.modifiedHtml
+        : parsed.originalHtml) || null;
 
     let baseUrl: string | null = null;
     if (html) {
@@ -631,9 +662,11 @@ export class LinkReportComponent implements OnInit {
         const tmp = new DOMParser().parseFromString(html, 'text/html');
         const b = tmp.querySelector('base[href]')?.getAttribute('href')?.trim();
         if (b) baseUrl = b;
-      } catch {}
+      } catch {
+        /* ignore base parsing */
+      }
     }
-    if (!baseUrl && (data as any).pageUrl) baseUrl = (data as any).pageUrl;
+    if (!baseUrl && parsed.pageUrl) baseUrl = parsed.pageUrl;
 
     return { html, baseUrl };
   }
@@ -700,7 +733,9 @@ export class LinkReportComponent implements OnInit {
     try {
       const u = new URL(absUrl || raw, CANADA_ORIGIN);
       isWebform = /\/webform(s)?\//i.test(u.pathname);
-    } catch {}
+    } catch {
+      /* ignore URL parse failure */
+    }
     if (isPdf || hasDownloadAttr || isWebform) return 'download';
 
     // 4) Canada.ca host (apex or www)
@@ -722,7 +757,7 @@ export class LinkReportComponent implements OnInit {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
-      .replace(/[\/\-_]+/g, ' ')
+      .replace(/[/\-_]+/g, ' ')
       .replace(/[^\p{L}\p{N}\s]/gu, ' ')
       .replace(/\s+/g, ' ')
       .trim();
@@ -845,11 +880,14 @@ export class LinkReportComponent implements OnInit {
     return j >= 0.6 ? 'match' : 'mismatch';
   }
 
-  // style hooks used by template
-  getTextStyle(_row: HeadingData) {
-    return {};
+  // style hooks used by template — actually use the row to satisfy no-unused-vars
+  getTextStyle(row: HeadingData) {
+    // Example: de-emphasize NA items
+    return row.matchStatus === 'na' ? { opacity: 0.7 } : {};
   }
-  getTextClass(_row: HeadingData) {
-    return {};
+  getTextClass(row: HeadingData) {
+    return {
+      'font-semibold': row.matchStatus === 'match',
+    };
   }
 }

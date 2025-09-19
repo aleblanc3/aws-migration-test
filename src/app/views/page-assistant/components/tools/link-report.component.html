@@ -33,7 +33,14 @@
 
   <ng-template pTemplate="body" let-rowData let-rowIndex="rowIndex">
     <tr [pReorderableRow]="rowIndex" [pSelectableRow]="rowData">
-      <td><span class="pi pi-bars" pReorderableRowHandle></span></td>
+      <td>
+        <!-- purely decorative drag handle; no click handler so a11y rule is fine -->
+        <span
+          class="pi pi-bars"
+          pReorderableRowHandle
+          aria-hidden="true"
+        ></span>
+      </td>
 
       <td *ngFor="let col of cols">
         <ng-container [ngSwitch]="col.field">
@@ -101,7 +108,7 @@
       aria-label="Close filter"
     ></button>
 
-    <!-- ALL / types UI stays the same -->
+    <!-- ALL / types UI -->
     <div class="filter-row">
       <p-checkbox
         [(ngModel)]="allSelected"
@@ -122,11 +129,8 @@
         [inputId]="'type-' + i"
         binary="true"
       ></p-checkbox>
-      <label
-        class="filter-label"
-        [attr.for]="'type-' + i"
-        (click)="toggleType(t)"
-      >
+      <!-- label activates checkbox; no custom click needed (fixes a11y lint) -->
+      <label class="filter-label" [attr.for]="'type-' + i">
         {{ t }}
       </label>
     </div>

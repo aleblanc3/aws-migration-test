@@ -1,12 +1,27 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { ApiKeyService } from './api-key.service';
 
-@Injectable({
-  providedIn: 'root',
-})
+/** Minimal OpenRouter chat types */
+type ChatRole = 'system' | 'user' | 'assistant';
+interface ChatMessage {
+  role: ChatRole;
+  content: string;
+}
+interface OpenRouterChoice {
+  message?: { role?: string; content?: string };
+}
+interface OpenRouterResponse {
+  choices?: OpenRouterChoice[];
+}
+
+@Injectable({ providedIn: 'root' })
 export class TranslationService {
   private openRouterApiUrl = 'https://openrouter.ai/api/v1/chat/completions';
+
+  // prefer-inject over constructor DI
+  private readonly http = inject(HttpClient);
+  private readonly apiKeyService = inject(ApiKeyService);
 
   private docxPrompt = `You are a document formatting assistant. 
 You will be provided two inputs in HTML format:
@@ -30,10 +45,15 @@ Your task:
 3. If the French text is one paragraph but the English input is split into multiple segments, split it appropriately.
 Return only the French HTML document.`;
 
-  constructor(
-    private http: HttpClient,
-    private apiKeyService: ApiKeyService,
-  ) {}
+  private readonly models: string[] = [
+    'meta-llama/llama-3.3-70b-instruct:free',
+    'google/gemini-2.0-flash-exp:free',
+    'google/gemini-exp-1206:free',
+    'cognitivecomputations/dolphin3.0-mistral-24b:free',
+    'cognitivecomputations/dolphin3.0-r1-mistral-24b:free',
+    'nvidia/llama-3.1-nemotron-70b-instruct:free',
+    'deepseek/deepseek-r1:free',
+  ];
 
   /**
    * Aligns French text with the English HTML structure.
@@ -54,29 +74,18 @@ Return only the French HTML document.`;
     // Build chat request
     const combinedPrompt = `${systemPrompt}\n\nEnglish Document (HTML):\n${englishHtml}\n\nFrench Text:\n${frenchText}\n\nReturn the French document in HTML format that exactly follows the structure of the English document.`;
 
-    const requestJson = [
+    const requestMessages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: combinedPrompt },
     ];
 
-    const models = [
-      'meta-llama/llama-3.3-70b-instruct:free',
-      'google/gemini-2.0-flash-exp:free',
-      'google/gemini-exp-1206:free',
-      'cognitivecomputations/dolphin3.0-mistral-24b:free',
-      'cognitivecomputations/dolphin3.0-r1-mistral-24b:free',
-      'nvidia/llama-3.1-nemotron-70b-instruct:free',
-      'deepseek/deepseek-r1:free',
-    ];
-
     let finalResponse: string | null = null;
 
-    for (const model of models) {
-      const aiResponse = await this.getORData(model, requestJson, 0.0);
-      if (aiResponse?.choices?.[0]?.message?.content) {
-        finalResponse = this.removeCodeFences(
-          aiResponse.choices[0].message.content,
-        );
+    for (const model of this.models) {
+      const aiResponse = await this.getORData(model, requestMessages, 0.0);
+      const text = aiResponse?.choices?.[0]?.message?.content;
+      if (text) {
+        finalResponse = this.removeCodeFences(text);
         console.log('AI response received.');
         break; // Stop at first successful response
       }
@@ -90,9 +99,9 @@ Return only the French HTML document.`;
    */
   private async getORData(
     model: string,
-    requestJson: any,
+    messages: ChatMessage[],
     temperature = 0.0,
-  ): Promise<any> {
+  ): Promise<OpenRouterResponse | undefined> {
     const apiKey = this.apiKeyService.getCurrentKey();
     if (!apiKey) throw new Error('API key is required.');
 
@@ -100,23 +109,23 @@ Return only the French HTML document.`;
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'X-Title': 'Content Assistant', // optional but nice
+      'X-Title': 'Content Assistant',
     });
 
-    const payload = { model, messages: requestJson, temperature };
+    const payload = { model, messages, temperature };
 
     try {
-      const resp = await this.http
+      const resp = (await this.http
         .post(this.openRouterApiUrl, payload, {
           headers,
-          responseType: 'text', // <-- key change
+          responseType: 'text', // keep text to check content-type ourselves
           observe: 'response',
         })
-        .toPromise();
+        .toPromise()) as HttpResponse<string> | null;
 
       const ct = resp?.headers.get('content-type') || '';
-      if (ct.includes('application/json')) {
-        return JSON.parse(resp!.body as string);
+      if (ct.includes('application/json') && typeof resp?.body === 'string') {
+        return JSON.parse(resp.body) as OpenRouterResponse;
       } else {
         console.error(
           `OpenRouter non-JSON (status ${resp?.status}, ${ct}):\n`,
@@ -124,12 +133,13 @@ Return only the French HTML document.`;
         );
         return undefined; // let alignTranslation() try the next model
       }
-    } catch (err: any) {
-      const status = err?.status;
+    } catch (err: unknown) {
+      const httpErr = err as { status?: number; error?: unknown };
+      const status = httpErr?.status;
       const bodySnippet =
-        typeof err?.error === 'string'
-          ? err.error.slice(0, 500)
-          : JSON.stringify(err?.error);
+        typeof httpErr?.error === 'string'
+          ? httpErr.error.slice(0, 500)
+          : JSON.stringify(httpErr?.error);
       console.error(
         `OpenRouter HTTP error (model: ${model}) status=${status}: ${bodySnippet}`,
       );
@@ -141,22 +151,23 @@ Return only the French HTML document.`;
    * Removes ``` code fences from AI output
    */
   private removeCodeFences(str: string): string {
-    str = str.replace(/^```.*\n/, '');
-    str = str.replace(/\n\s*```+\s*$/, '');
-    return str.trim();
+    return str
+      .replace(/^```(?:html|json)?\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
   }
 
   /**
    * Builds a mapping of paragraph IDs to French text from HTML.
    */
-  buildFrenchTextMap(finalFrenchHtml: string): { [key: string]: string } {
+  buildFrenchTextMap(finalFrenchHtml: string): Record<string, string> {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = finalFrenchHtml;
-    const frenchMap: { [key: string]: string } = {};
+    const frenchMap: Record<string, string> = {};
     tempDiv.querySelectorAll('p[id]').forEach((p) => {
-      const id = p.getAttribute('id')!;
+      const id = p.getAttribute('id');
       const text = p.textContent?.trim() || '';
-      if (text) frenchMap[id] = text;
+      if (id && text) frenchMap[id] = text;
     });
     return frenchMap;
   }
