@@ -2,12 +2,11 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
-import { environment } from '../../../environments/environment';
 
 import { StepperModule } from 'primeng/stepper';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
-import { ConfirmationService } from 'primeng/api';
+import { ConfirmationService, TreeNode } from 'primeng/api';
 import { TextareaModule } from 'primeng/textarea';
 import { InputTextModule } from 'primeng/inputtext';
 import { IftaLabelModule } from 'primeng/iftalabel';
@@ -18,43 +17,51 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ChipModule } from 'primeng/chip';
 import { TableModule } from 'primeng/table';
 import { BadgeModule } from 'primeng/badge';
+import { OrganizationChart } from 'primeng/organizationchart';
 
-import { UrlItem, UrlPair } from './data/data.model'
+import { UrlItem, UrlPair, PageData, BreadcrumbNode } from './data/data.model'
 import { LinkListComponent } from './components/link-list.component';
-import { IaRelationshipService, PageData, BreadcrumbNode } from './services/ia-relationship.service';
+import { IaRelationshipService } from './services/ia-relationship.service';
+import { IaTreeService } from './services/ia-tree.service';
 import { FetchService } from '../../services/fetch.service';
+import { ThemeService } from '../../services/theme.service';
+
 
 @Component({
   selector: 'ca-ia-assistant',
   imports: [CommonModule, FormsModule, TranslateModule,
     TextareaModule, InputTextModule, IftaLabelModule, InputGroupModule, InputGroupAddonModule, ButtonModule,
     ProgressBarModule, ChipModule, StepperModule, ConfirmPopupModule, TableModule, BadgeModule, TooltipModule,
+    OrganizationChart,
     LinkListComponent,],
   templateUrl: './ia-assistant.component.html',
-  styles: `
-  :host ::ng-deep .p-breadcrumb .p-menuitem-link {
-  justify-content: flex-start !important;
-}
-
-:host ::ng-deep .custom-breadcrumb-link {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 0.5rem; /* matches gap-2 */
-}
-
-:host ::ng-deep .p-breadcrumb .p-breadcrumb-item > a {
-  justify-content: flex-start !important;
-}
-  `
+  styles: ``
 })
 export class IaAssistantComponent {
   private confirmationService = inject(ConfirmationService);
   private iaService = inject(IaRelationshipService);
   private fetchService = inject(FetchService);
+  private theme = inject(ThemeService);
+  private iaTreeService = inject(IaTreeService);
 
   //Step
   activeStep = 1;
+
+  /*** Advance to step 3 if all URLs are good ***/
+  private goToStep3() {
+    if (this.urlsOk.length + this.urlsProtoOk.length === this.urlTotal) {
+      this.activeStep = 3;
+      this.checkBreadcrumbs();
+    }
+  }
+
+  /*** Advance to step 4 if all breadcrumbs are good ***/
+  private goToStep4() {
+    if (!this.hasBreakAfterRoot && !this.hasBreakBeforeRoot) {
+      this.activeStep = 4;
+      //add function to build IA tree
+    }
+  }
 
   /*****************
    * SEARCH TERMS  *
@@ -138,15 +145,6 @@ export class IaAssistantComponent {
     this.urlPercent = 0;
   }
 
-  //Block unknown hosts <-- TODO: separate canada.ca from GitHub repos so that only Canada.ca is crawled for the IA tree
-  private allowedHosts = new Set([
-    "cra-design.github.io",
-    "cra-proto.github.io",
-    "gc-proto.github.io",
-    "test.canada.ca",
-    "www.canada.ca"
-  ]);
-
   /*** Set URL pairs from user input & set boolean if any prototypes were included ***/
   setUrlPairs() {
     this.urlPairs = this.rawUrls
@@ -176,6 +174,9 @@ export class IaAssistantComponent {
     //reset breadcrumb validation
     this.breadcrumbs = [];
     this.rootPages = [];
+
+    //reset IA tree
+    this.iaTree = [];
   }
 
   onPasteUrls() {
@@ -185,19 +186,7 @@ export class IaAssistantComponent {
   /*** Validate a single URL item ***/
   private async checkStatus(link: UrlItem) {
     try {
-      if (!environment.production) {
-        await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000)); //sets delay in dev build so we can see progress bar do its thing
-      }
-
-      //Blocked by our whitelist
-      const url = new URL(link.href);
-      if (!this.allowedHosts.has(url.host)) {
-        link.status = 'blocked';
-        return;
-      }
-
-      //Get & set status
-      const response = await fetch(link.href, { method: 'HEAD', cache: 'no-store' });
+      const response = await this.fetchService.fetchStatus(link.href, "prod", 5, "random");
 
       if (!response.ok || response.url.includes('404.html')) {
         link.status = 'bad';
@@ -213,7 +202,10 @@ export class IaAssistantComponent {
     }
     catch (error) {
       console.log(error);
-      link.status = 'bad';
+      if ((error as Error).message.startsWith("Blocked host")) {
+        link.status = "blocked";
+      }
+      else link.status = "bad";
     }
   }
 
@@ -229,7 +221,6 @@ export class IaAssistantComponent {
     await Promise.all(urlsToCheck);
 
     //Recheck bad URLs
-    await new Promise(resolve => setTimeout(resolve, 100)); //100ms delay before recheck
     const badUrls = urls.filter(url => url.status === 'bad');
     badUrls.forEach(badUrl => (badUrl.status = 'checking'));
     this.urlChecked -= badUrls.length;
@@ -259,22 +250,6 @@ export class IaAssistantComponent {
     //Advance to next step if all URLs are ok
     this.goToStep3();
 
-  }
-
-  /*** Advance to step 3 if all URLs are good ***/
-  private goToStep3() {
-    if (this.urlsOk.length + this.urlsProtoOk.length === this.urlTotal) {
-      this.activeStep = 3;
-      this.checkBreadcrumbs();
-    }
-  }
-
-  /*** Advance to step 4 if all breadcrumbs are good ***/
-  private goToStep4() {
-    if (!this.hasBreakAfterRoot && !this.hasBreakBeforeRoot) {
-      this.activeStep = 4;
-      //add function to build IA tree
-    }
   }
 
   /*** Filter based on status***/
@@ -430,9 +405,224 @@ export class IaAssistantComponent {
     this.breadcrumbProgress = 100;
     this.breadcrumbStep = "Complete"
 
+    console.log(`Breadcrumb branches: `, this.breadcrumbs);
+    console.log(`Root pages: `, this.rootPages);
+
     this.goToStep4();
   }
 
-}
+  /**********************
+  *  BUILD THE IA TREE  *
+  ***********************/
+  // Dummy breadcrumb data for testing
+  dummyBreadcrumbs: BreadcrumbNode[][] = [
+    [
+      {
+        label: "Canada.ca",
+        url: "https://www.canada.ca/en.html",
+        styleClass: "text-blue-500 hover:text-blue-600 font-bold",
+        linkTooltip: "Starting point for IA crawl (user-added page)",
+        isRoot: true,
+        isDescendant: false
+      },
+      {
+        label: "Canada Revenue Agency (CRA)",
+        url: "https://www.canada.ca/en/revenue-agency.html",
+        icon: "pi pi-times-circle text-red-500 hover:text-red-600",
+        iconTooltip: "No link from parent",
+        styleClass: "text-red-500 hover:text-red-600",
+        linkTooltip: "IA Orphan",
+        valid: false,
+        isRoot: false,
+        isDescendant: false
+      },
+      {
+        label: "Forms and publications - CRA",
+        url: "https://www.canada.ca/en/revenue-agency/services/forms-publications.html",
+        icon: "pi pi-arrow-circle-right text-green-500 hover:text-green-600",
+        iconTooltip: "Valid connection",
+        styleClass: "text-red-500 hover:text-red-600",
+        linkTooltip: "Descendant of IA orphan",
+        valid: true,
+        isRoot: false,
+        isDescendant: false
+      },
+      {
+        label: "Canada Revenue Agency publications listed by number",
+        url: "https://www.canada.ca/en/revenue-agency/services/forms-publications/publications.html",
+        icon: "pi pi-arrow-circle-right text-green-500 hover:text-green-600",
+        iconTooltip: "Valid connection",
+        styleClass: "text-red-500 hover:text-red-600 font-bold",
+        linkTooltip: "Descendant of IA orphan (user-added page)",
+        valid: true,
+        isRoot: false,
+        isDescendant: true
+      },
+      {
+        label: "T4001 Employers' Guide - Payroll Deductions and Remittances",
+        url: "https://www.canada.ca/en/revenue-agency/services/forms-publications/publications/t4001.html",
+        icon: "pi pi-arrow-circle-right text-green-500 hover:text-green-600",
+        iconTooltip: "Valid connection",
+        styleClass: "text-red-500 hover:text-red-600",
+        linkTooltip: "Descendant of IA orphan",
+        valid: true,
+        isRoot: false,
+        isDescendant: false
+      },
+      {
+        label: "Employers’ Guide – Payroll Deductions and Remittances",
+        url: "https://www.canada.ca/en/revenue-agency/services/forms-publications/publications/t4001/employers-guide-payroll-deductions-remittances.html",
+        icon: "pi pi-arrow-circle-right text-green-500 hover:text-green-600",
+        iconTooltip: "Valid connection",
+        styleClass: "text-red-500 hover:text-red-600 font-bold",
+        linkTooltip: "Descendant of IA orphan (user-added page)",
+        valid: true,
+        isRoot: false,
+        isDescendant: true
+      }
+    ],
+    [
+      {
+        label: "Canada.ca",
+        url: "https://www.canada.ca/en.html",
+        styleClass: "text-blue-500 hover:text-blue-600 font-bold",
+        linkTooltip: "Starting point for IA crawl (user-added page)",
+        isRoot: true,
+        isDescendant: false
+      },
+      {
+        label: "Taxes",
+        url: "https://www.canada.ca/en/services/taxes.html",
+        icon: "pi pi-arrow-circle-right text-green-500 hover:text-green-600",
+        iconTooltip: "Valid connection",
+        styleClass: "text-green-500 hover:text-green-600",
+        linkTooltip: "Valid child page",
+        valid: true,
+        isRoot: false,
+        isDescendant: false
+      },
+      {
+        label: "Income tax",
+        url: "https://www.canada.ca/en/services/taxes/income-tax.html",
+        icon: "pi pi-arrow-circle-right text-green-500 hover:text-green-600",
+        iconTooltip: "Valid connection",
+        styleClass: "text-green-500 hover:text-green-600 font-bold",
+        linkTooltip: "Valid child page (user-added page)",
+        valid: true,
+        isRoot: false,
+        isDescendant: true
+      }
+    ]
+  ];
 
+
+  iaTree: TreeNode[] = [];
+  async buildIaTree(): Promise<void> {
+    this.setTreeContext();
+    this.crawlFromRoots(3);
+    /*const roots = this.iaTree.filter(n => n.data?.isRoot);
+    for (const root of roots) {
+      const depth = root.data?.crawlDepth ?? 3;
+      await this.iaTreeService.crawlFromNode(root, depth);
+    }*/
+  }
+
+  //Build initial context for crawl (i.e. the start of the breadcrumb)
+  setTreeContext(): void {
+
+    const findChildByUrl = (nodes: TreeNode[] | undefined, url?: string | null) => {
+      if (!nodes || !url) return undefined;
+      return nodes.find(n => n.data?.url === url);
+    };
+
+    for (const breadcrumb of this.breadcrumbs) {
+      let currentLevel = this.iaTree;
+      let parentUrl: string | null = null;
+      for (const crumb of breadcrumb) {
+
+        // check if node already exists for this crumb at the current level
+        let node = findChildByUrl(currentLevel, crumb.url);
+
+        if (!node) {
+          // create a new node for this crumb if it doesn't exist
+          node = {
+            label: crumb.label,
+            data: {
+              h1: crumb.label,
+              url: crumb.url ?? null,
+              originalParent: parentUrl,
+              editing: null,
+              customStyle: false,
+              customStyleKey: null,
+              borderStyle: 'border-2 border-primary border-round shadow-2',
+              isRoot: crumb.isRoot,
+              isCrawled: false,
+              crawlDepth: 3, //note: use the depth we calculated in findRoots to get this number
+              isUserAdded: crumb.isDescendant,
+              notOrphan: crumb.valid,
+              prototype: crumb.prototype ?? null,
+            },
+            expanded: true,
+            styleClass: 'border-2 border-primary border-round shadow-2 surface-ground',
+            children: []
+          };
+          currentLevel.push(node);
+        }
+
+        // descend to this node's children for the next crumb
+        parentUrl = node.data.url ?? null;
+        currentLevel = node.children!;
+      }
+    }
+
+    console.log('Built IA tree context:', this.iaTree);
+
+  }
+
+  //Find the root pages we need to crawl
+  private findCrawlRoots(nodes: TreeNode[]): TreeNode[] {
+    const roots: TreeNode[] = [];
+
+    const walk = (list: TreeNode[]) => {
+      for (const n of list) {
+        if (n.data?.isRoot) {
+          roots.push(n);
+        }
+        if (n.children?.length) {
+          walk(n.children);
+        }
+      }
+    };
+
+    walk(nodes);
+    return roots;
+  }
+
+  //Crawl from pages marked as data.isRoot
+  async crawlFromRoots(depth: number): Promise<void> {
+    const roots = this.findCrawlRoots(this.iaTree);
+
+    let index = 1;
+    const numRoots = roots.length;
+    for (const root of roots) {
+      if (!root.data?.url) continue;
+
+      console.log(`Crawling from root: ${root.data.url}`);
+
+      const children = await this.iaTreeService.buildIaTree([root.data.url], depth, undefined, 0);
+
+      // buildIaTree will return a node array that *includes the root again*,
+      // so we need to grab its children instead of replacing the root
+      if (children.length > 0) {
+        const builtRoot = children[0];
+        root.children = builtRoot.children; // attach discovered children
+        root.data.isCrawled = true;
+      }
+      console.log(`Crawl ${index} of ${numRoots} complete`);
+      index++;
+    }
+
+  }
+
+}
 
