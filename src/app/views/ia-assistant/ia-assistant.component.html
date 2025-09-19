@@ -53,7 +53,7 @@
                 </div>
 
                 <div class="flex pt-4 gap-2 justify-content-between">
-                    <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="urlPairs = []" *ngIf="urlPairs.length > 0 && urlsChecking.length === 0" />
+                    <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="urlPairs = []; iaTree = []" *ngIf="urlPairs.length > 0 && urlsChecking.length === 0" />
                     <p-button label="Validate URLs" icon="pi pi-arrow-right" iconPos="right" class="ml-auto" (onClick)="validateUrlPairs(); activateCallback(2)" *ngIf="urlsChecking.length > 0" />
                     <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" class="ml-auto" (onClick)="activateCallback(2)" *ngIf="urlsChecking.length === 0" [disabled]="urlPairs.length === 0" />
                 </div>
@@ -217,11 +217,13 @@ https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-ser
                         <p *ngIf="hasBreakAfterRoot" class="text-red-500">One or more of your pages is an IA orphan and will not be included in your IA tree if we crawl from the detected root pages.</p>
                         <p *ngIf="hasBreakBeforeRoot && !hasBreakAfterRoot" class="text-blue-500">One or more pages in the breadcrumb are IA orphans. These should be fixed if possible but they won't impact the crawl since they occur before the detected root pages.</p>
                         <p *ngIf="!hasBreakBeforeRoot && !hasBreakAfterRoot" class="text-green-500">There are no problems with your breadcrumb!</p>
+                        <p>To-do: set up method for user to change which pages to crawl</p>
                     </ng-container>
                 </div>
                 <div class="flex pt-4 justify-content-between">
                     <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(2)" />
-                    <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(4)" />
+                    <p-button label="Build IA Tree" icon="pi pi-arrow-right" iconPos="right" (onClick)="buildIaTree(); activateCallback(4)" *ngIf="iaTree.length === 0" />
+                    <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(4)" *ngIf="iaTree.length > 0" [disabled]="breadcrumbProgress !== 100" />
                 </div>
             </ng-template>
         </p-step-panel>
@@ -229,7 +231,34 @@ https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-ser
         <p-step-panel [value]="4">
             <ng-template #content let-activateCallback="activateCallback">
                 <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
-                    <p>To do: set up crawl for root URLs to create IA tree (including prev breadcrumb items for context), also set up referring link/search term/url structure crawl (for unique links that aren't in the IA tree)</p>
+                    <p>To do: set up crawl for root URLs to complete IA tree, also set up referring link/search term/url structure crawl (for unique links that aren't in the IA tree)</p>
+                    <!--p-button label="Test" severity="secondary" icon="pi pi-sitemap" (onClick)="setTreeContext()" /-->
+                    <ng-container *ngIf="iaTree">
+                        <h2>IA structure</h2>
+                        <p *ngIf="iaTree.length === 0">No child pages found.</p>
+                        <div #chartContainer *ngIf="iaTree.length > 0" class="overflow-auto max-h-75vh surface-ground surface-border border-1 py-3 mb-3 ia-chart-container">
+                            <p-organization-chart [value]="iaTree">
+                                <ng-template let-node pTemplate="default">
+                                    <div class="flex flex-row flex-wrap gap-2 justify-content-between -my-2">
+                                        <span class="flex gap-2">
+                                            <i class="pi pi-verified text-green-500" pTooltip="Linked from parent" *ngIf="node.data.notOrphan"></i>
+                                            <i class="pi pi-ban text-red-500 flex align-content-center" pTooltip="IA orphan" *ngIf="!node.data.notOrphan && node.data.originalParent"></i>
+                                        </span>
+                                        <span class="flex gap-2">
+                                            <i class="pi pi-spin pi-spinner text-color-secondary" pTooltip="crawling" *ngIf="node.data.isRoot && !node.data.isCrawled"></i>
+                                            <i class="pi pi-list-check text-color-secondary" pTooltip="crawled" *ngIf="node.data.isCrawled"></i>
+                                        </span>
+                                        <span class="flex gap-2">
+                                            <i class="pi pi-github" pTooltip="has prototype" *ngIf="node.data.prototype"></i>
+                                            <i class="pi pi-file-plus text-primary" pTooltip="in-scope" *ngIf="node.data.isUserAdded || node.data.isRoot"></i>
+                                        </span>
+                                    </div>
+                                    <p><a [href]="node.data.url" target="_blank" [innerHTML]="node.label" class="ia-label"></a></p>
+                                </ng-template>
+                            </p-organization-chart>
+                        </div>
+                    </ng-container>
+
                 </div>
                 <div class="flex pt-4 justify-content-start">
                     <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(3)" />
