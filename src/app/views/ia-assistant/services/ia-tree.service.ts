@@ -187,6 +187,12 @@ export class IaTreeService {
         continue;
       }
 
+      //Set isCrawled to true if we will crawl this pages children
+      let crawled = false;
+      if (depth > 1) {
+        crawled = true;
+      }
+
       const node: TreeNode = {
         label: meta.h1,
         data: {
@@ -198,7 +204,7 @@ export class IaTreeService {
           customStyleKey: null,
           borderStyle: 'border-2 border-primary border-round shadow-2',
           isRoot: false,
-          isCrawled: false,
+          isCrawled: crawled,
           crawlDepth: 0,
           isUserAdded: false,
           notOrphan: true,
