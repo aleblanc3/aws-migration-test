@@ -21,4 +21,10 @@ export class SidebarComponent {
   toggleSection(section: keyof typeof this.isExpanded) {
     this.isExpanded[section] = !this.isExpanded[section];
   }
+
+  toggleOnEnter(event: KeyboardEvent, section: keyof typeof this.isExpanded) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      this.toggleSection(section);
+    }
+  }
 }
