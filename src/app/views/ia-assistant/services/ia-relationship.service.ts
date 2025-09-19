@@ -1,27 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { UrlPair } from '../data/data.model';
+import { UrlPair, BreadcrumbNode, PageData } from '../data/data.model';
 import { FetchService } from '../../../services/fetch.service';
-
-export interface PageData {
-  href: string;                 // the page URL
-  h1: string;                   // the page H1
-  breadcrumb: BreadcrumbNode[]; // array of breadcrumbs
-  descendants: string[];        // flat list of child pages urls
-  minDepth: number;             // how deep we need to crawl to reach furthest child page
-  prototype?: string;           // carry forward the prototype link
-}
-
-export interface BreadcrumbNode {
-  label: string;            // link text
-  url: string;              // link
-  isRoot?: boolean;         // marks if it's one of the detected root pages (from user input)
-  isDescendant?: boolean;   // mark if it's a child page (from user input)
-  valid?: boolean;          // true = link found on parent, false = IA orphan
-  styleClass?: string;      // for the label (used to set color and/or bold)
-  icon?: string;            // represents status of link from parent to child
-  iconTooltip?: string;     // explanation for icon
-  linkTooltip?: string;     // explanation for color/boldness of label
-}
 
 @Injectable({
   providedIn: 'root'
@@ -179,9 +158,22 @@ export class IaRelationshipService {
           return a[i].url!.localeCompare(b[i].url!);
         }
       }
-      // If all compared items are equal, shorter chain comes first
+      //if all compared items are equal, shorter chain comes first
       return a.length - b.length;
     });
+
+    //attach prototype links
+    for (const page of pages) {
+      if (page.prototype) {
+        for (const breadcrumb of filtered) {
+          for (const crumb of breadcrumb) {
+            if (crumb.url === page.href) {
+              crumb.prototype = page.prototype;
+            }
+          }
+        }
+      }
+    }
 
     return filtered;
   }
