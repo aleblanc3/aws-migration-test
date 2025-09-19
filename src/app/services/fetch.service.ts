@@ -30,7 +30,9 @@ export class FetchService {
 
     let hostname: string;
     try {
-      hostname = new URL(url).hostname;
+      const parsedUrl = new URL(url);
+      if (parsedUrl.protocol !== "https:" || /\s/.test(url)) throw new Error();
+      hostname = parsedUrl.hostname;
     } catch {
       throw new Error(`Invalid URL: ${url}`)
     }
