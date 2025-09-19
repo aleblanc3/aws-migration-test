@@ -2,10 +2,16 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
-import { OverlayPanelModule, OverlayPanel } from 'primeng/overlaypanel';
+import { PopoverModule, Popover } from 'primeng/popover';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ButtonModule } from 'primeng/button';
 import { UploadStateService } from '../../services/upload-state.service';
+import { LinkAiService, AiVerdict } from '../../services/link-ai.service';
+import { ContentExtractorService } from '../../services/content-extractor.service';
+import type {
+  ExtractResult,
+  DestMeta,
+} from '../../services/content-extractor.service';
 
 type LinkType =
   | 'Canada.ca'
@@ -98,11 +104,22 @@ interface HeadingData {
   text: string; // Link name on page
   href: string; // Original href
   absUrl: string | null; // Resolved absolute URL
-  destH1: string | null; // Guessed destination title
+  destH1: string | null; // Destination title (guessed/extracted)
   matchStatus: MatchStatus;
-  // placeholders
   searchTerm: string;
   clicks: number | null;
+
+  // Extracted fields (optional)
+  extractedSource?: 'canada' | 'external' | 'anchor';
+  extractedTitle?: string | null;
+  extractedIntro?: string | null;
+  extractedCandidate?: string | null;
+
+  // AI verdict (optional)
+  aiVerdict?: 'match' | 'mismatch' | 'uncertain';
+  aiConfidence?: number; // 0..1
+  aiMatchedFields?: AiVerdict['matchedFields'];
+  aiRationale?: string;
 }
 
 type ColumnField =
@@ -126,7 +143,7 @@ interface LinkReportColumn {
     CommonModule,
     FormsModule,
     TableModule,
-    OverlayPanelModule,
+    PopoverModule,
     CheckboxModule,
     ButtonModule,
   ],
@@ -195,10 +212,13 @@ interface LinkReportColumn {
   ],
 })
 export class LinkReportComponent implements OnInit {
-  constructor(private uploadState: UploadStateService) {}
+  constructor(
+    private uploadState: UploadStateService,
+    private linkAi: LinkAiService,
+    private extractor: ContentExtractorService,
+  ) {}
 
-  // Expose the overlay panel referenced as #typePanel in the template
-  @ViewChild('typePanel') typePanel!: OverlayPanel;
+  @ViewChild('typePanel') typePanel!: Popover;
 
   // data & selection
   headings: HeadingData[] = [];
@@ -214,6 +234,114 @@ export class LinkReportComponent implements OnInit {
     { field: 'searchTerm', header: 'Search term' },
     { field: 'clicks', header: 'Clicks' },
   ];
+
+  // --- DEBUG LOGGING HELPERS ---
+  private readonly COLLAPSE_GROUPS = false;
+  // Turn logging on/off
+  private readonly DEBUG_LOG = true;
+
+  // Helper to keep logs readable
+  private truncate(s: string | null | undefined, n = 200): string {
+    if (s == null) return '';
+    const t = String(s).trim();
+    return t.length > n ? t.slice(0, n) + '…' : t;
+  }
+
+  private logRowExtraction(
+    row: HeadingData,
+    source:
+      | 'canada'
+      | 'external'
+      | 'anchor'
+      | 'mailto'
+      | 'tel'
+      | 'download'
+      | 'none',
+    result: ExtractResult | null,
+    meta: DestMeta | null,
+    candidate: string | null,
+    heuristic: MatchStatus,
+    ai: AiVerdict | null,
+    finalStatus: MatchStatus,
+    err?: unknown,
+  ): void {
+    if (!this.DEBUG_LOG) return;
+
+    const r: any = result as any; // ok even if your ExtractResult doesn’t have debug fields
+    const header = `[Link#${row.order}] ${row.type} — ${row.text}  →  ${row.absUrl || row.href || ''}`;
+
+    if (this.COLLAPSE_GROUPS) console.groupCollapsed(header);
+    else console.group(header);
+
+    console.log('Type:', row.type);
+    console.log('href:', row.href);
+    console.log('absUrl:', row.absUrl);
+
+    if (source === 'canada' && result) {
+      console.log(`CANADA H1 (titleSource=${r?.titleSource ?? '-'}) ::`);
+      console.log(this.truncate(result.title, 1000)); // <-- exact text
+      console.log(`CANADA Intro (introSource=${r?.introSource ?? '-'}) ::`);
+      console.log(this.truncate(result.intro, 1000)); // <-- exact text
+    } else if (source === 'anchor' && result) {
+      console.log('ANCHOR id:', r?.anchorMeta?.id || '(none)');
+      console.log('ANCHOR heading tag:', r?.anchorMeta?.headingTag || '(none)');
+      console.log(`Section heading (titleSource=${r?.titleSource ?? '-'}) ::`);
+      console.log(this.truncate(result.title, 1000)); // <-- exact text (H2/H3/H4 or target text)
+      console.log(
+        `First paragraph in section (introSource=${r?.introSource ?? '-'}) ::`,
+      );
+      console.log(this.truncate(result.intro, 1000)); // <-- exact text
+    } else if (source === 'external' && result) {
+      console.log(`EXTERNAL Title (titleSource=${r?.titleSource ?? '-'}) ::`);
+      console.log(this.truncate(result.title, 1000)); // <-- exact text
+      console.log(`EXTERNAL Intro (introSource=${r?.introSource ?? '-'}) ::`);
+      console.log(this.truncate(result.intro, 1000)); // <-- exact text
+      if (r?.contentText) {
+        console.log('EXTERNAL Body preview ::');
+        console.log(this.truncate(r.contentText, 1000)); // <-- exact text
+      }
+    } else if (
+      row.type === 'mailto' ||
+      row.type === 'tel' ||
+      row.type === 'download'
+    ) {
+      console.log('No extract (mailto/tel/download).');
+    } else {
+      console.log('No extract — likely blocked host or fetch failure.');
+    }
+
+    if (meta) {
+      console.log('AI meta sent →', meta);
+    }
+
+    console.log('Candidate (title + intro) →');
+    console.log(this.truncate(candidate, 1000));
+
+    console.log('Heuristic:', heuristic);
+    console.log('AI verdict:', ai);
+    console.log('Final matchStatus:', finalStatus);
+
+    if (err) console.warn('Extract/AI error:', err);
+
+    console.groupEnd();
+  }
+
+  private logSummaryTable(): void {
+    if (!this.DEBUG_LOG) return;
+    const rows = this.headings.map((r) => ({
+      order: r.order,
+      type: r.type,
+      text: this.truncate(r.text, 80),
+      url: r.absUrl || r.href,
+      // show the exact extracted strings in the summary too
+      extractedTitle: this.truncate(r.extractedTitle, 200),
+      extractedIntro: this.truncate(r.extractedIntro, 200),
+      match: r.matchStatus,
+      ai: r.aiVerdict || '',
+      conf: r.aiConfidence ?? '',
+    }));
+    console.table(rows);
+  }
 
   sourceVersion: 'original' | 'modified' = 'original';
 
@@ -240,30 +368,25 @@ export class LinkReportComponent implements OnInit {
     download: false,
   };
 
-  /** Toggle ALL; when turning ALL on, keep individuals unchecked but ignored. */
   onAllToggle(): void {
     // nothing else needed; individuals remain as-is (unchecked) and ignored when ALL = true
   }
 
-  /** Toggle an individual type; any individual selection disables ALL. */
   onTypeToggle(_t: LinkType): void {
     if (this.allSelected) this.allSelected = false;
   }
 
-  /** Optional: click label to toggle (if your HTML uses a label click handler). */
   toggleType(t: LinkType): void {
     if (this.allSelected) this.allSelected = false;
     this.typeChecks[t] = !this.typeChecks[t];
   }
 
-  /** Active set used by the table. */
   private activeTypes(): Set<LinkType> {
     if (this.allSelected) return new Set(this.linkTypes);
     const picked = this.linkTypes.filter((t) => this.typeChecks[t]);
     return new Set(picked);
   }
 
-  /** Table feeds from filtered rows */
   get filteredHeadings(): HeadingData[] {
     const active = this.activeTypes();
     return this.headings.filter((r) => active.has(r.type));
@@ -287,6 +410,7 @@ export class LinkReportComponent implements OnInit {
       doc.querySelectorAll<HTMLAnchorElement>('body a[href]'),
     ).filter((a) => !isFootnoteLink(a));
 
+    // 1) Build initial rows using current logic
     this.headings = anchors.map((a, i): HeadingData => {
       const rawHref = (a.getAttribute('href') || '').trim();
       const absUrl = this.resolveUrl(rawHref, baseUrl);
@@ -323,10 +447,171 @@ export class LinkReportComponent implements OnInit {
         absUrl,
         destH1,
         matchStatus,
-        searchTerm: '', // placeholder
-        clicks: null, // placeholder
+        searchTerm: '',
+        clicks: null,
       };
     });
+
+    // 2) Enrich with extracted destination content and recompute matchStatus
+    await this.enrichWithExtractedContent(doc);
+  }
+
+  /**
+   * For each row, use ContentExtractorService to fetch a better "candidate text"
+   * (title + intro), ask AI, and re-evaluate matchStatus. Logs the exact content used.
+   */
+  private async enrichWithExtractedContent(sourceDoc: Document): Promise<void> {
+    const rows = this.headings;
+
+    const CONCURRENCY = Math.min(4, rows.length);
+    let idx = 0;
+
+    const worker = async () => {
+      while (true) {
+        const i = idx++;
+        if (i >= rows.length) break;
+        const row = rows[i];
+
+        // Skip types we won't fetch, but LOG it as N/A
+        if (
+          row.type === 'mailto' ||
+          row.type === 'tel' ||
+          row.type === 'download'
+        ) {
+          this.logRowExtraction(
+            row,
+            row.type,
+            null,
+            null,
+            null,
+            row.matchStatus,
+            null,
+            row.matchStatus,
+          );
+          continue; // already 'na'
+        }
+
+        let result: ExtractResult | null = null;
+        let source: 'canada' | 'external' | 'anchor' | null = null;
+        let lastError: unknown = null;
+
+        try {
+          if (row.type === 'anchor') {
+            const res = this.extractor.extractAnchor(sourceDoc, row.href);
+            result = res;
+            source = 'anchor';
+          } else if (row.absUrl) {
+            // Decide canada vs external by host
+            let isCanada = false;
+            try {
+              const u = new URL(row.absUrl);
+              isCanada = isCanadaHost(u);
+            } catch {}
+            if (isCanada) {
+              result = await this.extractor.extractCanada(row.absUrl, {
+                retries: 2,
+                delay: 'none',
+              });
+              source = 'canada';
+            } else {
+              result = await this.extractor.extractExternal(row.absUrl, {
+                retries: 2,
+                delay: 'none',
+              });
+              source = 'external';
+            }
+          }
+        } catch (err) {
+          lastError = err;
+        }
+
+        if (result) {
+          const candidate = this.extractor.buildCandidateText(result);
+
+          // Build minimal DestMeta for AI
+          const meta: DestMeta = {
+            finalUrl: row.absUrl ?? row.href ?? null,
+            h1: result.title ?? null,
+            title: result.title ?? null,
+            metaDescription: result.intro ?? null,
+            headings: row.destH1 ? [row.destH1] : [],
+            bodyPreview: (result as any).contentText || result.intro || null,
+          };
+
+          // Ask AI
+          let ai: AiVerdict | null = null;
+          try {
+            ai = await this.linkAi.judge(row.text, meta);
+          } catch (err) {
+            lastError = lastError || err;
+          }
+
+          // Blend AI with heuristic
+          const heuristic: MatchStatus = this.smartMatch(row.text, candidate);
+          const blend = (
+            v: AiVerdict | null,
+            fallback: MatchStatus,
+          ): MatchStatus => {
+            if (!v) return fallback;
+            if (v.verdict === 'match' && v.confidence >= 0.7) return 'match';
+            if (v.verdict === 'mismatch' && v.confidence >= 0.7)
+              return 'mismatch';
+            return fallback; // uncertain/low-confidence → keep heuristic
+          };
+          const base = heuristic === 'unknown' ? row.matchStatus : heuristic;
+          const finalStatus = blend(ai, base);
+
+          rows[i] = {
+            ...row,
+            extractedSource: source || undefined,
+            extractedTitle: result.title ?? null,
+            extractedIntro: result.intro ?? null,
+            extractedCandidate: candidate || null,
+            destH1: result.title ?? row.destH1,
+            matchStatus: finalStatus,
+
+            aiVerdict: ai?.verdict,
+            aiConfidence: ai?.confidence,
+            aiMatchedFields: ai?.matchedFields,
+            aiRationale: ai?.rationale,
+          };
+
+          // LOG success case with exact content
+          this.logRowExtraction(
+            rows[i],
+            source || 'none',
+            result,
+            meta,
+            candidate,
+            heuristic,
+            ai,
+            finalStatus,
+            lastError,
+          );
+        } else {
+          // No result (blocked/failed/no absUrl) — keep row as-is and LOG it
+          this.logRowExtraction(
+            row,
+            (source as any) || 'none',
+            null,
+            null,
+            null,
+            row.matchStatus,
+            null,
+            row.matchStatus,
+            lastError,
+          );
+        }
+      }
+    };
+
+    await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
+
+    // trigger change detection by reassigning
+    this.headings = [...rows];
+
+    // Final summary table
+    this.logSummaryTable();
   }
 
   // ---------- helpers ----------
@@ -360,8 +645,9 @@ export class LinkReportComponent implements OnInit {
         href.startsWith('#') ||
         href.startsWith('mailto:') ||
         href.startsWith('tel:')
-      )
-        return href;
+      ) {
+        return href; // no network calls for these
+      }
 
       // Canonicalize Canada.ca AEM repo paths & root-relative links
       if (/^\/(?:content\/canadasite|en|fr)\//i.test(href)) {
@@ -375,8 +661,17 @@ export class LinkReportComponent implements OnInit {
       }
 
       // Normal resolution
-      if (baseUrl) return new URL(href, baseUrl).toString();
-      return new URL(href).toString();
+      let out: URL;
+      if (baseUrl) out = new URL(href, baseUrl);
+      else out = new URL(href);
+
+      // FetchService only allows www.canada.ca (not apex)
+      const hostLc = out.hostname.toLowerCase().replace(/^www\./, '');
+      if (hostLc === 'canada.ca') {
+        out.hostname = 'www.canada.ca';
+      }
+
+      return out.toString();
     } catch {
       return null;
     }

@@ -2,7 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ApiKeyService } from '../../../services/api-key.service';
-import { DestMeta } from './destination-fetch.service';
+import { DestMeta } from './content-extractor.service';
 
 export interface AiVerdict {
   verdict: 'match' | 'mismatch' | 'uncertain';

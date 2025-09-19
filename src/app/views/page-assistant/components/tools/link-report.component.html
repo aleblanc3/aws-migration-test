@@ -84,14 +84,24 @@
 </p-table>
 
 <!-- Move the overlay OUTSIDE the table to avoid table parser issues -->
-<p-overlayPanel
+<p-popover
   #typePanel
   [dismissable]="true"
-  [showCloseIcon]="true"
   [appendTo]="'body'"
+  [styleClass]="'link-type-popover'"
 >
   <div class="filter-panel">
-    <!-- ALL (default checked) -->
+    <!-- custom close button -->
+    <button
+      pButton
+      type="button"
+      class="p-button-text p-button-sm close-btn"
+      icon="pi pi-times"
+      (click)="typePanel.hide()"
+      aria-label="Close filter"
+    ></button>
+
+    <!-- ALL / types UI stays the same -->
     <div class="filter-row">
       <p-checkbox
         [(ngModel)]="allSelected"
@@ -104,7 +114,6 @@
 
     <div class="divider"></div>
 
-    <!-- Six types (default unchecked; disabled while ALL is checked) -->
     <div class="filter-row" *ngFor="let t of linkTypes; let i = index">
       <p-checkbox
         [(ngModel)]="typeChecks[t]"
@@ -126,4 +135,4 @@
       All types are currently included.
     </div>
   </div>
-</p-overlayPanel>
+</p-popover>

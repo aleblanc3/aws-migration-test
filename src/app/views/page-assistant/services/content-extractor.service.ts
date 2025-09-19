@@ -9,11 +9,41 @@ export interface ExtractResult {
   title: string | null; // H1 (or section heading) or <title>
   intro: string | null; // “lead” / first meaningful paragraph / meta description
   contentText?: string | null; // optional fuller text (externals)
+  titleSource?:
+    | 'main>h1'
+    | 'document h1'
+    | 'h1'
+    | 'title'
+    | 'anchorHeading'
+    | 'anchorText';
+  introSource?:
+    | 'gc-lead'
+    | 'lead'
+    | 'pagetagline'
+    | 'p.lead'
+    | 'firstMeaningfulPBeforeH2'
+    | 'firstMeaningfulP'
+    | 'metaDescription'
+    | 'firstParas'
+    | 'anchorSectionP'
+    | null;
+
+  // NEW: anchor specifics
+  anchorMeta?: { id?: string; headingTag?: string };
 }
 
 export interface ExtractOpts {
   retries?: number;
   delay?: DevDelay;
+}
+export interface DestMeta {
+  finalUrl: string | null;
+  h1?: string | null;
+  title?: string | null;
+  ogTitle?: string | null;
+  metaDescription?: string | null;
+  headings?: string[]; // H2/H3 etc.
+  bodyPreview?: string | null; // short paragraph blob
 }
 
 @Injectable({ providedIn: 'root' })
@@ -52,14 +82,17 @@ export class ContentExtractorService {
     const retries = opts?.retries ?? 3;
     const delay = opts?.delay ?? 'none';
     try {
+      // allow any host (still subject to browser CORS)
       const doc = await this.fetchService.fetchContent(
         absUrl,
-        'both',
+        'none',
         retries,
         delay,
       );
       return this.fromExternalDoc(doc);
-    } catch {
+    } catch (e) {
+      // You’ll hit this on CORS-blocked sites
+      console.warn('extractExternal CORS/Fetch error for', absUrl, e);
       return null;
     }
   }
@@ -95,34 +128,63 @@ export class ContentExtractorService {
   private fromCanadaDoc(doc: Document): ExtractResult {
     const main = doc.querySelector('main') || doc.body;
 
-    // H1 (prefer under <main>, fallback to first <h1> anywhere)
-    const h1 =
+    // H1 with source tag
+    let titleSource: ExtractResult['titleSource'] = undefined;
+    let h1Text: string | null =
       main.querySelector('h1')?.textContent?.trim() ||
       doc.querySelector('h1')?.textContent?.trim() ||
       null;
 
-    // Intro paragraph heuristics:
-    // - common classes: .gc-lead, .lead, .pagetagline (WET patterns)
-    // - else: first meaningful <p> before first H2
-    // - else: first meaningful <p> anywhere in main
-    const leadEl =
-      main.querySelector('.gc-lead, .lead, .pagetagline, p.lead') ||
-      this.firstMeaningfulPBeforeHeading(main, /^H2$/i) ||
-      this.firstMeaningfulP(main);
+    if (main.querySelector('h1')) titleSource = 'main>h1';
+    else if (doc.querySelector('h1')) titleSource = 'document h1';
 
-    const title = this.cleanText(h1);
-    const intro = this.cleanText(leadEl?.textContent || null);
+    // Intro paragraph heuristics with source tag
+    let introEl: Element | null =
+      main.querySelector('.gc-lead, .lead, .pagetagline, p.lead') || null;
+    let introSource: ExtractResult['introSource'] = null;
 
-    return { source: 'canada', title, intro };
+    if (introEl) {
+      const cls = introEl.classList;
+      if (cls.contains('gc-lead')) introSource = 'gc-lead';
+      else if (cls.contains('pagetagline')) introSource = 'pagetagline';
+      else if (cls.contains('lead') && introEl.tagName === 'P')
+        introSource = 'p.lead';
+      else introSource = 'lead'; // generic match from the selector list
+    } else {
+      const beforeH2 = this.firstMeaningfulPBeforeHeading(main, /^H2$/i);
+      if (beforeH2) {
+        introEl = beforeH2;
+        introSource = 'firstMeaningfulPBeforeH2';
+      } else {
+        const firstP = this.firstMeaningfulP(main);
+        introEl = firstP;
+        introSource = firstP ? 'firstMeaningfulP' : null;
+      }
+    }
+
+    const title = this.cleanText(h1Text);
+    const intro = this.cleanText(introEl?.textContent || null);
+
+    return {
+      source: 'canada',
+      title,
+      intro,
+      titleSource,
+      introSource,
+    };
   }
 
   // ========== EXTERNAL RULES ==========
 
   private fromExternalDoc(doc: Document): ExtractResult {
-    const h1 =
+    let titleSource: ExtractResult['titleSource'] = undefined;
+    let h1 =
       doc.querySelector('h1')?.textContent?.trim() ||
       doc.querySelector('title')?.textContent?.trim() ||
       null;
+
+    if (doc.querySelector('h1')) titleSource = 'h1';
+    else if (doc.querySelector('title')) titleSource = 'title';
 
     const metaDesc =
       doc
@@ -130,7 +192,49 @@ export class ContentExtractorService {
         ?.getAttribute('content')
         ?.trim() || null;
 
-    // first 1–2 meaningful paragraphs for lightweight context
+    const paras = Array.from(doc.querySelectorAll('p'))
+      .map((p) => (p.textContent || '').trim())
+      .filter((t) => this.isMeaningful(t))
+      .slice(0, 2); // keep as array for clearer logging
+
+    const introSource: ExtractResult['introSource'] = metaDesc
+      ? 'metaDescription'
+      : paras.length
+        ? 'firstParas'
+        : null;
+
+    return {
+      source: 'external',
+      title: this.cleanText(h1),
+      intro:
+        this.cleanText(metaDesc) || this.cleanText(paras.join('  ')) || null,
+      contentText: this.cleanText(paras.join('  ')) || null,
+      titleSource,
+      introSource,
+    };
+  }
+
+  buildDestMetaFromDoc(doc: Document, finalUrl: string | null): DestMeta {
+    const h1 = doc.querySelector('h1')?.textContent?.trim() || null;
+    const title = doc.querySelector('title')?.textContent?.trim() || null;
+    const ogTitle =
+      doc
+        .querySelector('meta[property="og:title"]')
+        ?.getAttribute('content')
+        ?.trim() || null;
+    const metaDescription =
+      doc
+        .querySelector('meta[name="description"]')
+        ?.getAttribute('content')
+        ?.trim() || null;
+
+    const headings = Array.from(doc.querySelectorAll('h2, h3'))
+      .map((h) => (h.textContent || '').trim())
+      .filter(Boolean)
+      .slice(0, 10)
+      .map((t) => this.cleanText(t) || '')
+      .filter(Boolean);
+
     const paras = Array.from(doc.querySelectorAll('p'))
       .map((p) => (p.textContent || '').trim())
       .filter((t) => this.isMeaningful(t))
@@ -138,10 +242,26 @@ export class ContentExtractorService {
       .join('  ');
 
     return {
-      source: 'external',
-      title: this.cleanText(h1),
-      intro: this.cleanText(metaDesc) || this.cleanText(paras) || null,
-      contentText: this.cleanText(paras) || null,
+      finalUrl,
+      h1: this.cleanText(h1),
+      title: this.cleanText(title),
+      ogTitle: this.cleanText(ogTitle),
+      metaDescription: this.cleanText(metaDescription),
+      headings,
+      bodyPreview: this.cleanText(paras) || null,
+    };
+  }
+
+  /** Build a DestMeta from a same-page #anchor (no network). */
+  buildDestMetaFromAnchor(sourceDoc: Document, hashHref: string): DestMeta {
+    const res = this.extractAnchor(sourceDoc, hashHref);
+    return {
+      finalUrl: hashHref || null,
+      h1: res.title,
+      title: res.title,
+      metaDescription: res.intro,
+      headings: res.title ? [res.title] : [],
+      bodyPreview: res.intro || null,
     };
   }
 
