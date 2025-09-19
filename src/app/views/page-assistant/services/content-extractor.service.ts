@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { FetchService } from '../../../services/fetch.service';
 
 export type SourceKind = 'canada' | 'anchor' | 'external';
@@ -50,7 +50,8 @@ export interface DestMeta {
 export class ContentExtractorService {
   private readonly CANADA_ORIGIN = 'https://www.canada.ca';
 
-  constructor(private fetchService: FetchService) {}
+  // prefer-inject over constructor DI
+  private readonly fetchService = inject(FetchService);
 
   // ========== PUBLIC API ==========
 
@@ -130,7 +131,7 @@ export class ContentExtractorService {
 
     // H1 with source tag
     let titleSource: ExtractResult['titleSource'] = undefined;
-    let h1Text: string | null =
+    const h1Text: string | null =
       main.querySelector('h1')?.textContent?.trim() ||
       doc.querySelector('h1')?.textContent?.trim() ||
       null;
@@ -178,7 +179,7 @@ export class ContentExtractorService {
 
   private fromExternalDoc(doc: Document): ExtractResult {
     let titleSource: ExtractResult['titleSource'] = undefined;
-    let h1 =
+    const h1 =
       doc.querySelector('h1')?.textContent?.trim() ||
       doc.querySelector('title')?.textContent?.trim() ||
       null;
@@ -269,9 +270,11 @@ export class ContentExtractorService {
 
   private findAnchorTarget(doc: Document, id: string): Element | null {
     if (!id) return null;
-    // support both id= and name= anchors
-    const safe = (window as any).CSS?.escape
-      ? (window as any).CSS.escape(id)
+    // support both id= and name= anchors (no explicit any)
+    const cssNs = (globalThis as { CSS?: { escape?: (s: string) => string } })
+      .CSS;
+    const safe = cssNs?.escape
+      ? cssNs.escape(id)
       : id.replace(/["\\]/g, '\\$&');
     return doc.getElementById(id) || doc.querySelector(`[name="${safe}"]`);
   }
