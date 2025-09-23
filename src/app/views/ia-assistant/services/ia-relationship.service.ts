@@ -22,7 +22,7 @@ export class IaRelationshipService {
       }
       breadcrumbArray.push({
         label: el.textContent?.trim() || '',
-        url: absoluteUrl
+        url: absoluteUrl,
       });
     });
     return breadcrumbArray;
@@ -240,6 +240,7 @@ export class IaRelationshipService {
   ): { breadcrumbs: BreadcrumbNode[][]; hasBreakAfterRoot: boolean; hasBreakBeforeRoot: boolean } {
     const rootSet = new Set(rootPages.map(r => r.href));
     const descendantSet = new Set(rootPages.flatMap(r => r.descendants || []));
+    const depthMap = new Map(rootPages.map(r => [r.href, r.minDepth]));
 
     let hasBreakAfterRoot = false;
     let hasBreakBeforeRoot = false;
@@ -253,6 +254,7 @@ export class IaRelationshipService {
         const isDescendant = descendantSet.has(crumb.url!);
         crumb.isRoot = isRoot;
         crumb.isDescendant = isDescendant;
+        crumb.minDepth = depthMap.get(crumb.url!);
 
         if (isRoot) {
           // Root page
