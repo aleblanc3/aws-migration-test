@@ -17,7 +17,6 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ChipModule } from 'primeng/chip';
 import { TableModule } from 'primeng/table';
 import { BadgeModule } from 'primeng/badge';
-import { OrganizationChart } from 'primeng/organizationchart';
 
 import { UrlItem, UrlPair, PageData, BreadcrumbNode } from './data/data.model'
 import { LinkListComponent } from './components/link-list.component';
@@ -26,14 +25,15 @@ import { IaTreeService } from './services/ia-tree.service';
 import { FetchService } from '../../services/fetch.service';
 import { ThemeService } from '../../services/theme.service';
 
+import { IaTreeComponent } from './components/ia-tree.component';
+
 
 @Component({
   selector: 'ca-ia-assistant',
   imports: [CommonModule, FormsModule, TranslateModule,
     TextareaModule, InputTextModule, IftaLabelModule, InputGroupModule, InputGroupAddonModule, ButtonModule,
     ProgressBarModule, ChipModule, StepperModule, ConfirmPopupModule, TableModule, BadgeModule, TooltipModule,
-    OrganizationChart,
-    LinkListComponent,],
+    LinkListComponent, IaTreeComponent],
   templateUrl: './ia-assistant.component.html',
   styles: ``
 })
@@ -59,7 +59,7 @@ export class IaAssistantComponent {
   private goToStep4() {
     if (!this.hasBreakAfterRoot && !this.hasBreakBeforeRoot) {
       this.activeStep = 4;
-      //add function to build IA tree
+      this.buildIaTree();
     }
   }
 
@@ -415,110 +415,14 @@ export class IaAssistantComponent {
   *  BUILD THE IA TREE  *
   ***********************/
   iaTree: TreeNode[] = [];
+  brokenLinks: { parentUrl?: string, url: string, status: number }[] = []
   async buildIaTree(): Promise<void> {
-    this.setTreeContext();
-    this.crawlFromRoots(3);
-    /*const roots = this.iaTree.filter(n => n.data?.isRoot);
-    for (const root of roots) {
-      const depth = root.data?.crawlDepth ?? 3;
-      await this.iaTreeService.crawlFromNode(root, depth);
-    }*/
+    this.iaTreeService.setTreeContext(this.iaTree, this.breadcrumbs);
+    await this.iaTreeService.crawlFromRoots(this.iaTree, this.brokenLinks);
+    this.iaTreeService.updateNodeStyles(this.iaTree, 0);
   }
 
-  //Build initial context for crawl (i.e. the start of the breadcrumb)
-  setTreeContext(): void {
 
-    const findChildByUrl = (nodes: TreeNode[] | undefined, url?: string | null) => {
-      if (!nodes || !url) return undefined;
-      return nodes.find(n => n.data?.url === url);
-    };
-
-    for (const breadcrumb of this.breadcrumbs) {
-      let currentLevel = this.iaTree;
-      let parentUrl: string | null = null;
-      for (const crumb of breadcrumb) {
-
-        // check if node already exists for this crumb at the current level
-        let node = findChildByUrl(currentLevel, crumb.url);
-
-        if (!node) {
-          // create a new node for this crumb if it doesn't exist
-          node = {
-            label: crumb.label,
-            data: {
-              h1: crumb.label,
-              url: crumb.url ?? null,
-              originalParent: parentUrl,
-              editing: null,
-              customStyle: false,
-              customStyleKey: null,
-              borderStyle: 'border-2 border-primary border-round shadow-2',
-              isRoot: crumb.isRoot,
-              isCrawled: false,
-              crawlDepth: 3, //note: use the depth we calculated in findRoots to get this number
-              isUserAdded: crumb.isDescendant,
-              notOrphan: crumb.valid,
-              prototype: crumb.prototype ?? null,
-            },
-            expanded: true,
-            styleClass: 'border-2 border-primary border-round shadow-2 surface-ground',
-            children: []
-          };
-          currentLevel.push(node);
-        }
-
-        // descend to this node's children for the next crumb
-        parentUrl = node.data.url ?? null;
-        currentLevel = node.children!;
-      }
-    }
-
-    console.log('Built IA tree context:', this.iaTree);
-
-  }
-
-  //Find the root pages we need to crawl
-  private findCrawlRoots(nodes: TreeNode[]): TreeNode[] {
-    const roots: TreeNode[] = [];
-
-    const walk = (list: TreeNode[]) => {
-      for (const n of list) {
-        if (n.data?.isRoot) {
-          roots.push(n);
-        }
-        if (n.children?.length) {
-          walk(n.children);
-        }
-      }
-    };
-
-    walk(nodes);
-    return roots;
-  }
-
-  //Crawl from pages marked as data.isRoot
-  async crawlFromRoots(depth: number): Promise<void> {
-    const roots = this.findCrawlRoots(this.iaTree);
-
-    let index = 1;
-    const numRoots = roots.length;
-    for (const root of roots) {
-      if (!root.data?.url) continue;
-
-      console.log(`Crawling from root: ${root.data.url}`);
-
-      const children = await this.iaTreeService.buildIaTree([root.data.url], depth, undefined, 0);
-
-      if (children.length > 0) {
-        const builtRoot = children[0];
-        root.children = builtRoot.children; // attach discovered children
-        root.data.isCrawled = true;
-      }
-      console.log(`Crawl ${index} of ${numRoots} complete`);
-      index++;
-    }
-
-  }
 
 }
 
