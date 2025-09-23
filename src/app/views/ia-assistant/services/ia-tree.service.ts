@@ -1,7 +1,8 @@
-import { Injectable, effect, inject } from '@angular/core';
-import { MenuItem, TreeNode } from 'primeng/api';
+import { Injectable, inject } from '@angular/core';
+import { TreeNode } from 'primeng/api';
 import { ThemeService } from '../../../services/theme.service';
 import { FetchService } from '../../../services/fetch.service';
+import { BreadcrumbNode } from '../data/data.model';
 
 @Injectable({
   providedIn: 'root'
@@ -9,23 +10,6 @@ import { FetchService } from '../../../services/fetch.service';
 export class IaTreeService {
   private theme = inject(ThemeService);
   private fetchService = inject(FetchService);
-
-  constructor() {
-    effect(() => {
-      this.theme.darkMode(); // track dark mode changes
-      this.updateNodeStyles(this.iaChart, 0);
-    });
-  }
-
-  originalUrl = "";
-  //Breadcrumb & orphan status
-  breadcrumb: MenuItem[] = [];
-  urlFound: boolean | null = null;
-
-  //IA chart
-  iaChart: TreeNode[] | null = null;
-  brokenLinks: { parentUrl?: string, url: string, status: number }[] = []
-  depth = 4 //default value
 
   //For tracking progress while building IA chart
   isChartLoading = false;
@@ -42,7 +26,6 @@ export class IaTreeService {
   ]);
 
   //Set background color
-
   get bgColors(): string[] {
     return this.theme.darkMode()
       ? this.bgColorsDark
@@ -95,7 +78,7 @@ export class IaTreeService {
     template: 'surface-700 hover:surface-600 text-white'
   };
 
-  private updateNodeStyles(nodes: TreeNode[] | null, level = 0): void {
+  public updateNodeStyles(nodes: TreeNode[] | null, level = 0): void {
     if (!nodes) return;
 
     for (const node of nodes) {
@@ -151,7 +134,7 @@ export class IaTreeService {
     }
   }
   //Step 2b: Crawl all child pages for IA data
-  async buildIaTree(urls: string[], depth: number, parentUrl?: string, level = 0): Promise<TreeNode[]> {
+  async buildIaTree(urls: string[], depth: number, brokenLinks: { parentUrl?: string, url: string, status: number }[], parentUrl?: string, level = 0): Promise<TreeNode[]> {
     if (depth <= 0) return [];
 
     //reset progress tracker
@@ -173,7 +156,7 @@ export class IaTreeService {
       this.iaProgress = Math.round((this.processedUrls / this.totalUrls) * 100); //Update progress
 
       if (!meta || meta.status !== 200) {
-        this.brokenLinks.push({
+        brokenLinks.push({
           parentUrl,
           url,
           status: meta?.status || 0
@@ -226,7 +209,7 @@ export class IaTreeService {
 
         const links = meta.links.slice(0, limit); //trim excess links
 
-        node.children = await this.buildIaTree(links, depth - 1, url, level + 1); //get child nodes
+        node.children = await this.buildIaTree(links, depth - 1, brokenLinks, url, level + 1,); //get child nodes
 
         if (total > limit) { //add dummy node if we limited the child nodes
           node.children?.push({
@@ -268,4 +251,136 @@ export class IaTreeService {
     return nodes;
   }
 
+  //NEEDS TESTING
+  //Build initial context for crawl (i.e. the start of the breadcrumb)
+  setTreeContext(iaTree: TreeNode[], breadcrumbs: BreadcrumbNode[][]): void {
+
+    const findChildByUrl = (nodes: TreeNode[] | undefined, url?: string | null) => {
+      if (!nodes || !url) return undefined;
+      return nodes.find(n => n.data?.url === url);
+    };
+
+    for (const breadcrumb of breadcrumbs) {
+      let currentLevel = iaTree;
+      let parentUrl: string | null = null;
+      for (const crumb of breadcrumb) {
+
+        // check if node already exists for this crumb at the current level
+        let node = findChildByUrl(currentLevel, crumb.url);
+
+        if (!node) {
+          // create a new node for this crumb if it doesn't exist
+          node = {
+            label: crumb.label,
+            data: {
+              h1: crumb.label,
+              url: crumb.url ?? null,
+              originalParent: parentUrl,
+              editing: null,
+              customStyle: false,
+              customStyleKey: null,
+              borderStyle: 'border-2 border-primary border-round shadow-2',
+              isRoot: crumb.isRoot,
+              isCrawled: false,
+              crawlDepth: crumb.minDepth, //todo: double-check the depth we calculated in findRoots is being passed along
+              isUserAdded: crumb.isRoot || crumb.isDescendant,
+              notOrphan: crumb.valid,
+              prototype: crumb.prototype ?? null,
+            },
+            expanded: true,
+            styleClass: 'border-2 border-primary border-round shadow-2 surface-ground',
+            children: []
+          };
+          currentLevel.push(node);
+        }
+
+        // descend to this node's children for the next crumb
+        parentUrl = node.data.url ?? null;
+        currentLevel = node.children!;
+      }
+    }
+
+    //console.log('Built IA tree context:', this.iaTree);
+
+  }
+
+  //Find the root pages we need to crawl
+  private findCrawlRoots(nodes: TreeNode[]): TreeNode[] {
+    const roots: TreeNode[] = [];
+
+    const walk = (list: TreeNode[]) => {
+      for (const n of list) {
+        if (n.data?.isRoot) {
+          roots.push(n);
+        }
+        if (n.children?.length) {
+          walk(n.children);
+        }
+      }
+    };
+
+    walk(nodes);
+    return roots;
+  }
+
+  //Crawl from pages marked as data.isRoot
+  async crawlFromRoots(node: TreeNode[], brokenLinks: { parentUrl?: string, url: string, status: number }[]): Promise<void> {
+    const roots = this.findCrawlRoots(node);
+
+    let index = 1;
+    const numRoots = roots.length;
+    for (const root of roots) {
+      if (!root.data?.url) continue;
+
+      console.log(`Crawling from root: ${root.data.url}`);
+      console.log(`Min Depth: ${root.data.crawlDepth}`);
+
+      const depth = Math.max((root.data.crawlDepth ?? 0) + 1, 2); // 2 will crawl 1st level of children only.
+      console.log(`Depth: ${depth}`);
+      const children = await this.buildIaTree([root.data.url], depth, brokenLinks, undefined, 0);
+
+      if (children.length > 0) {
+        const builtRoot = children[0];
+        root.children = this.mergeChildren(root.children ?? [], builtRoot.children ?? []);
+        root.data.isCrawled = true;
+      }
+      console.log(`Crawl ${index} of ${numRoots} complete`);
+      index++;
+      root.data.isRoot = false; //flip status so we don't recrawl
+    }
+  }
+
+  //Merges discovered children with existing user add-added or breadcrumb children
+  private mergeChildren(current: TreeNode[], crawled: TreeNode[]): TreeNode[] {
+    const map = new Map<string, TreeNode>();
+
+    // Start with current children since they may have additional data attached
+    for (const child of current) {
+      if (child.data?.url) {
+        map.set(child.data.url, child);
+      }
+    }
+
+    // Add crawled children if not already in the map
+    for (const child of crawled) {
+      const url = child.data?.url;
+      if (!url) continue;
+
+      if (!map.has(url)) {
+        map.set(url, child);
+      } else {
+        const existingNode = map.get(url)!;
+        // Merge children of child into existing node
+        if (child.children?.length) {
+          if (existingNode.children?.length) {
+            existingNode.children = this.mergeChildren(existingNode.children ?? [], child.children ?? []);
+          }
+          else { existingNode.children = child.children; }
+        }
+        //Preserve crawled status
+        existingNode.data.isCrawled = existingNode.data.isCrawled || child.data.isCrawled;
+      }
+    }
+    return Array.from(map.values());
+  }
 }
