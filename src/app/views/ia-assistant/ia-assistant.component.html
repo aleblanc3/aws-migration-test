@@ -3,9 +3,9 @@
 
 <p-stepper [(value)]="activeStep" [linear]="true">
     <p-step-list class="-mx-4">
-        <p-step [value]="1">Enter URLs and search criteria</p-step>
-        <p-step [value]="2">Validate URLs</p-step>
-        <p-step [value]="3">Validate breadcrumbs</p-step>
+        <p-step [value]="1">Enter and validate URLs</p-step>
+        <p-step [value]="2">Set initial pages to crawl</p-step>
+        <p-step [value]="3">Add search criteria</p-step>
         <p-step [value]="4">Build IA tree</p-step>
     </p-step-list>
     <p-step-panels>
@@ -14,6 +14,7 @@
             <ng-template #content let-activateCallback="activateCallback">
                 <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
 
+                    <!--Enter URLs-->
                     <h2 class="my-0">Canada.ca URLs</h2>
                     <p class="my-0 text-color-secondary text-xs">Paste some relevant Canada.ca URLs to get started. These links will be crawled to find any child pages to include in your inventory. Each link should begin on a new line. If you have prototype links, you can paste both columns or separate them with a comma or semicolon.</p>
 
@@ -22,7 +23,7 @@
                         <label for="urls">URLs</label>
                     </p-iftalabel>
 
-                    <!--Only show url pairs if prototype links were included-->
+                    <!--Show url pairs if prototype links were included-->
                     <p-table [value]="urlPairs" *ngIf="includePrototypeLinks" size="small" stripedRows [scrollable]="true" scrollHeight="400px">
                         <ng-template #header>
                             <tr>
@@ -38,33 +39,11 @@
                         </ng-template>
                     </p-table>
 
-                    <h2 class="my-0">Search criteria</h2>
-                    <p class="my-0 text-color-secondary text-xs">Enter terms separated by semicolons or new lines. These will be used to include additional pages in your result, even if there is no direct breadcrumb IA relationship between the pages. The search is <strong>not</strong> case-sensitive. Regex patterns should begin with "regex:".</p>
-                    <p-iftalabel>
-                        <textarea id="search" autoResize="true" rows="2" pTextarea [(ngModel)]="rawTerms" (blur)="updateTerms(); updateRawTerms();" (keydown)="onKeydownTerm($event)" (paste)="onPasteTerm()" fluid
-                                  placeholder=""></textarea>
-                        <label for="search">Search terms (optional)</label>
-                    </p-iftalabel>
+                    <!--Validate links button-->
+                    <p-button label="Validate URLs" icon="pi pi-check-square" [loading]="isValidating" (onClick)="validateUrlPairs()" [disabled]="rawUrls.length === 0 || isValidated" />
 
-                    <div class="flex gap-2 flex-wrap">
-                        <p-chip *ngFor="let term of terms" [label]="term.toString()" [styleClass]="getTermColor(term)" [removable]="true" (onRemove)="removeTerm(term)"><p-badge *ngIf="isRegex(term)" value="regex" severity="info"></p-badge></p-chip>
-                    </div>
-
-                </div>
-
-                <div class="flex pt-4 gap-2 justify-content-between">
-                    <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="urlPairs = []; iaTree = []" *ngIf="urlPairs.length > 0 && urlsChecking.length === 0" />
-                    <p-button label="Validate URLs" icon="pi pi-arrow-right" iconPos="right" class="ml-auto" (onClick)="validateUrlPairs(); activateCallback(2)" *ngIf="urlsChecking.length > 0" />
-                    <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" class="ml-auto" (onClick)="activateCallback(2)" *ngIf="urlsChecking.length === 0" [disabled]="urlPairs.length === 0" />
-                </div>
-            </ng-template>
-        </p-step-panel>
-
-        <p-step-panel [value]="2">
-            <ng-template #content let-activateCallback="activateCallback">
-                <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
-
-                    <ng-container *ngIf="urlPairs.length > 0">
+                    <!--Show link validation-->
+                    <ng-container *ngIf="isValidating || isValidated">
                         <h2 *ngIf="urlsChecking.length > 0">Validating links</h2>
                         <h2 *ngIf="urlsChecking.length === 0">Validated links</h2>
 
@@ -146,26 +125,15 @@
                     </ng-container>
 
                 </div>
-                <div class="flex pt-4 justify-content-between">
-                    <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(1)" />
-                    <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(3)" />
+
+                <div class="flex pt-4 gap-2 justify-content-between">
+                    <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="reset()" *ngIf="urlPairs.length > 0 && urlsChecking.length === 0" />
+                    <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" class="ml-auto" (onClick)="activateCallback(2)" [disabled]="urlsOk.length < urlPairs.length || urlPairs.length === 0" />
                 </div>
             </ng-template>
         </p-step-panel>
-        <!-- TEST LINKS
-https://www.canada.ca/en/revenue-agency/services/forms-publications/publications/t4001/employers-guide-payroll-deductions-remittances.html
-https://www.canada.ca/en/revenue-agency/services/forms-publications/publications.html
-https://www.canada.ca/en/services/taxes/income-tax.html
-https://www.canada.ca/en.html
 
-Top 5 search results for GST:
-https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit.html
-https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit/goods-services-tax-harmonized-sales-tax-gst-hst-credit-payment-amounts-tax-years-2013-2015.html
-https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/gst-hst-businesses.html
-https://www.canada.ca/en/services/taxes/resources-for-small-and-medium-businesses/gst-hst.html
-https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit/goods-services-tax-harmonized-sales-tax-gst-hst-credit-payment-amounts-tax-year-2016.html
--->
-        <p-step-panel [value]="3">
+        <p-step-panel [value]="2">
             <ng-template #content let-activateCallback="activateCallback">
                 <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
 
@@ -222,6 +190,36 @@ https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-ser
                         <p *ngIf="!hasBreakBeforeRoot && !hasBreakAfterRoot" class="text-green-500">There are no problems with your breadcrumb!</p>
                         <p>To-do: set up method for user to change which pages to crawl</p>
                     </ng-container>
+
+
+
+                </div>
+                <div class="flex pt-4 justify-content-between">
+                    <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(1)" />
+                    <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(3)" />
+                </div>
+            </ng-template>
+        </p-step-panel>
+        <!-- TEST LINKS
+https://www.canada.ca/en/revenue-agency/services/forms-publications/publications/t4001/employers-guide-payroll-deductions-remittances.html
+https://www.canada.ca/en/revenue-agency/services/forms-publications/publications.html
+https://www.canada.ca/en/services/taxes/income-tax.html
+https://www.canada.ca/en.html
+
+Top 5 search results for GST:
+https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit.html
+https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit/goods-services-tax-harmonized-sales-tax-gst-hst-credit-payment-amounts-tax-years-2013-2015.html
+https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/gst-hst-businesses.html
+https://www.canada.ca/en/services/taxes/resources-for-small-and-medium-businesses/gst-hst.html
+https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit/goods-services-tax-harmonized-sales-tax-gst-hst-credit-payment-amounts-tax-year-2016.html
+-->
+        <p-step-panel [value]="3">
+            <ng-template #content let-activateCallback="activateCallback">
+                <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
+
+
+                    <ca-search-criteria></ca-search-criteria>
+
                 </div>
                 <div class="flex pt-4 justify-content-between">
                     <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(2)" />
@@ -235,7 +233,7 @@ https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-ser
             <ng-template #content let-activateCallback="activateCallback">
                 <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
 
-                    <ca-ia-tree [iaTree]="iaTree" [brokenLinks]="brokenLinks"></ca-ia-tree>
+                    <ca-ia-tree [iaTree]="iaTree" [brokenLinks]="brokenLinks" [searchMatches]="searchMatches"></ca-ia-tree>
                 </div>
                 <div class="flex pt-4 justify-content-start">
                     <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(3)" />
