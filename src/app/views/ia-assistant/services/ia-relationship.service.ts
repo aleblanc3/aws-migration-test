@@ -84,7 +84,7 @@ export class IaRelationshipService {
         if (!childPage) continue;
         const index = childPage.breadcrumb.findIndex(bc => bc.url === root.href); // get the position of the root in the child page's breadcrumb
         if (index !== -1) {
-          const depth = (childPage.breadcrumb.length + 1) - index; // relative depth = number of breadcrumb items after the root (plus 1 since child page is not in breadcrumb)
+          const depth = (childPage.breadcrumb.length + 2) - index; // relative depth = number of breadcrumb items after the root (plus 2 since child page is not in breadcrumb and we want an additional level of child pages)
           minDepth = Math.max(minDepth, depth);
         }
       }
