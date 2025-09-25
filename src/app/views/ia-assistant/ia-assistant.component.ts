@@ -18,7 +18,7 @@ import { ChipModule } from 'primeng/chip';
 import { TableModule } from 'primeng/table';
 import { BadgeModule } from 'primeng/badge';
 
-import { UrlItem, UrlPair, PageData, BreadcrumbNode } from './data/data.model'
+import { UrlItem, UrlPair, PageData, BreadcrumbNode, BrokenLinks, SearchMatches } from './data/data.model'
 import { LinkListComponent } from './components/link-list.component';
 import { IaRelationshipService } from './services/ia-relationship.service';
 import { IaTreeService } from './services/ia-tree.service';
@@ -26,6 +26,9 @@ import { FetchService } from '../../services/fetch.service';
 import { ThemeService } from '../../services/theme.service';
 
 import { IaTreeComponent } from './components/ia-tree.component';
+import { SearchCriteriaComponent } from './components/search-criteria.component';
+
+import { environment } from '../../../environments/environment';
 
 
 @Component({
@@ -33,7 +36,7 @@ import { IaTreeComponent } from './components/ia-tree.component';
   imports: [CommonModule, FormsModule, TranslateModule,
     TextareaModule, InputTextModule, IftaLabelModule, InputGroupModule, InputGroupAddonModule, ButtonModule,
     ProgressBarModule, ChipModule, StepperModule, ConfirmPopupModule, TableModule, BadgeModule, TooltipModule,
-    LinkListComponent, IaTreeComponent],
+    LinkListComponent, SearchCriteriaComponent, IaTreeComponent],
   templateUrl: './ia-assistant.component.html',
   styles: ``
 })
@@ -44,85 +47,76 @@ export class IaAssistantComponent {
   private theme = inject(ThemeService);
   private iaTreeService = inject(IaTreeService);
 
+  production = environment.production;
+
   //Step
   activeStep = 1;
 
-  /*** Advance to step 3 if all URLs are good ***/
-  private goToStep3() {
+  /*** Advance to step 2 if all URLs are good ***/
+  private goToStep2() {
     if (this.urlsOk.length + this.urlsProtoOk.length === this.urlTotal) {
-      this.activeStep = 3;
+      this.activeStep = 2;
       this.checkBreadcrumbs();
     }
   }
 
-  /*** Advance to step 4 if all breadcrumbs are good ***/
-  private goToStep4() {
-    if (!this.hasBreakAfterRoot && !this.hasBreakBeforeRoot) {
-      this.activeStep = 4;
-      this.buildIaTree();
-    }
-  }
+  //Reset everything
+  reset(mode: "all" | "form" = "all") {
+    this.activeStep = 1;
 
-  /*****************
-   * SEARCH TERMS  *
-   *****************/
-  rawTerms = '';
-  terms: (string | RegExp)[] = []
+    //URLs
+    this.resetProgress();
+    if (mode === "all") { this.rawUrls = '' }
+    this.urlPairs = [];
+    this.includePrototypeLinks = false;
+    this.isValidated = false;
+    this.isValidating = false;
 
-  updateTerms() {
-    this.terms = this.rawTerms
-      .split(/[\n;\t]+/) // split on semicolons, newlines, tabs
-      .map(term => term.trim()) // trim whitespace
-      .filter(Boolean) // filter out empties
-      .map(term => {
-        try {
-          if (term.startsWith('regex:')) {
-            const pattern = term.slice(6);
-            return new RegExp(pattern, 'smi');
-          }
-          else return term.toLowerCase();
-        }
-        catch (error) { console.log(error); return `invalid ${term}`; }
+    //Breadcrumbs
+    this.breadcrumbs = [];
+    this.rootPages = [];
+    this.breadcrumbProgress = 0;
+    this.breadcrumbStep = '';
+    this.hasBreakBeforeRoot = false;
+    this.hasBreakAfterRoot = false;
+
+    //Search terms
+    this.rawTerms = '';
+    this.terms = [];
+
+    //IA tree
+    this.iaTree = [];
+    this.brokenLinks = [];
+    this.searchMatches = [];
+
+    //Debug log
+    if (!this.production) {
+      console.group('Reset state');
+      console.table({
+        activeStep: this.activeStep,
+
+        rawUrls: this.rawUrls,
+        urlPairs: this.urlPairs,
+        includePrototypeLinks: this.includePrototypeLinks,
+        isValidated: this.isValidated,
+        isValidating: this.isValidating,
+
+        breadcrumbs: this.breadcrumbs,
+        rootPages: this.rootPages,
+        breadcrumbProgress: this.breadcrumbProgress,
+        breadcrumbStep: this.breadcrumbStep,
+        hasBreakBeforeRoot: this.hasBreakBeforeRoot,
+        hasBreakAfterRoot: this.hasBreakAfterRoot,
+
+        terms: this.terms,
+        rawTerms: this.rawTerms,
+
+        iaTree: this.iaTree,
+        brokenLinks: this.brokenLinks,
+        searchMatches: this.searchMatches
       });
-
-    this.terms = Array.from(new Set(this.terms)); // unique set
-  }
-
-  updateRawTerms() {
-    this.rawTerms = this.terms.map(term => {
-      if (term instanceof RegExp) {
-        return `regex:${term.source}`;
-      } else {
-        return term;
-      }
-    })
-      .join('; ');
-  }
-
-  onKeydownTerm(event: KeyboardEvent) {
-    if (event.key === ';' || event.key === 'Enter' || event.key === 'Tab') {
-      this.updateTerms();
+      console.groupEnd();
     }
-  }
-
-  onPasteTerm() {
-    setTimeout(() => this.updateTerms(), 0);
-  }
-
-  removeTerm(term: string | RegExp) {
-    this.terms = this.terms.filter(t => t !== term);
-    console.log(this.terms);
-    this.updateRawTerms()
-  }
-
-  isRegex(term: string | RegExp): boolean {
-    return term instanceof RegExp;
-  }
-
-  getTermColor(term: string | RegExp): string {
-    if (this.isRegex(term)) return 'bg-blue-100';
-    else if (typeof term === 'string' && term.startsWith('invalid regex')) return 'bg-red-100';
-    else return 'bg-green-100';
   }
 
   /*****************
@@ -136,6 +130,8 @@ export class IaAssistantComponent {
   urlTotal = 0;
   urlChecked = 0;
   urlPercent = 0;
+  isValidating = false;
+  isValidated = false;
 
   private resetProgress() {
     this.urlTotal =
@@ -147,6 +143,7 @@ export class IaAssistantComponent {
 
   /*** Set URL pairs from user input & set boolean if any prototypes were included ***/
   setUrlPairs() {
+    this.reset("form");
     this.urlPairs = this.rawUrls
       .split(/\r?\n/) // split on new lines
       .map(line => line.trim().toLowerCase())
@@ -171,12 +168,6 @@ export class IaAssistantComponent {
     //check for any prototype links
     this.includePrototypeLinks = this.urlPairs.some(p => p.prototype && p.prototype.href !== '')
 
-    //reset breadcrumb validation
-    this.breadcrumbs = [];
-    this.rootPages = [];
-
-    //reset IA tree
-    this.iaTree = [];
   }
 
   onPasteUrls() {
@@ -237,7 +228,9 @@ export class IaAssistantComponent {
   async validateUrlPairs() {
     if (!this.urlPairs?.length) return;
 
+    //Update progress
     this.resetProgress();
+    this.isValidating = true;
 
     // Validate production URLs
     await this.validateUrlItems(this.urlPairs.map(p => p.production));
@@ -247,8 +240,12 @@ export class IaAssistantComponent {
       await this.validateUrlItems(this.urlPairs.map(p => p.prototype).filter((p): p is UrlItem => !!p));
     }
 
+    //Update progress
+    this.isValidating = false;
+    this.isValidated = true;
+
     //Advance to next step if all URLs are ok
-    this.goToStep3();
+    this.goToStep2();
 
   }
 
@@ -280,7 +277,7 @@ export class IaAssistantComponent {
     this.urlChecked -= decrement;
     this.urlTotal -= decrement;
     this.urlPercent = (this.urlChecked / this.urlTotal) * 100;
-    this.goToStep3();
+    this.goToStep2();
   }
 
   /*** Approve an edited link for revalidation ***/
@@ -309,7 +306,7 @@ export class IaAssistantComponent {
     this.checkStatus(link).finally(() => {
       this.urlChecked++;
       this.urlPercent = (this.urlChecked / this.urlTotal) * 100;
-      this.goToStep3();
+      this.goToStep2();
     });
   }
 
@@ -408,18 +405,26 @@ export class IaAssistantComponent {
     console.log(`Breadcrumb branches: `, this.breadcrumbs);
     console.log(`Root pages: `, this.rootPages);
 
-    this.goToStep4();
   }
 
+  /*****************
+   * SEARCH TERMS  *
+   *****************/
+  rawTerms = ''
+  terms: string[] = [];
   /**********************
   *  BUILD THE IA TREE  *
   ***********************/
   iaTree: TreeNode[] = [];
-  brokenLinks: { parentUrl?: string, url: string, status: number }[] = []
+  brokenLinks: BrokenLinks[] = []
+  searchMatches: SearchMatches[] = []
+
   async buildIaTree(): Promise<void> {
     this.iaTreeService.setTreeContext(this.iaTree, this.breadcrumbs);
-    await this.iaTreeService.crawlFromRoots(this.iaTree, this.brokenLinks);
+    await this.iaTreeService.crawlFromRoots(this.iaTree, this.brokenLinks, this.terms, this.searchMatches);
     this.iaTreeService.updateNodeStyles(this.iaTree, 0);
+    console.log("Search matches:")
+    console.log(this.searchMatches);
   }
 
 
