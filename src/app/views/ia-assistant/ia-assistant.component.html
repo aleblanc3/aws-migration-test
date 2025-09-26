@@ -1,245 +1,107 @@
 <h1 id="wb-cont">{{ 'title.ia' | translate}}</h1>
 <p>{{'ia.description' | translate }}</p>
 
-<p-stepper [(value)]="activeStep" [linear]="true">
-    <p-step-list class="-mx-4">
-        <p-step [value]="1">Enter and validate URLs</p-step>
-        <p-step [value]="2">Set initial pages to crawl</p-step>
-        <p-step [value]="3">Add search criteria</p-step>
-        <p-step [value]="4">Build IA tree</p-step>
-    </p-step-list>
-    <p-step-panels>
-
-        <p-step-panel [value]="1">
-            <ng-template #content let-activateCallback="activateCallback">
-                <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
-
-                    <!--Enter URLs-->
-                    <h2 class="my-0">Canada.ca URLs</h2>
-                    <p class="my-0 text-color-secondary text-xs">Paste some relevant Canada.ca URLs to get started. These links will be crawled to find any child pages to include in your inventory. Each link should begin on a new line. If you have prototype links, you can paste both columns or separate them with a comma or semicolon.</p>
-
-                    <p-iftalabel>
-                        <textarea id="urls" autoResize="true" rows="5" pTextarea [(ngModel)]="rawUrls" (change)="setUrlPairs()" (paste)="onPasteUrls()" fluid></textarea>
-                        <label for="urls">URLs</label>
-                    </p-iftalabel>
-
-                    <!--Show url pairs if prototype links were included-->
-                    <p-table [value]="urlPairs" *ngIf="includePrototypeLinks" size="small" stripedRows [scrollable]="true" scrollHeight="400px">
-                        <ng-template #header>
-                            <tr>
-                                <th>Production URL</th>
-                                <th>Prototype URL</th>
-                            </tr>
-                        </ng-template>
-                        <ng-template #body let-url>
-                            <tr>
-                                <td>{{ url.production.href }}</td>
-                                <td>{{ url.prototype?.href }}</td>
-                            </tr>
-                        </ng-template>
-                    </p-table>
-
-                    <!--Validate links button-->
-                    <p-button label="Validate URLs" icon="pi pi-check-square" [loading]="isValidating" (onClick)="validateUrlPairs()" [disabled]="rawUrls.length === 0 || isValidated" />
-
-                    <!--Show link validation-->
-                    <ng-container *ngIf="isValidating || isValidated">
-                        <h2 *ngIf="urlsChecking.length > 0">Validating links</h2>
-                        <h2 *ngIf="urlsChecking.length === 0">Validated links</h2>
-
-                        <p-progressbar [value]="urlPercent">
-                            <ng-template #content let-value>
-                                <span>{{urlChecked}}/{{urlTotal}}</span>
-                            </ng-template>
-                        </p-progressbar>
-
-                        <div class="flex flex-column gap-2 mt-3" *ngIf="urlsChecking.length > 0 || urlsProtoChecking.length > 0">
-                            <ng-container *ngFor="let url of urlsChecking">
-                                <p-chip styleClass="bg-yellow-100" class="max-w-max">
-                                    <i class="pi pi-spin pi-spinner"></i>
-                                    <span>{{ url.href }}</span>
-                                </p-chip>
-                            </ng-container>
-                            <ng-container *ngFor="let url of urlsProtoChecking">
-                                <p-chip styleClass="bg-orange-100" class="max-w-max">
-                                    <i class="pi pi-spin pi-spinner"></i>
-                                    <span>{{ url.href }}</span>
-                                </p-chip>
-                            </ng-container>
-                        </div>
-                    </ng-container>
-
-                    <p-confirmpopup />
-                    <h2 *ngIf="urlsBad.length > 0 || urlsProtoBad.length > 0" class="mb-0">Broken links</h2>
-                    <ca-link-list labelKey="Broken"
-                                  [links]="urlsBad"
-                                  type="prod"
-                                  (approve)="approve($event.url, $event.event, 'prod')"
-                                  (remove)="remove($event, 'prod')"
-                                  *ngIf="urlsBad.length > 0">
-                    </ca-link-list>
-                    <ca-link-list labelKey="Broken"
-                                  [links]="urlsProtoBad"
-                                  type="proto"
-                                  (approve)="approve($event.url, $event.event, 'proto')"
-                                  (remove)="remove($event, 'proto')"
-                                  *ngIf="urlsProtoBad.length > 0">
-                    </ca-link-list>
-                    <h2 *ngIf="urlsRedirected.length > 0 || urlsProtoRedirected.length > 0" class="mb-0">Redirected links</h2>
-                    <ca-link-list labelKey="Redirected"
-                                  [links]="urlsRedirected"
-                                  type="prod"
-                                  (approve)="approve($event.url, $event.event, 'prod')"
-                                  (remove)="remove($event, 'prod')"
-                                  *ngIf="urlsRedirected.length > 0">
-                    </ca-link-list>
-                    <ca-link-list labelKey="Redirected"
-                                  [links]="urlsProtoRedirected"
-                                  type="proto"
-                                  (approve)="approve($event.url, $event.event, 'proto')"
-                                  (remove)="remove($event, 'proto')"
-                                  *ngIf="urlsProtoRedirected.length > 0">
-                    </ca-link-list>
-                    <h2 *ngIf="urlsBlocked.length > 0 || urlsProtoBlocked.length > 0" class="mb-0">Blocked links</h2>
-                    <ca-link-list labelKey="Blocked"
-                                  [links]="urlsBlocked"
-                                  type="prod"
-                                  (approve)="approve($event.url, $event.event, 'prod')"
-                                  (remove)="remove($event, 'prod')"
-                                  *ngIf="urlsBlocked.length > 0">
-                    </ca-link-list>
-                    <ca-link-list labelKey="Blocked"
-                                  [links]="urlsProtoBlocked"
-                                  type="proto"
-                                  (approve)="approve($event.url, $event.event, 'proto')"
-                                  (remove)="remove($event, 'proto')"
-                                  *ngIf="urlsProtoBlocked.length > 0">
-                    </ca-link-list>
-
-                    <ng-container *ngIf="urlsOk.length > 0 || urlsProtoOk.length > 0">
-                        <h2 class="mb-0">Valid links</h2>
-                        <ul class="my-0 list-none">
-                            <li *ngFor="let url of urlsOk"><i class="pi pi-check text-green-500 mr-2"></i>{{ url.href }}</li>
-                            <li *ngFor="let url of urlsProtoOk"><i class="pi pi-check text-blue-500 mr-2"></i>{{ url.href }}</li>
-                        </ul>
-                    </ng-container>
-
-                </div>
-
-                <div class="flex pt-4 gap-2 justify-content-between">
-                    <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="reset()" *ngIf="urlPairs.length > 0 && urlsChecking.length === 0" />
-                    <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" class="ml-auto" (onClick)="activateCallback(2)" [disabled]="urlsOk.length < urlPairs.length || urlPairs.length === 0" />
+<div class="border-1 secondary-outline p-3">
+    <div class="border-y-1 secondary-outline surface-card sticky top-0 z-5 -m-3 mb-1">
+        <p-toolbar styleClass="p-1">
+            <ng-template #start>
+                <div class="flex gap-1">
+                    <p-button icon="pi pi-save" pTooltip="Save session" tooltipPosition="top" outlined styleClass="secondary-outline" severity="secondary" (onClick)="iaState.saveToLocalStorage()" />
+                    <p-button icon="pi pi-file-export" pTooltip="Export JSON file" tooltipPosition="top" outlined styleClass="secondary-outline" severity="secondary" (onClick)="iaState.exportIaState()" />
+                    <p-fileUpload #fileUploadRef name="iaStateFile" accept=".json" auto="true" mode="basic"
+                                  [customUpload]="true" (uploadHandler)="iaState.importIaState($event)"
+                                  chooseLabel="Import JSON" chooseIcon="pi pi-file-import" outlined styleClass="upload-secondary-outline" severity="secondary" pTooltip="Import JSON file" tooltipPosition="top" />
+                    <p-button icon="pi pi-download" pTooltip="Export to CSV" tooltipPosition="top" outlined styleClass="secondary-outline" severity="secondary" (onClick)="iaState.exportIaTreeAsCsv()" [disabled]="iaState.getIaData().iaTree.length === 0" />
                 </div>
             </ng-template>
-        </p-step-panel>
+            <ng-template #center>
 
-        <p-step-panel [value]="2">
-            <ng-template #content let-activateCallback="activateCallback">
-                <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
-
-                    <h2 *ngIf="breadcrumbProgress < 100">Validating breadcrumb</h2>
-                    <h2 *ngIf="breadcrumbProgress === 100">Validated breadcrumb</h2>
-                    <!--Progress bar-->
-                    <p-progressbar [value]="breadcrumbProgress">
-                        <ng-template #content let-value>
-                            <span>{{breadcrumbStep}}</span>
-                        </ng-template>
-                    </p-progressbar>
-
-                    <!--Display detected root pages-->
-                    <h2 *ngIf="rootPages.length > 0" class="mb-0">Root pages</h2>
-                    <ol class="mt-0">
-                        <ng-container *ngFor="let root of rootPages">
-                            <li><a [href]="root.href" target="_blank" class="text-color-secondary hover:text-color no-underline flex-wrap">{{root.h1}}</a>
-                                <!--Display user-added children of roots-->
-                                <ul *ngIf="root.descendants.length > 0">
-                                    <li>Crawl depth <strong>{{root.minDepth}}</strong> to reach user-added child pages<br>
-                                        {{root.href}}
-                                    </li>
-                                    <ng-container *ngFor="let page of root.descendants">
-                                        <li>{{page}}</li>
-                                    </ng-container>
-                                </ul>
-                            </li>
-                        </ng-container>
-                    </ol>
-
-                    <!--Display detected breadcrumb trails-->
-                    <h2 *ngIf="breadcrumbs.length > 0" class="mb-0">Breadcrumb branches</h2>
-                    <ol class="mt-0">
-                        <ng-container *ngFor="let breadcrumb of breadcrumbs">
-                            <li class="mb-3 pl-2">
-                                <div class="flex flex-row flex-wrap gap-1">
-                                    <ng-container *ngFor="let crumb of breadcrumb">
-                                        <span class="flex flex-row align-items-center justify-content-around gap-1 max-w-12rem">
-                                            <span class="flex flex-row" *ngIf="crumb.icon">
-                                                <i *ngIf="crumb.icon" class="pi pi-minus text-gray-300" aria-hidden="true" style="font-size: 1.25rem"></i>
-                                                <i *ngIf="crumb.icon" [class]="crumb.icon" [pTooltip]="`${crumb.iconTooltip}` | translate" tooltipPosition="top" [attr.aria-label]="`${crumb.iconTooltip}` | translate" style="font-size: 1.25rem"></i>
-                                                <i *ngIf="crumb.icon" class="pi pi-minus text-gray-300" aria-hidden="true" style="font-size: 1.25rem"></i>
-                                            </span>
-                                            <a [href]="crumb.url" target="_blank" class="no-underline flex-wrap hover:bg-surface p-1 -mx-1 border-2 shadow-2 border-round-lg text-center" [ngClass]="crumb.styleClass" [pTooltip]="`${crumb.linkTooltip}` | translate" tooltipPosition="top">{{crumb.label}}</a>
-                                        </span>
-                                    </ng-container>
-                                </div>
-                            </li>
-                        </ng-container>
-                    </ol>
-                    <ng-container *ngIf="breadcrumbProgress === 100">
-                        <p *ngIf="hasBreakAfterRoot" class="text-red-500">One or more of your pages is an IA orphan and will not be included in your IA tree if we crawl from the detected root pages.<br>To-do: automatically set IA orphans as roots so their child pages are crawled</p>
-                        <p *ngIf="hasBreakBeforeRoot && !hasBreakAfterRoot" class="text-blue-500">One or more pages in the breadcrumb are IA orphans. These should be fixed if possible but they won't impact the crawl since they occur before the detected root pages.</p>
-                        <p *ngIf="!hasBreakBeforeRoot && !hasBreakAfterRoot" class="text-green-500">There are no problems with your breadcrumb!</p>
-                        <p>To-do: set up method for user to change which pages to crawl</p>
-                    </ng-container>
-
-
-
-                </div>
-                <div class="flex pt-4 justify-content-between">
-                    <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(1)" />
-                    <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(3)" />
+            </ng-template>
+            <ng-template #end>
+                <div class="flex gap-1">
+                    <p-button icon="pi pi-trash" pTooltip="Reset" tooltipPosition="top" outlined styleClass="secondary-outline" severity="danger" (onClick)="iaState.resetIaFlow()" />
                 </div>
             </ng-template>
-        </p-step-panel>
-        <!-- TEST LINKS
-https://www.canada.ca/en/revenue-agency/services/forms-publications/publications/t4001/employers-guide-payroll-deductions-remittances.html
-https://www.canada.ca/en/revenue-agency/services/forms-publications/publications.html
-https://www.canada.ca/en/services/taxes/income-tax.html
-https://www.canada.ca/en.html
+        </p-toolbar>
+    </div>
+    <p-stepper [(value)]="iaState.activeStep" [linear]="true">
+        <p-step-list class="-mx-4">
+            <p-step [value]="1">Enter and validate URLs</p-step>
+            <p-step [value]="2">Set initial pages to crawl</p-step>
+            <p-step [value]="3">Add search criteria</p-step>
+            <p-step [value]="4">Build IA tree</p-step>
+        </p-step-list>
+        <p-step-panels>
 
-Top 5 search results for GST:
-https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit.html
-https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit/goods-services-tax-harmonized-sales-tax-gst-hst-credit-payment-amounts-tax-years-2013-2015.html
-https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/gst-hst-businesses.html
-https://www.canada.ca/en/services/taxes/resources-for-small-and-medium-businesses/gst-hst.html
-https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit/goods-services-tax-harmonized-sales-tax-gst-hst-credit-payment-amounts-tax-year-2016.html
--->
-        <p-step-panel [value]="3">
-            <ng-template #content let-activateCallback="activateCallback">
-                <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
+            <p-step-panel [value]="1">
+                <ng-template #content let-activateCallback="activateCallback">
+                    <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
+
+                        <ca-validate-urls></ca-validate-urls>
+
+                        <!--p>TEST LINKS
+                            <br>https://www.canada.ca/en/revenue-agency/services/forms-publications/publications/t4001/employers-guide-payroll-deductions-remittances.html
+                            <br>https://www.canada.ca/en/revenue-agency/services/forms-publications/publications.html
+                            <br>https://www.canada.ca/en/services/taxes/income-tax.html
+                            <br>https://www.canada.ca/en.html<br>
+
+                            <br>Top 5 search results for GST:
+                            <br>https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit.html
+                            <br>https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit/goods-services-tax-harmonized-sales-tax-gst-hst-credit-payment-amounts-tax-years-2013-2015.html
+                            <br>https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/gst-hst-businesses.html
+                            <br>https://www.canada.ca/en/services/taxes/resources-for-small-and-medium-businesses/gst-hst.html
+                            <br>https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit/goods-services-tax-harmonized-sales-tax-gst-hst-credit-payment-amounts-tax-year-2016.html
+                        </p-->
+
+                    </div>
+                    <div class="flex pt-4 gap-2 justify-content-between">
+                        <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" class="ml-auto" (onClick)="activateCallback(2); iaState.saveToLocalStorage();" [disabled]="!iaState.getUrlData().isValidated || !iaState.getUrlData().isOk" />
+                    </div>
+                </ng-template>
+            </p-step-panel>
+
+            <p-step-panel [value]="2">
+                <ng-template #content let-activateCallback="activateCallback">
+                    <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
+
+                        <ca-set-roots></ca-set-roots>
+
+                    </div>
+                    <div class="flex pt-4 justify-content-between">
+                        <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(1); iaState.saveToLocalStorage();" />
+                        <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(3); iaState.saveToLocalStorage();" [disabled]="breadcrumbData().progress !== 100" />
+                    </div>
+                </ng-template>
+            </p-step-panel>
+
+            <p-step-panel [value]="3">
+                <ng-template #content let-activateCallback="activateCallback">
+                    <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
 
 
-                    <ca-search-criteria></ca-search-criteria>
+                        <ca-search-criteria></ca-search-criteria>
 
-                </div>
-                <div class="flex pt-4 justify-content-between">
-                    <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(2)" />
-                    <p-button label="Build IA Tree" icon="pi pi-arrow-right" iconPos="right" (onClick)="buildIaTree(); activateCallback(4)" *ngIf="iaTree.length === 0" [disabled]="breadcrumbProgress !== 100" />
-                    <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(4)" *ngIf="iaTree.length > 0" [disabled]="breadcrumbProgress !== 100"></p-button>
-                </div>
-            </ng-template>
-        </p-step-panel>
+                    </div>
+                    <div class="flex pt-4 justify-content-between">
+                        <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(2)" />
+                        <p-button label="Build IA Tree" icon="pi pi-arrow-right" iconPos="right" (onClick)="buildIaTree(); activateCallback(4)" *ngIf="iaTree.length === 0" />
+                        <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(4)" *ngIf="iaTree.length > 0"></p-button>
+                    </div>
+                </ng-template>
+            </p-step-panel>
 
-        <p-step-panel [value]="4">
-            <ng-template #content let-activateCallback="activateCallback">
-                <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
+            <p-step-panel [value]="4">
+                <ng-template #content let-activateCallback="activateCallback">
+                    <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
 
-                    <ca-ia-tree [iaTree]="iaTree" [brokenLinks]="brokenLinks" [searchMatches]="searchMatches"></ca-ia-tree>
-                </div>
-                <div class="flex pt-4 justify-content-start">
-                    <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(3)" />
-                </div>
-            </ng-template>
-        </p-step-panel>
+                        <ca-ia-tree [iaTree]="iaTree" [brokenLinks]="brokenLinks" [searchMatches]="searchMatches"></ca-ia-tree>
+                    </div>
+                    <div class="flex pt-4 justify-content-start">
+                        <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(3)" />
+                    </div>
+                </ng-template>
+            </p-step-panel>
 
-    </p-step-panels>
-</p-stepper>
+        </p-step-panels>
+    </p-stepper>
+</div>

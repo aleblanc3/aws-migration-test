@@ -26,7 +26,7 @@ import { TranslateService, TranslateModule } from '@ngx-translate/core';
 import { ThemeService } from '../../../services/theme.service';
 
 import { MenuItem, TreeNode, TreeDragDropService } from 'primeng/api';
-import { FullscreenHTMLElement } from '../data/data.model';
+import { FullscreenHTMLElement, BrokenLinks, SearchMatches } from '../data/data.model';
 
 import { environment } from '../../../../environments/environment';
 
@@ -97,7 +97,8 @@ import { FetchService } from '../../../services/fetch.service';
 export class IaTreeComponent implements OnInit {
 
   @Input() iaTree: TreeNode[] | null = null;
-  @Input() brokenLinks: { parentUrl?: string, url: string, status: number }[] = []
+  @Input() brokenLinks: BrokenLinks[] = []
+  @Input() searchMatches: SearchMatches[] = []
 
   private translate = inject(TranslateService);
   private locationStrategy = inject(LocationStrategy);
@@ -166,10 +167,9 @@ export class IaTreeComponent implements OnInit {
     console.log(node);
     node.data.isRoot = true;
     await this.fetchService.simulateDelay(2000); //so we can see spinner spin
-    await this.iaTreeService.crawlFromRoots(this.iaTree!, this.brokenLinks);
+    await this.iaTreeService.crawlFromRoots(this.iaTree!, this.brokenLinks); //to-do: set colors properly in this function instead of calling updateNodeStyles afterwards
     this.iaTreeService.updateNodeStyles(this.iaTree, 0);
   }
-
   //End of get child pages
 
   //Prevent default click on org chart links <-- Do we want this?? 
@@ -498,6 +498,7 @@ export class IaTreeComponent implements OnInit {
     this.updateNodeStyles(this.iaTree, 0);
   }
 
+  //TODO: if this was notOrphan, update crawl status of parent node so that this node can be rediscovered on crawl
   deleteNode() {
     if (!this.iaTree || !this.selectedNode) return;
 

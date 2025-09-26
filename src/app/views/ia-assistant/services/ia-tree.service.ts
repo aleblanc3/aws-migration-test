@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { TreeNode } from 'primeng/api';
 import { ThemeService } from '../../../services/theme.service';
 import { FetchService } from '../../../services/fetch.service';
-import { BreadcrumbNode } from '../data/data.model';
+import { BreadcrumbNode, PageMeta, BrokenLinks, SearchMatches } from '../data/data.model';
 
 @Injectable({
   providedIn: 'root'
@@ -100,7 +100,7 @@ export class IaTreeService {
 
 
   //Step 2a: Get single page IA data
-  async getPageMetaAndLinks(url: string): Promise<{ h1?: string; breadcrumb?: string[]; links?: string[], status: number } | null> {
+  async getPageMetaAndLinks(url: string, searchTerms?: string[]): Promise<{ h1?: string; breadcrumb?: string[]; links?: string[], status: number, matched?: boolean; }> {
     try {
       const doc = await this.fetchService.fetchContent(url, "prod", 5);
 
@@ -127,14 +127,23 @@ export class IaTreeService {
         )
       );
 
-      return { h1, breadcrumb, links, status: 200 };
+      const result: PageMeta = { h1, breadcrumb, links, status: 200 };
+      //Check search terms (optional step)      
+      if (searchTerms && searchTerms.length > 0) {
+        const pageText = doc.body?.textContent?.toLowerCase() ?? "";
+        result.matched = searchTerms.some(term =>
+          pageText.includes(term.toLowerCase())
+        );
+      }
+
+      return result;
     } catch (err) {
       console.error(`Failed to fetch ${url}`, err);
       return { status: 0 };
     }
   }
   //Step 2b: Crawl all child pages for IA data
-  async buildIaTree(urls: string[], depth: number, brokenLinks: { parentUrl?: string, url: string, status: number }[], parentUrl?: string, level = 0): Promise<TreeNode[]> {
+  async buildIaTree(urls: string[], depth: number, brokenLinks: BrokenLinks[], parentUrl?: string, level = 0, searchTerms: (string | RegExp)[] | null = null, searchMatches?: SearchMatches[]): Promise<TreeNode[]> {
     if (depth <= 0) return [];
 
     //reset progress tracker
@@ -150,12 +159,13 @@ export class IaTreeService {
     const bgClass = this.bgColors[level % this.bgColors.length];
 
     for (const url of urls) {
-      const meta = await this.getPageMetaAndLinks(url);
+      const meta = await this.getPageMetaAndLinks(url, ["GST", "dental"]);
 
       this.processedUrls++; //Increase processed URLs
       this.iaProgress = Math.round((this.processedUrls / this.totalUrls) * 100); //Update progress
 
-      if (!meta || meta.status !== 200) {
+      //Collect list of broken links
+      if ((!meta || meta.status !== 200) && brokenLinks) {
         brokenLinks.push({
           parentUrl,
           url,
@@ -163,6 +173,20 @@ export class IaTreeService {
         });
         continue;
       }
+
+      //Collect list of search term matches (todo: add label and which match was found etc.)
+      if (meta?.matched && searchMatches) {
+        searchMatches.push({
+          url,
+          h1: meta.h1 ?? "Missing H1"
+        });
+      }
+
+      //Collect list of referring pages
+
+      //Collect list of potential children (via url structure)
+
+      //Collect TreeNodes of child pages (via breadcrumb check)
       if (!meta.breadcrumb || !meta.links) continue;
 
       // Check if child via breadcrumb parent
@@ -209,7 +233,7 @@ export class IaTreeService {
 
         const links = meta.links.slice(0, limit); //trim excess links
 
-        node.children = await this.buildIaTree(links, depth - 1, brokenLinks, url, level + 1,); //get child nodes
+        node.children = await this.buildIaTree(links, depth - 1, brokenLinks, url, level + 1, searchTerms, searchMatches); //get child nodes
 
         if (total > limit) { //add dummy node if we limited the child nodes
           node.children?.push({
@@ -246,6 +270,13 @@ export class IaTreeService {
         this.isChartLoading = false;
         this.iaProgress = 0;
       }, 1000);
+    }
+
+    //de-dupe collected data
+    if (searchMatches && level === 0) {
+      const uniqueMatches = new Map(searchMatches.map(m => [m.url, m]));
+      searchMatches.length = 0; //clear array
+      searchMatches.push(...uniqueMatches.values());
     }
 
     return nodes;
@@ -324,7 +355,7 @@ export class IaTreeService {
   }
 
   //Crawl from pages marked as data.isRoot
-  async crawlFromRoots(node: TreeNode[], brokenLinks: { parentUrl?: string, url: string, status: number }[]): Promise<void> {
+  async crawlFromRoots(node: TreeNode[], brokenLinks: BrokenLinks[], searchTerms: (string | RegExp)[] | null = null, searchMatches?: SearchMatches[]): Promise<void> {
     const roots = this.findCrawlRoots(node);
 
     let index = 1;
@@ -335,9 +366,9 @@ export class IaTreeService {
       console.log(`Crawling from root: ${root.data.url}`);
       console.log(`Min Depth: ${root.data.crawlDepth}`);
 
-      const depth = Math.max((root.data.crawlDepth ?? 0) + 1, 2); // 2 will crawl 1st level of children only.
+      const depth = Math.max((root.data.crawlDepth ?? 0), 2); // 2 will crawl 1st level of children only.
       console.log(`Depth: ${depth}`);
-      const children = await this.buildIaTree([root.data.url], depth, brokenLinks, undefined, 0);
+      const children = await this.buildIaTree([root.data.url], depth, brokenLinks, undefined, 0, searchTerms, searchMatches);
 
       if (children.length > 0) {
         const builtRoot = children[0];

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
@@ -6,6 +6,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { IftaLabelModule } from 'primeng/iftalabel';
 import { ChipModule } from 'primeng/chip';
 import { BadgeModule } from 'primeng/badge';
+import { IaStateService } from '../services/ia-state.service';
 
 @Component({
   selector: 'ca-search-criteria',
@@ -14,13 +15,17 @@ import { BadgeModule } from 'primeng/badge';
   templateUrl: './search-criteria.component.html',
   styles: ``
 })
-export class SearchCriteriaComponent {
+export class SearchCriteriaComponent implements OnInit {
+  public iaState = inject(IaStateService);
 
-  rawTerms = '';
-  terms: (string | RegExp)[] = []
+  ngOnInit(): void {
+    this.updateTerms();
+  }
+
+  searchData = this.iaState.getSearchData;
 
   updateTerms() {
-    this.terms = this.rawTerms
+    this.searchData().terms = this.searchData().rawTerms
       .split(/[\n;\t]+/) // split on semicolons, newlines, tabs
       .map(term => term.trim()) // trim whitespace
       .filter(Boolean) // filter out empties
@@ -35,11 +40,11 @@ export class SearchCriteriaComponent {
         catch (error) { console.log(error); return `invalid ${term}`; }
       });
 
-    this.terms = Array.from(new Set(this.terms)); // unique set
+    this.searchData().terms = Array.from(new Set(this.searchData().terms)); // unique set
   }
 
   updateRawTerms() {
-    this.rawTerms = this.terms.map(term => {
+    this.searchData().rawTerms = this.searchData().terms.map(term => {
       if (term instanceof RegExp) {
         return `regex:${term.source}`;
       } else {
@@ -60,8 +65,8 @@ export class SearchCriteriaComponent {
   }
 
   removeTerm(term: string | RegExp) {
-    this.terms = this.terms.filter(t => t !== term);
-    console.log(this.terms);
+    this.searchData().terms = this.searchData().terms.filter(t => t !== term);
+    console.log(this.searchData().terms);
     this.updateRawTerms()
   }
 

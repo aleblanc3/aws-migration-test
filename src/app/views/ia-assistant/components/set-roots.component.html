@@ -1,0 +1,53 @@
+<h2 *ngIf="breadcrumbData().progress < 100">Validating breadcrumb</h2>
+<h2 *ngIf="breadcrumbData().progress === 100">Validated breadcrumb</h2>
+<!--Progress bar-->
+<p-progressbar [value]="breadcrumbData().progress">
+    <ng-template #content let-value>
+        <span>{{breadcrumbData().step}}</span>
+    </ng-template>
+</p-progressbar>
+
+<!--Display detected root pages-->
+<h2 *ngIf="breadcrumbData().rootPages.length > 0" class="mb-0">Root pages</h2>
+<ol class="mt-0">
+    <ng-container *ngFor="let root of breadcrumbData().rootPages">
+        <li><a [href]="root.href" target="_blank" class="text-color-secondary hover:text-color no-underline flex-wrap">{{root.h1}}</a>
+            <!--Display user-added children of roots-->
+            <ul *ngIf="root.descendants.length > 0">
+                <li>Crawl depth <strong>{{root.minDepth}}</strong> to reach user-added child pages<br>
+                    {{root.href}}
+                </li>
+                <ng-container *ngFor="let page of root.descendants">
+                    <li>{{page}}</li>
+                </ng-container>
+            </ul>
+        </li>
+    </ng-container>
+</ol>
+
+<!--Display detected breadcrumb trails-->
+<h2 *ngIf="breadcrumbData().breadcrumbs.length > 0" class="mb-0">Breadcrumb branches</h2>
+<ol class="mt-0">
+    <ng-container *ngFor="let breadcrumb of breadcrumbData().breadcrumbs">
+        <li class="mb-3 pl-2">
+            <div class="flex flex-row flex-wrap gap-1">
+                <ng-container *ngFor="let crumb of breadcrumb">
+                    <span class="flex flex-row align-items-center justify-content-around gap-1 max-w-12rem">
+                        <span class="flex flex-row" *ngIf="crumb.icon">
+                            <i *ngIf="crumb.icon" class="pi pi-minus text-gray-300" aria-hidden="true" style="font-size: 1.25rem"></i>
+                            <i *ngIf="crumb.icon" [class]="crumb.icon" [pTooltip]="`${crumb.iconTooltip}` | translate" tooltipPosition="top" [attr.aria-label]="`${crumb.iconTooltip}` | translate" style="font-size: 1.25rem"></i>
+                            <i *ngIf="crumb.icon" class="pi pi-minus text-gray-300" aria-hidden="true" style="font-size: 1.25rem"></i>
+                        </span>
+                        <a [href]="crumb.url" target="_blank" class="no-underline flex-wrap hover:bg-surface p-1 -mx-1 border-2 shadow-2 border-round-lg text-center" [ngClass]="crumb.styleClass" [pTooltip]="`${crumb.linkTooltip}` | translate" tooltipPosition="top">{{crumb.label}}</a>
+                    </span>
+                </ng-container>
+            </div>
+        </li>
+    </ng-container>
+</ol>
+<ng-container *ngIf="breadcrumbData().progress === 100">
+    <p *ngIf="breadcrumbData().hasBreakAfterRoot" class="text-red-500">One or more of your pages is an IA orphan and will not be included in your IA tree if we crawl from the detected root pages.<br>To-do: automatically set IA orphans as roots so their child pages are crawled</p>
+    <p *ngIf="breadcrumbData().hasBreakBeforeRoot && !breadcrumbData().hasBreakAfterRoot" class="text-blue-500">One or more pages in the breadcrumb are IA orphans. These should be fixed if possible but they won't impact the crawl since they occur before the detected root pages.</p>
+    <p *ngIf="!breadcrumbData().hasBreakBeforeRoot && !breadcrumbData().hasBreakAfterRoot" class="text-green-500">There are no problems with your breadcrumb!</p>
+    <p>To-do: set up method for user to change which pages to crawl</p>
+</ng-container>
