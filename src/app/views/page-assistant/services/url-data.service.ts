@@ -5,12 +5,14 @@ import { MenuItem } from 'primeng/api';
 import { UploadStateService } from './upload-state.service';
 //import prettier from 'prettier/standalone';
 import * as parserHtml from 'prettier/parser-html';
+import { FetchService } from '../../../services/fetch.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class UrlDataService {
   private uploadState = inject(UploadStateService);
+  private fetchService = inject(FetchService)
 
   //Block unknown hosts
   private allowedHosts = new Set([
@@ -161,6 +163,10 @@ export class UrlDataService {
   private async fetchUrl(url: string, type: 'json' | 'text'): Promise<unknown | string> {
     try {
       const response = await fetch(url);
+      if (!response.ok) {
+        console.warn(`AJAX fetch failed (${response.status}) for ${url}`);
+        return type === 'json' ? {} : '';
+      }
       return type === 'json' ? response.json() : response.text();
     } catch (error) {
       console.error(`Error fetching URL: ${url}`, error);
@@ -204,6 +210,10 @@ export class UrlDataService {
           let content: string;
           if (anchor) {
             const anchorElement = ajaxDoc.querySelector(`#${anchor}`);
+            if (!anchorElement) {
+              console.warn(`Anchor #${anchor} not found in ${fullUrl}. Skipping replacement.`);
+              continue;
+            }
             content = anchorElement ? anchorElement.outerHTML : '';
           } else {
             const isFullDoc = /<html[\s>]/i.test(fetchedHtml) && /<body[\s>]/i.test(fetchedHtml);
