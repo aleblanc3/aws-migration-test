@@ -179,24 +179,38 @@ export class ContentExtractorService {
 
   private fromExternalDoc(doc: Document): ExtractResult {
     let titleSource: ExtractResult['titleSource'] = undefined;
-    const h1 =
-      doc.querySelector('h1')?.textContent?.trim() ||
-      doc.querySelector('title')?.textContent?.trim() ||
-      null;
 
-    if (doc.querySelector('h1')) titleSource = 'h1';
-    else if (doc.querySelector('title')) titleSource = 'title';
+    const h1El = doc.querySelector('h1');
+    const h1 = h1El?.textContent?.trim() || null;
+    const ogTitle =
+      doc
+        .querySelector('meta[property="og:title"]')
+        ?.getAttribute('content')
+        ?.trim() || null;
+    const titleTag = doc.querySelector('title')?.textContent?.trim() || null;
+
+    const title = this.cleanText(h1 || ogTitle || titleTag) || null;
+    titleSource = h1 ? 'h1' : 'title'; // we reuse 'title' for og:title to keep the union happy
 
     const metaDesc =
       doc
         .querySelector('meta[name="description"]')
         ?.getAttribute('content')
         ?.trim() || null;
+    const ogDesc =
+      doc
+        .querySelector('meta[property="og:description"]')
+        ?.getAttribute('content')
+        ?.trim() || null;
 
     const paras = Array.from(doc.querySelectorAll('p'))
       .map((p) => (p.textContent || '').trim())
       .filter((t) => this.isMeaningful(t))
-      .slice(0, 2); // keep as array for clearer logging
+      .slice(0, 2);
+
+    const introRaw =
+      metaDesc || ogDesc || (paras.length ? paras.join('  ') : null);
+    const intro = this.cleanText(introRaw) || null;
 
     const introSource: ExtractResult['introSource'] = metaDesc
       ? 'metaDescription'
@@ -206,9 +220,8 @@ export class ContentExtractorService {
 
     return {
       source: 'external',
-      title: this.cleanText(h1),
-      intro:
-        this.cleanText(metaDesc) || this.cleanText(paras.join('  ')) || null,
+      title,
+      intro,
       contentText: this.cleanText(paras.join('  ')) || null,
       titleSource,
       introSource,
