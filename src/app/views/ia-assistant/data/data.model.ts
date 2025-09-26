@@ -36,3 +36,22 @@ export interface FullscreenHTMLElement extends HTMLElement {
     webkitRequestFullscreen?: () => Promise<void>;
     msRequestFullscreen?: () => Promise<void>;
 }
+
+export interface PageMeta {
+    h1?: string;
+    breadcrumb?: string[];
+    links?: string[];
+    status: number;
+    matched?: boolean; // only present if searchTerms provided
+};
+
+export interface BrokenLinks {
+    parentUrl?: string,
+    url: string,
+    status: number
+}
+
+export interface SearchMatches {
+    url: string;
+    h1: string;
+}
