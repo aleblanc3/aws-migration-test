@@ -47,14 +47,14 @@
                             <div class="flex flex-row gap-2 justify-content-between align-items-center -mx-2 -my-3" *ngIf="!getToggleStates().allFalse">
                                 <!--Orphan status-->
                                 <span class="flex gap-2">
-                                    <i class="pi pi-verified text-green-500" pTooltip="Linked from parent" tooltipPosition="top" *ngIf="node.data.notOrphan && toggles['orphan']"></i>
-                                    <i class="pi pi-ban text-red-500" pTooltip="IA orphan" tooltipPosition="top" *ngIf="!node.data.notOrphan && node.data.originalParent && toggles['orphan']"></i>
+                                    <!--i class="pi pi-verified text-green-500" pTooltip="Linked from parent" tooltipPosition="top" *ngIf="node.data.notOrphan && toggles['orphan']"></i-->
+                                    <i class="pi pi-sitemap text-red-500" pTooltip="IA orphan" tooltipPosition="top" *ngIf="!node.data.notOrphan && node.data.originalParent && toggles['orphan']"></i>
                                 </span>
                                 <!--Scope status-->
                                 <span class="flex gap-2">
                                     <p-button icon="pi pi-github" pTooltip="has prototype" tooltipPosition="top" [rounded]="true" text severity="secondary" class="-mr-4 -my-1" *ngIf="node.data.prototype && toggles['proto']" />
                                     <p-togglebutton [(ngModel)]="node.data.isUserAdded" class="p-button-rounded p-button-outlined p-button-sm pr-0 -mr-3 -my-1 transparent-toggle" *ngIf="toggles['scope']"
-                                                    offIcon="pi pi-lock-open" offLabel="" onIcon="pi pi-lock" onLabel=""
+                                                    offIcon="pi pi-lock" offLabel="" onIcon="pi pi-lock-open" onLabel=""
                                                     [pTooltip]="node.data.isUserAdded ? 'In-scope' : 'Out-of-scope'" tooltipPosition="top" ariaLabel="Mark as in-scope" />
 
                                 </span>
