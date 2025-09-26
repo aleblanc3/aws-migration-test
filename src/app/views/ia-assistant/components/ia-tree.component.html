@@ -1,0 +1,133 @@
+<p>To do: set up crawl for root URLs to complete IA tree, also set up referring link/search term/url structure crawl (for unique links that aren't in the IA tree)</p>
+<ng-container *ngIf="iaTree">
+
+    <h2>IA structure</h2>
+    <p *ngIf="iaTree.length === 0">No child pages found.</p>
+
+    <p-tabs value="0" *ngIf="iaTree.length > 0">
+        <p-tablist>
+            <p-tab value="0">Chart</p-tab>
+            <p-tab value="1">Table</p-tab>
+            <p-tab value="2" *ngIf="brokenLinks.length > 0">Broken links</p-tab>
+            <p-tab value="3" *ngIf="searchMatches.length > 0">Search matches</p-tab>
+        </p-tablist>
+        <p-tabpanels>
+            <p-tabpanel value="0">
+                <!--OPTIONS-->
+                <div class="flex flex-row justify-content-between align-items-center gap-2 mb-2">
+                    <p-inputgroup class="max-w-max">
+                        <p-inputgroup-addon class="secondary-outline">
+                            <p-button [icon]="getMainToggleIcon()" [label]="getMainToggleLabel()" (click)="onMainToggleClick()"
+                                      severity="secondary" text class="w-10rem" />
+                            <p-button icon="pi pi-chevron-down" (click)="togglesPopover.toggle($event)"
+                                      severity="secondary" text />
+                        </p-inputgroup-addon>
+                    </p-inputgroup>
+                    <!--div class="flex flex-row border-1 align-items-center border-round-sm secondary-outline">
+                            <p-button [icon]="getMainToggleIcon()" [label]="getMainToggleLabel()" (click)="onMainToggleClick()"
+                                      severity="secondary" text class="w-10rem" />
+                            <p-button icon="pi pi-chevron-down" (click)="togglesPopover.toggle($event)"
+                                      severity="secondary" text />
+                        </div-->
+                    <p-popover #togglesPopover>
+                        <div class="flex flex-column gap-3">
+                            <div class="flex flex-row justify-content-between align-items-center gap-2" *ngFor="let key of toggleKeys">
+                                <span>{{ `ia.toggle.${key}` | translate }}</span>
+                                <p-toggleswitch [(ngModel)]="toggles[key]"></p-toggleswitch>
+                            </div>
+                        </div>
+                    </p-popover>
+                    <p-button label="Maximize IA chart" severity="secondary" outlined styleClass="secondary-outline" (click)="maximize(chartContainer)" icon="pi pi-window-maximize" />
+                </div>
+                <!--CHART-->
+                <div #chartContainer *ngIf="iaTree.length > 0" class="overflow-auto max-h-75vh surface-ground surface-border border-1 py-3 mb-3 ia-chart-container">
+                    <p-organization-chart [value]="iaTree">
+                        <ng-template let-node pTemplate="default">
+                            <!--STATUS ICONS-->
+                            <div class="flex flex-row gap-2 justify-content-between align-items-center -mx-2 -my-3" *ngIf="!getToggleStates().allFalse">
+                                <!--Orphan status-->
+                                <span class="flex gap-2">
+                                    <i class="pi pi-verified text-green-500" pTooltip="Linked from parent" tooltipPosition="top" *ngIf="node.data.notOrphan && toggles['orphan']"></i>
+                                    <i class="pi pi-ban text-red-500" pTooltip="IA orphan" tooltipPosition="top" *ngIf="!node.data.notOrphan && node.data.originalParent && toggles['orphan']"></i>
+                                </span>
+                                <!--Scope status-->
+                                <span class="flex gap-2">
+                                    <p-button icon="pi pi-github" pTooltip="has prototype" tooltipPosition="top" [rounded]="true" text severity="secondary" class="-mr-4 -my-1" *ngIf="node.data.prototype && toggles['proto']" />
+                                    <p-togglebutton [(ngModel)]="node.data.isUserAdded" class="p-button-rounded p-button-outlined p-button-sm pr-0 -mr-3 -my-1 transparent-toggle" *ngIf="toggles['scope']"
+                                                    offIcon="pi pi-lock-open" offLabel="" onIcon="pi pi-lock" onLabel=""
+                                                    [pTooltip]="node.data.isUserAdded ? 'In-scope' : 'Out-of-scope'" tooltipPosition="top" ariaLabel="Mark as in-scope" />
+
+                                </span>
+                            </div>
+                            <!--PAGE-->
+                            <p><a [href]="node.data.url" target="_blank" (click)="onNodeClick($event)" [innerHTML]="node.label" class="ia-label"></a></p>
+                            <!--CRAWL STATUS-->
+                            <div class="flex flex-row gap-2 justify-content-center align-items-center" *ngIf="!getToggleStates().allFalse">
+                                <i class="pi pi-spin pi-spinner text-color-secondary -my-3" pTooltip="crawling" tooltipPosition="top" *ngIf="node.data.isRoot && !node.data.isCrawled && toggles['crawl']"></i>
+                                <p-button icon="pi pi-plus-circle" (click)="getChildPages(node)" pTooltip="Get child pages?" tooltipPosition="top" [rounded]="true" text severity="primary" class="-my-4" *ngIf="!node.data.isRoot && !node.data.isCrawled && toggles['crawl']" />
+                            </div>
+                        </ng-template>
+                    </p-organization-chart>
+                </div>
+            </p-tabpanel>
+            <p-tabpanel value="1">
+                <!--TREE TABLE-->
+                <p-contextMenu #cm [model]="options"></p-contextMenu>
+                <h2>IA structure tree</h2>
+                <p-tree [value]="iaTree" styleClass="w-full md:w-[30rem]"
+                        [selectionMode]="selectable ? 'multiple' : null" [(selection)]="selectedNode"
+                        [draggableNodes]="draggable" [droppableNodes]="true" draggableScope="self" droppableScope="self" (onNodeDrop)="handleNodeDrop($event)" [validateDrop]="true"
+                        [contextMenu]="cm" (onNodeContextMenuSelect)="onNodeContextMenu($event)">
+                    <ng-template pTemplate="default" let-node>
+                        <div class="flex flex-row align-items-center gap-2 w-full">
+                            <i class="pi pi-folder" *ngIf="node.children.length > 0 && !draggable && !node.data.editing"></i>
+                            <i class="pi pi-file" *ngIf="(node.children.length === 0 || !node.children) && !draggable && !node.data.editing"></i>
+                            <i *ngIf="draggable" class="pi pi-arrows-alt cursor-move text-color-secondary"></i>
+                            <i *ngIf="node.data.editing" class="pi pi-pencil text-color-secondary"></i>
+                            <ng-container *ngIf="!node.data.editing"><a [href]="node.data.url" target="_blank" (click)="onNodeClick($event)" [innerHTML]="node.label" class="ia-label"></a></ng-container>
+                            <p-inputgroup *ngIf="node.data.editing === 'label'">
+                                <input type="text" pInputText [(ngModel)]="node.label" pSize="small" class="ia-label" (keydown)="onInputKeydown($event)" />
+                                <p-inputgroup-addon><p-button icon="pi pi-check" severity="secondary" size="small" (onClick)="saveNode()" /></p-inputgroup-addon>
+                            </p-inputgroup>
+                            <p-inputgroup *ngIf="node.data.editing === 'link'">
+                                <input type="text" pInputText [(ngModel)]="node.data.url" pSize="small" class="ia-label" (keydown)="onInputKeydown($event)" />
+                                <p-inputgroup-addon><p-button icon="pi pi-check" severity="secondary" size="small" (onClick)="saveNode()" /></p-inputgroup-addon>
+                            </p-inputgroup>
+                        </div>
+                    </ng-template>
+                </p-tree>
+            </p-tabpanel>
+            <p-tabpanel value="2">
+                <!--BROKEN LINKS-->
+                <h2>Broken links</h2>
+                <p *ngIf="brokenLinks.length === 0">No broken links found on this page<span *ngIf="iaTree[0].children?.length"> or on any detected child pages</span>.</p>
+                <p-table *ngIf="brokenLinks.length > 0" [value]="brokenLinks" size="small" stripedRows [tableStyle]="{ 'min-width': '50rem' }">
+                    <ng-template #header>
+                        <tr>
+                            <th>Parent page</th>
+                            <th>Broken link</th>
+                            <th>Status</th>
+                        </tr>
+                    </ng-template>
+                    <ng-template #body let-rowData>
+                        <tr>
+                            <td>{{ rowData.parentUrl }}</td>
+                            <td>{{ rowData.url }}</td>
+                            <td>{{ rowData.status }}</td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+            </p-tabpanel>
+            <p-tabpanel value="3">
+                <!--Search Matches-->
+                <h2>Search matches</h2>
+                <p *ngIf="searchMatches.length === 0">No matches found.</p>
+                <ol class="mt-0">
+                    <ng-container *ngFor="let match of searchMatches">
+                        <li><a [href]="match.url" target="_blank" class="no-underline">{{match.h1}}</a></li>
+                    </ng-container>
+                </ol>
+            </p-tabpanel>
+        </p-tabpanels>
+    </p-tabs>
+</ng-container>

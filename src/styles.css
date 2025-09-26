@@ -207,3 +207,18 @@ html.dark-mode .p-button.p-button-primary {
   box-shadow: none !important;
   margin: 0 !important;
 }
+
+/*custom grey border for buttons and split buttons*/
+.secondary-outline .p-splitbutton-button,
+.secondary-outline .p-splitbutton-dropdown,
+.secondary-outline.p-button,
+.secondary-outline {
+  border-color: var(--p-zinc-200) !important;
+}
+
+html.dark-mode .secondary-outline .p-splitbutton-button,
+html.dark-mode .secondary-outline .p-splitbutton-dropdown,
+html.dark-mode .secondary-outline.p-button,
+html.dark-mode .secondary-outline {
+  border-color: var(--p-zinc-600) !important;
+}

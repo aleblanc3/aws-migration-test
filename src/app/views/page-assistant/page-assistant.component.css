@@ -201,13 +201,3 @@
 .no-bullet-points {
   list-style: none;
 }
-
-::ng-deep .secondary-outline .p-splitbutton-button,
-::ng-deep .secondary-outline .p-splitbutton-dropdown {
-  border-color: var(--p-zinc-200) !important;
-}
-
-::ng-deep html.dark-mode .secondary-outline .p-splitbutton-button,
-::ng-deep html.dark-mode .secondary-outline .p-splitbutton-dropdown {
-  border-color: var(--p-zinc-600) !important;
-}

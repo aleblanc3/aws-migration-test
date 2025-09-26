@@ -29,6 +29,7 @@ export interface BreadcrumbNode {
     iconTooltip?: string;     // explanation for icon
     linkTooltip?: string;     // explanation for color/boldness of label
     prototype?: string;       // carry forward the prototype link
+    minDepth?: number;         // carry forward how far to crawl from root to deepest user added child
 }
 
 export interface FullscreenHTMLElement extends HTMLElement {
