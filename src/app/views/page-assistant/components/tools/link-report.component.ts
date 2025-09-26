@@ -12,12 +12,13 @@ import type {
   ExtractResult,
   DestMeta,
 } from '../../services/content-extractor.service';
+import { FetchService } from '../../../../services/fetch.service';
 
 type LinkType =
+  | 'CRA page'
   | 'Canada.ca'
   | 'external'
   | 'anchor'
-  | 'tel'
   | 'mailto'
   | 'download';
 type MatchStatus = 'match' | 'mismatch' | 'unknown' | 'na';
@@ -98,12 +99,28 @@ function stripFootnoteText(text: string): string {
     .trim();
 }
 
-/** Optional debug fields the extractor may include */
-interface DebugExtractResult {
-  titleSource?: string;
-  introSource?: string;
+// --- Safe debug view of ExtractResult (keeps exact literal union types) ---
+type TitleSourceFromExtract = ExtractResult extends { titleSource?: infer T }
+  ? T
+  : never;
+type IntroSourceFromExtract = ExtractResult extends { introSource?: infer T }
+  ? T
+  : never;
+type ContentTextFromExtract = ExtractResult extends { contentText?: infer T }
+  ? T
+  : string | null;
+
+type DebugExtractResult = ExtractResult & {
+  titleSource?: TitleSourceFromExtract;
+  introSource?: IntroSourceFromExtract;
+  contentText?: ContentTextFromExtract;
   anchorMeta?: { id?: string; headingTag?: string };
-  contentText?: string;
+};
+
+/** Optional debug fields the extractor may include */
+interface DedupeGroup {
+  rep: HeadingData;
+  names: Set<string>;
 }
 
 interface HeadingData {
@@ -128,6 +145,14 @@ interface HeadingData {
   aiConfidence?: number; // 0..1
   aiMatchedFields?: AiVerdict['matchedFields'];
   aiRationale?: string;
+
+  repeatCount?: number; // how many times this destination appeared
+  textVariants?: string[]; // distinct link texts that point to this destination
+  hasTextConflict?: boolean; // true if >1 distinct link texts
+
+  httpStatus?: number | null; // last HEAD status, if checked
+  is404?: boolean; // true if 404/410/etc.
+  anchorMissing?: boolean; // true if #target not found on the same page
 }
 
 type ColumnField =
@@ -230,6 +255,7 @@ export class LinkReportComponent implements OnInit {
   private readonly uploadState = inject(UploadStateService);
   private readonly linkAi = inject(LinkAiService);
   private readonly extractor = inject(ContentExtractorService);
+  private readonly fetchService = inject(FetchService);
 
   @ViewChild('typePanel') typePanel!: Popover;
 
@@ -242,8 +268,8 @@ export class LinkReportComponent implements OnInit {
     { field: 'order', header: 'Index' },
     { field: 'type', header: 'Link Type' },
     { field: 'text', header: 'Link name on page' },
-    { field: 'destH1', header: 'Destination link header (H1)' },
-    { field: 'matchStatus', header: 'Match' },
+    { field: 'destH1', header: 'Destination link content' },
+    { field: 'matchStatus', header: 'Link text health' },
     { field: 'searchTerm', header: 'Search term' },
     { field: 'clicks', header: 'Clicks' },
   ];
@@ -256,6 +282,19 @@ export class LinkReportComponent implements OnInit {
     if (s == null) return '';
     const t = String(s).trim();
     return t.length > n ? t.slice(0, n) + '…' : t;
+  }
+  getOtherVariants(row: HeadingData): string[] {
+    if (!row?.textVariants?.length) return [];
+    return row.textVariants.filter((v) => v !== row.text);
+  }
+
+  getOtherVariantsPreview(row: HeadingData, take = 5): string[] {
+    return this.getOtherVariants(row).slice(0, take);
+  }
+
+  getOtherVariantsExtraCount(row: HeadingData, take = 5): number {
+    const total = this.getOtherVariants(row).length;
+    return total > take ? total - take : 0;
   }
 
   private logRowExtraction(
@@ -277,6 +316,30 @@ export class LinkReportComponent implements OnInit {
     err?: unknown,
   ): void {
     if (!this.DEBUG_LOG) return;
+    // Derive optional debug field types from ExtractResult so we stay compatible
+    type TitleSourceFromExtract = ExtractResult extends {
+      titleSource?: infer T;
+    }
+      ? T
+      : never;
+    type IntroSourceFromExtract = ExtractResult extends {
+      introSource?: infer T;
+    }
+      ? T
+      : never;
+    type ContentTextFromExtract = ExtractResult extends {
+      contentText?: infer T;
+    }
+      ? T
+      : string | null;
+
+    // Merge ExtractResult with optional debug fields (no incompatible widening)
+    type DebugExtractResult = ExtractResult & {
+      titleSource?: TitleSourceFromExtract;
+      introSource?: IntroSourceFromExtract;
+      contentText?: ContentTextFromExtract;
+      anchorMeta?: { id?: string; headingTag?: string };
+    };
 
     const r = (result ?? {}) as DebugExtractResult;
     const header = `[Link#${row.order}] ${row.type} — ${row.text}  →  ${
@@ -289,6 +352,17 @@ export class LinkReportComponent implements OnInit {
     console.log('Type:', row.type);
     console.log('href:', row.href);
     console.log('absUrl:', row.absUrl);
+
+    if (row.httpStatus != null) {
+      console.log(
+        'HTTP status (HEAD):',
+        row.httpStatus,
+        row.is404 ? '→ NOT FOUND' : '',
+      );
+    }
+    if (row.anchorMissing) {
+      console.log('Anchor target not found on the page.');
+    }
 
     if (source === 'canada' && result) {
       console.log(`CANADA H1 (titleSource=${r.titleSource ?? '-'}) ::`);
@@ -313,11 +387,7 @@ export class LinkReportComponent implements OnInit {
         console.log('EXTERNAL Body preview ::');
         console.log(this.truncate(r.contentText, 1000));
       }
-    } else if (
-      row.type === 'mailto' ||
-      row.type === 'tel' ||
-      row.type === 'download'
-    ) {
+    } else if (row.type === 'mailto' || row.type === 'download') {
       console.log('No extract (mailto/tel/download).');
     } else {
       console.log('No extract — likely blocked host or fetch failure.');
@@ -359,10 +429,10 @@ export class LinkReportComponent implements OnInit {
 
   // ----- Filter state (dropdown with ALL + 6 types) -----
   linkTypes: LinkType[] = [
+    'CRA page',
     'Canada.ca',
     'external',
     'anchor',
-    'tel',
     'mailto',
     'download',
   ];
@@ -372,10 +442,10 @@ export class LinkReportComponent implements OnInit {
 
   /** Individual type checkboxes are listed, initially unchecked. */
   typeChecks: Record<LinkType, boolean> = {
+    'CRA page': false,
     'Canada.ca': false,
     external: false,
     anchor: false,
-    tel: false,
     mailto: false,
     download: false,
   };
@@ -398,12 +468,70 @@ export class LinkReportComponent implements OnInit {
   }
 
   get filteredHeadings(): HeadingData[] {
-    const active = this.activeTypes();
-    return this.headings.filter((r) => active.has(r.type));
+    const activeTypes = this.activeTypes();
+    return this.headings.filter(
+      (r) => activeTypes.has(r.type) && this.matchStatusPass(r.matchStatus),
+    );
   }
 
   ngOnInit(): void {
     void this.extractLinks();
+  }
+
+  /** Build a stable key for the "destination" (dedupe by this). */
+  private destKeyForRow(
+    r: Pick<HeadingData, 'type' | 'absUrl' | 'href'>,
+  ): string {
+    const raw = r.absUrl || r.href || '';
+    if (!raw) return '';
+
+    // anchors: keep the hash string as-is, normalized
+    if (r.type === 'anchor') {
+      return raw.trim().toLowerCase();
+    }
+
+    // normalize http(s) URLs (lowercase host, drop hash, trim trailing slash)
+    try {
+      const u = new URL(raw);
+      u.hash = '';
+      u.hostname = u.hostname.toLowerCase();
+      if (u.pathname.endsWith('/') && u.pathname !== '/') {
+        u.pathname = u.pathname.slice(0, -1);
+      }
+      return u.toString();
+    } catch {
+      return raw.trim().toLowerCase();
+    }
+  }
+
+  private dedupeByDestination(rows: HeadingData[]): HeadingData[] {
+    const map = new Map<string, DedupeGroup>();
+
+    for (const r of rows) {
+      const key = this.destKeyForRow(r) || `row-${r.order}`;
+      const g = map.get(key);
+
+      if (g) {
+        g.names.add(r.text);
+        // keep first rep; optional: prefer Canada.ca here if you want
+      } else {
+        map.set(key, { rep: { ...r }, names: new Set([r.text]) });
+      }
+    }
+
+    const out: HeadingData[] = [];
+    let idx = 1;
+    for (const { rep, names } of map.values()) {
+      out.push({
+        ...rep,
+        order: idx++,
+        // only flag conflicts (different texts → same destination)
+        hasTextConflict: names.size > 1,
+        textVariants: Array.from(names),
+        // repeatCount intentionally omitted
+      });
+    }
+    return out;
   }
 
   async extractLinks(): Promise<void> {
@@ -418,10 +546,15 @@ export class LinkReportComponent implements OnInit {
     // Collect anchors, drop all footnotes/backlinks
     const anchors = Array.from(
       doc.querySelectorAll<HTMLAnchorElement>('body a[href]'),
-    ).filter((a) => !isFootnoteLink(a));
+    ).filter((a) => {
+      if (isFootnoteLink(a)) return false;
+      const href = (a.getAttribute('href') || '').trim().toLowerCase();
+      if (href.startsWith('tel:')) return false; // strip off tel links
+      return true;
+    });
 
     // 1) Build initial rows using current logic
-    this.headings = anchors.map((a, i): HeadingData => {
+    const initialRows: HeadingData[] = anchors.map((a, i): HeadingData => {
       const rawHref = (a.getAttribute('href') || '').trim();
       const absUrl = this.resolveUrl(rawHref, baseUrl);
 
@@ -438,7 +571,7 @@ export class LinkReportComponent implements OnInit {
         const h1 = doc.querySelector('h1');
         destH1 = h1 ? (h1.textContent || '').trim() : null;
         matchStatus = this.smartMatch(text, destH1);
-      } else if (type === 'mailto' || type === 'tel' || type === 'download') {
+      } else if (type === 'mailto' || type === 'download') {
         matchStatus = 'na';
       } else {
         const { guess, pathTokens } = this.smartSlugGuess(
@@ -459,11 +592,66 @@ export class LinkReportComponent implements OnInit {
         matchStatus,
         searchTerm: '',
         clicks: null,
+        // repeatCount/textVariants/hasTextConflict are filled by the deduper
       };
     });
 
-    // 2) Enrich with extracted destination content and recompute matchStatus
+    // 1.5) DEDUPE by destination (show once per URL/#anchor; flag conflicts)
+    this.headings = this.dedupeByDestination(initialRows);
+
+    // 2) Enrich only the deduped set (extract content + AI + logging)
     await this.enrichWithExtractedContent(doc);
+  }
+  // Match-status filter state
+  matchAllSelected = true; // ALL by default
+  matchChecks: Record<'match' | 'mismatch', boolean> = {
+    match: false,
+    mismatch: false,
+  };
+
+  onMatchAllToggle(): void {
+    // nothing else needed; individuals remain as-is and ignored when ALL = true
+  }
+
+  onMatchToggle(s: 'match' | 'mismatch'): void {
+    if (this.matchAllSelected) this.matchAllSelected = false;
+    // normalize the toggled value (and “use” s so ESLint is happy)
+    this.matchChecks[s] = !!this.matchChecks[s];
+  }
+
+  // Helper to check if a row passes the match-status filter
+  private matchStatusPass(
+    ms: 'match' | 'mismatch' | 'unknown' | 'na',
+  ): boolean {
+    if (this.matchAllSelected) return true; // include everything
+    // Only filter to 'match' / 'mismatch'; unknown/na are hidden when a specific filter is on
+    if (ms === 'match') return !!this.matchChecks.match;
+    if (ms === 'mismatch') return !!this.matchChecks.mismatch;
+    return false; // hide unknown/na when not ALL
+  }
+
+  /** HEAD the destination to detect 404/410/etc. Uses allowlist for Canada.ca, 'none' for externals. */
+  private async checkUrlStatus(absUrl: string): Promise<number | null> {
+    try {
+      const url = new URL(absUrl);
+      const hostLc = url.hostname.toLowerCase().replace(/^www\./, '');
+      const hostMode = hostLc === 'canada.ca' ? 'prod' : 'none';
+      // NOTE: 'none' skips allowlist but still subject to browser CORS
+      const resp = await this.fetchService.fetchStatus(
+        absUrl,
+        hostMode,
+        2,
+        'none',
+      );
+      return resp.status ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Treat 404/410 as "not found". */
+  private isNotFoundStatus(code: number | null | undefined): boolean {
+    return code === 404 || code === 410;
   }
 
   /**
@@ -483,11 +671,7 @@ export class LinkReportComponent implements OnInit {
         const row = rows[i];
 
         // Skip types we won't fetch, but LOG it as N/A
-        if (
-          row.type === 'mailto' ||
-          row.type === 'tel' ||
-          row.type === 'download'
-        ) {
+        if (row.type === 'mailto' || row.type === 'download') {
           this.logRowExtraction(
             row,
             row.type,
@@ -723,7 +907,6 @@ export class LinkReportComponent implements OnInit {
 
     // 2) special schemes
     if (/^mailto:/i.test(raw)) return 'mailto';
-    if (/^tel:/i.test(raw)) return 'tel';
 
     // 3) download (pdf / <a download> / /webform path)
     const pathForTest = absUrl || raw;
@@ -738,12 +921,29 @@ export class LinkReportComponent implements OnInit {
     }
     if (isPdf || hasDownloadAttr || isWebform) return 'download';
 
-    // 4) Canada.ca host (apex or www)
+    // 4) Host-based classification
     try {
       const u = new URL(absUrl || raw, CANADA_ORIGIN);
-      if (isCanadaHost(u)) return 'Canada.ca';
+      const hostLc = u.hostname.toLowerCase().replace(/^www\./, '');
+
+      if (hostLc === 'canada.ca') {
+        const p = u.pathname.toLowerCase();
+
+        // 4a) CRA pages
+        if (p.startsWith('/en/revenue-agency')) {
+          return 'CRA page';
+        }
+
+        // 4b) Canada.ca services (explicitly requested)
+        if (p.startsWith('/en/services')) {
+          return 'Canada.ca';
+        }
+
+        // 4c) Any other canada.ca content → still treat as Canada.ca
+        return 'Canada.ca';
+      }
     } catch {
-      // fall through
+      /* fall through */
     }
 
     // 5) everything else
@@ -815,15 +1015,64 @@ export class LinkReportComponent implements OnInit {
     absUrl?: string | null,
   ): { guess: string | null; pathTokens: Set<string> } {
     const linkTokens = this.tokenize(linkText);
+
+    // parse path segments
     const segs = this.pathSegments(absUrl);
+
+    // ignore common boilerplate path parts
+    const IGNORE = new Set([
+      'en',
+      'fr',
+      'gov',
+      'content',
+      'services',
+      'service',
+      'government',
+      'governments',
+      'government-id',
+      'id',
+      'topics',
+      'programs',
+      'about',
+      'info',
+    ]);
+
+    // try to split long glued words like "bcservicescardapp"
+    const splitHard = (s: string): string[] => {
+      const spaced = s
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/([A-Za-z])([0-9])/g, '$1 $2')
+        .replace(/([0-9])([A-Za-z])/g, '$1 $2');
+      // give common substrings a chance to split
+      const soft = spaced.replace(
+        /(bcservice|bcservices|service|services|card|login|app)/gi,
+        ' $1 ',
+      );
+      const tokens = this.tokenize(soft);
+      return tokens.length ? tokens : this.tokenize(spaced);
+    };
+
+    // build tokens for each segment (skip ignored)
+    const segTokensList = segs.map((raw) => {
+      const lowered = raw.toLowerCase();
+      if (IGNORE.has(lowered)) return [] as string[];
+      const tokens = this.tokenize(raw);
+      if (tokens.length <= 1 && /[a-z]{8,}/i.test(raw)) return splitHard(raw);
+      return tokens;
+    });
+
+    // collect all path tokens
+    const allTokens = new Set<string>();
+    for (const toks of segTokensList) for (const t of toks) allTokens.add(t);
+
+    // score: overlap with linkText; tie-breaker favors *later* segments
     let bestGuess: string | null = null;
     let bestScore = -1;
+    for (let i = 0; i < segTokensList.length; i++) {
+      const segTokens = segTokensList[i];
+      if (!segTokens.length) continue;
 
-    const allTokens = new Set<string>();
-    for (const seg of segs) {
-      const segTokens = this.tokenize(seg);
-      for (const t of segTokens) allTokens.add(t);
-
+      let score = 0;
       if (linkTokens.length) {
         const cover =
           linkTokens.filter((t) => segTokens.includes(t)).length /
@@ -833,19 +1082,27 @@ export class LinkReportComponent implements OnInit {
         const inter = [...setL].filter((w) => setS.has(w)).length;
         const union = new Set([...setL, ...setS]).size || 1;
         const jacc = inter / union;
-        const score = cover * 0.7 + jacc * 0.3;
+        score = cover * 0.7 + jacc * 0.3;
+      }
+      // prefer later segments on ties
+      score += i / 1000;
 
-        if (score > bestScore) {
-          bestScore = score;
-          bestGuess = segTokens.join(' ') || seg;
-        }
+      if (score > bestScore) {
+        bestScore = score;
+        bestGuess = segTokens.join(' ');
       }
     }
 
-    if (!bestGuess && segs.length) {
-      const lastTokens = this.tokenize(segs[segs.length - 1]);
-      bestGuess = lastTokens.join(' ') || segs[segs.length - 1] || null;
-      for (const t of lastTokens) allTokens.add(t);
+    // fallback: take the last non-ignored segment and split it nicely
+    if (!bestGuess) {
+      for (let i = segs.length - 1; i >= 0; i--) {
+        const s = segs[i].toLowerCase();
+        if (IGNORE.has(s)) continue;
+        const toks = splitHard(segs[i]);
+        bestGuess = toks.join(' ') || segs[i];
+        for (const t of toks) allTokens.add(t);
+        break;
+      }
     }
 
     return { guess: bestGuess, pathTokens: allTokens };
@@ -884,10 +1141,5 @@ export class LinkReportComponent implements OnInit {
   getTextStyle(row: HeadingData) {
     // Example: de-emphasize NA items
     return row.matchStatus === 'na' ? { opacity: 0.7 } : {};
-  }
-  getTextClass(row: HeadingData) {
-    return {
-      'font-semibold': row.matchStatus === 'match',
-    };
   }
 }
