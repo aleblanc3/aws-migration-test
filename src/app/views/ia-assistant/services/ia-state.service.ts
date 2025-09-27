@@ -37,6 +37,7 @@ export interface IaData {
 }
 
 export interface IaState {
+  version: number;
   activeStep: number;
   urlData: UrlData;
   breadcrumbData: BreadcrumbData;
@@ -166,6 +167,7 @@ export class IaStateService {
   // Get IA state
   getIaState(): IaState {
     return {
+      version: 0.1,
       activeStep: this.activeStep(),
       urlData: this.urlData(),
       breadcrumbData: this.breadcrumbData(),
@@ -246,6 +248,10 @@ export class IaStateService {
     reader.onload = () => {
       try {
         const state: IaState = JSON.parse(reader.result as string);
+        if (state.version !== 0.1) {
+          console.warn("Incompatible IA state version. Import skipped.");
+          return;
+        }
         this.urlData.set(state.urlData);
         this.breadcrumbData.set(state.breadcrumbData);
         this.searchData.set(state.searchData);
