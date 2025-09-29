@@ -8,10 +8,8 @@
                 <div class="flex gap-1">
                     <p-button icon="pi pi-save" pTooltip="Save session" tooltipPosition="top" outlined styleClass="secondary-outline" severity="secondary" (onClick)="iaState.saveToLocalStorage()" />
                     <p-button icon="pi pi-file-export" pTooltip="Export JSON file" tooltipPosition="top" outlined styleClass="secondary-outline" severity="secondary" (onClick)="iaState.exportIaState()" />
-                    <p-fileUpload #fileUploadRef name="iaStateFile" accept=".json" auto="true" mode="basic"
-                                  [customUpload]="true" (uploadHandler)="iaState.importIaState($event)"
-                                  chooseLabel="Import JSON" chooseIcon="pi pi-file-import" outlined styleClass="upload-secondary-outline" severity="secondary" pTooltip="Import JSON file" tooltipPosition="top" />
-                    <p-button icon="pi pi-download" pTooltip="Export to CSV" tooltipPosition="top" outlined styleClass="secondary-outline" severity="secondary" (onClick)="iaState.exportIaTreeAsCsv()" [disabled]="iaState.getIaData().iaTree.length === 0" />
+
+                    <p-button icon="pi pi-download" pTooltip="Download CSV" tooltipPosition="top" outlined styleClass="secondary-outline" severity="secondary" (onClick)="iaState.exportIaTreeAsCsv()" [disabled]="iaState.getIaData().iaTree.length === 0" />
                 </div>
             </ng-template>
             <ng-template #center>
@@ -19,6 +17,9 @@
             </ng-template>
             <ng-template #end>
                 <div class="flex gap-1">
+                    <p-fileUpload #fileUploadRef name="iaStateFile" accept=".json" auto="true" mode="basic"
+                                  [customUpload]="true" (uploadHandler)="iaState.importIaState($event)"
+                                  chooseLabel="Import JSON" chooseIcon="pi pi-file-import" outlined styleClass="upload-secondary-outline" severity="secondary" pTooltip="Import JSON file" tooltipPosition="top" />
                     <p-button icon="pi pi-trash" pTooltip="Reset" tooltipPosition="top" outlined styleClass="secondary-outline" severity="danger" (onClick)="iaState.resetIaFlow()" />
                 </div>
             </ng-template>
@@ -39,7 +40,7 @@
 
                         <ca-validate-urls></ca-validate-urls>
 
-                        <!--p>TEST LINKS
+                        <p>TEST LINKS
                             <br>https://www.canada.ca/en/revenue-agency/services/forms-publications/publications/t4001/employers-guide-payroll-deductions-remittances.html
                             <br>https://www.canada.ca/en/revenue-agency/services/forms-publications/publications.html
                             <br>https://www.canada.ca/en/services/taxes/income-tax.html
@@ -51,7 +52,7 @@
                             <br>https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/gst-hst-businesses.html
                             <br>https://www.canada.ca/en/services/taxes/resources-for-small-and-medium-businesses/gst-hst.html
                             <br>https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit/goods-services-tax-harmonized-sales-tax-gst-hst-credit-payment-amounts-tax-year-2016.html
-                        </p-->
+                        </p>
 
                     </div>
                     <div class="flex pt-4 gap-2 justify-content-between">
@@ -84,8 +85,8 @@
                     </div>
                     <div class="flex pt-4 justify-content-between">
                         <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(2)" />
-                        <p-button label="Build IA Tree" icon="pi pi-arrow-right" iconPos="right" (onClick)="buildIaTree(); activateCallback(4)" *ngIf="iaTree.length === 0" />
-                        <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(4)" *ngIf="iaTree.length > 0"></p-button>
+                        <p-button label="Build IA Tree" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(4); iaState.saveToLocalStorage();" *ngIf="iaData().iaTree.length === 0" />
+                        <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(4)" *ngIf="iaData().iaTree.length > 0"></p-button>
                     </div>
                 </ng-template>
             </p-step-panel>
@@ -94,7 +95,7 @@
                 <ng-template #content let-activateCallback="activateCallback">
                     <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
 
-                        <ca-ia-tree [iaTree]="iaTree" [brokenLinks]="brokenLinks" [searchMatches]="searchMatches"></ca-ia-tree>
+                        <ca-ia-tree></ca-ia-tree>
                     </div>
                     <div class="flex pt-4 justify-content-start">
                         <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(3)" />
