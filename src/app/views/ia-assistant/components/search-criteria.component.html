@@ -1,7 +1,7 @@
 <h2 class="my-0">Search criteria</h2>
 <p class="my-0 text-color-secondary text-xs">Enter terms separated by semicolons or new lines. These will be used to include additional pages in your result, even if there is no direct breadcrumb IA relationship between the pages. The search is <strong>not</strong> case-sensitive. Regex patterns should begin with "regex:".</p>
 <p-iftalabel>
-    <textarea id="search" autoResize="true" rows="2" pTextarea [(ngModel)]="searchData().rawTerms" (blur)="updateTerms(); updateRawTerms();" (keydown)="onKeydownTerm($event)" (paste)="onPasteTerm()" fluid
+    <textarea id="search" autoResize="true" rows="2" pTextarea [(ngModel)]="searchData().rawTerms" (blur)="iaState.updateTerms(); updateRawTerms();" (keydown)="onKeydownTerm($event)" (paste)="onPasteTerm()" fluid
               placeholder=""></textarea>
     <label for="search">Search terms (optional)</label>
 </p-iftalabel>
