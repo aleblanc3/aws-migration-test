@@ -22,6 +22,7 @@ export interface BreadcrumbNode {
     label: string;            // link text
     url: string;              // link
     isRoot?: boolean;         // marks if it's one of the detected root pages (from user input)
+    isBeforeRoot?: boolean;   // marks if it's before the first root page (from user input)
     isDescendant?: boolean;   // mark if it's a child page (from user input)
     valid?: boolean;          // true = link found on parent, false = IA orphan
     styleClass?: string;      // for the label (used to set color and/or bold)
@@ -42,7 +43,6 @@ export interface PageMeta {
     breadcrumb?: string[];
     links?: string[];
     status: number;
-    matched?: boolean; // only present if searchTerms provided
 };
 
 export interface BrokenLinks {
