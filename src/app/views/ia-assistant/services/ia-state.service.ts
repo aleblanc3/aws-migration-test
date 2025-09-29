@@ -98,6 +98,25 @@ export class IaStateService {
     this.searchData.update(curr => ({ ...curr, ...partial }));
   }
 
+  // Parse raw terms into terms array
+  public updateTerms() {
+    this.searchData().terms = this.searchData().rawTerms
+      .split(/[\n;\t]+/) // split on semicolons, newlines, tabs
+      .map(term => term.trim()) // trim whitespace
+      .filter(Boolean) // filter out empties
+      .map(term => {
+        try {
+          if (term.startsWith('regex:')) {
+            const pattern = term.slice(6);
+            return new RegExp(pattern, 'smi');
+          }
+          else return term.toLowerCase();
+        }
+        catch (error) { console.log(error); return `invalid ${term}`; }
+      });
+    this.searchData().terms = Array.from(new Set(this.searchData().terms)); // unique set
+  }
+
   // Step 4: IA tree
   private iaData = signal<IaData>({
     iaTree: [],
@@ -229,7 +248,14 @@ export class IaStateService {
 
   // Export as JSON (for sharing with someone else)
   exportIaState() {
-    const data = JSON.stringify(this.getIaState(), null, 2);
+    const state = this.getIaState();
+    const exportState = { //don't stringify regex!
+      ...state,
+      searchData: {
+        rawTerms: state.searchData.rawTerms,
+      },
+    };
+    const data = JSON.stringify(exportState, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 
@@ -248,6 +274,7 @@ export class IaStateService {
     reader.onload = () => {
       try {
         const state: IaState = JSON.parse(reader.result as string);
+        //REMINDER: update version number when making incompatible changes to IaState and create a migration function for older versions
         if (state.version !== 0.1) {
           console.warn("Incompatible IA state version. Import skipped.");
           return;
@@ -255,6 +282,7 @@ export class IaStateService {
         this.urlData.set(state.urlData);
         this.breadcrumbData.set(state.breadcrumbData);
         this.searchData.set(state.searchData);
+        this.updateTerms(); //rebuild terms from rawTerms
         this.iaData.set(state.iaData);
         this.saveToLocalStorage();
         console.log('IA state successfully imported');
@@ -270,7 +298,7 @@ export class IaStateService {
     const iaTree: TreeNode[] = this.iaData().iaTree;
     const rows: string[] = [];
 
-    // Custom headers (in your preferred order + descriptions)
+    // Headers for CSV
     rows.push([
       'Page Title (h1)',
       'URL',
