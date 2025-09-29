@@ -40,7 +40,7 @@
 
                         <ca-validate-urls></ca-validate-urls>
 
-                        <p>TEST LINKS
+                        <!--p>TEST LINKS
                             <br>https://www.canada.ca/en/revenue-agency/services/forms-publications/publications/t4001/employers-guide-payroll-deductions-remittances.html
                             <br>https://www.canada.ca/en/revenue-agency/services/forms-publications/publications.html
                             <br>https://www.canada.ca/en/services/taxes/income-tax.html
@@ -52,7 +52,7 @@
                             <br>https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/gst-hst-businesses.html
                             <br>https://www.canada.ca/en/services/taxes/resources-for-small-and-medium-businesses/gst-hst.html
                             <br>https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit/goods-services-tax-harmonized-sales-tax-gst-hst-credit-payment-amounts-tax-year-2016.html
-                        </p>
+                        </p-->
 
                     </div>
                     <div class="flex pt-4 gap-2 justify-content-between">
@@ -70,7 +70,7 @@
                     </div>
                     <div class="flex pt-4 justify-content-between">
                         <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(1); iaState.saveToLocalStorage();" />
-                        <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(3); iaState.saveToLocalStorage();" [disabled]="breadcrumbData().progress !== 100" />
+                        <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(3); iaState.saveToLocalStorage();" [disabled]="iaState.getBreadcrumbData().progress !== 100" />
                     </div>
                 </ng-template>
             </p-step-panel>
@@ -85,8 +85,8 @@
                     </div>
                     <div class="flex pt-4 justify-content-between">
                         <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(2)" />
-                        <p-button label="Build IA Tree" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(4); iaState.saveToLocalStorage();" *ngIf="iaData().iaTree.length === 0" />
-                        <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(4)" *ngIf="iaData().iaTree.length > 0"></p-button>
+                        <p-button label="Build IA Tree" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(4); iaState.saveToLocalStorage();" *ngIf="iaState.getIaData().iaTree.length === 0" />
+                        <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" (onClick)="activateCallback(4)" *ngIf="iaState.getIaData().iaTree.length > 0"></p-button>
                     </div>
                 </ng-template>
             </p-step-panel>
