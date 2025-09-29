@@ -122,6 +122,7 @@ export class IaTreeComponent implements OnInit {
     this.iaTreeService.setTreeContext(this.iaData().iaTree, this.iaState.getBreadcrumbData().breadcrumbs);
     await this.iaTreeService.crawlFromRoots(this.iaData().iaTree);
     this.iaTreeService.updateNodeStyles(this.iaData().iaTree, 0);
+    this.iaState.saveToLocalStorage();
   }
 
   //Toggle visibility of indicators in the tree chart
