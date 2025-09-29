@@ -26,13 +26,13 @@ import { TranslateService, TranslateModule } from '@ngx-translate/core';
 import { ThemeService } from '../../../services/theme.service';
 
 import { MenuItem, TreeNode, TreeDragDropService } from 'primeng/api';
-import { FullscreenHTMLElement, BrokenLinks, SearchMatches } from '../data/data.model';
+import { FullscreenHTMLElement } from '../data/data.model';
 
 import { environment } from '../../../../environments/environment';
 
-import { IaRelationshipService } from '../services/ia-relationship.service';
 import { IaTreeService } from '../services/ia-tree.service';
 import { FetchService } from '../../../services/fetch.service';
+import { IaStateService } from '../services/ia-state.service';
 
 @Component({
   selector: 'ca-ia-tree',
@@ -96,31 +96,32 @@ import { FetchService } from '../../../services/fetch.service';
 })
 export class IaTreeComponent implements OnInit {
 
-  @Input() iaTree: TreeNode[] | null = null;
-  @Input() brokenLinks: BrokenLinks[] = []
-  @Input() searchMatches: SearchMatches[] = []
-
   private translate = inject(TranslateService);
   private locationStrategy = inject(LocationStrategy);
   private theme = inject(ThemeService);
   public iaTreeService = inject(IaTreeService);
-  private iaService = inject(IaRelationshipService);
   private fetchService = inject(FetchService);
+  private iaState = inject(IaStateService);
 
   production: boolean = environment.production;
+  iaData = this.iaState.getIaData;
 
   constructor() {
     effect(() => {
       this.theme.darkMode(); // track dark mode changes
-      this.updateNodeStyles(this.iaTree, 0);
+      this.iaTreeService.updateNodeStyles(this.iaData().iaTree, 0);
     });
   }
 
-  ngOnInit() {
+  async ngOnInit() {
     this.options = [
       ...this.baseMenu
     ];
     this.baseHref = this.locationStrategy.getBaseHref();
+
+    this.iaTreeService.setTreeContext(this.iaData().iaTree, this.iaState.getBreadcrumbData().breadcrumbs);
+    await this.iaTreeService.crawlFromRoots(this.iaData().iaTree);
+    this.iaTreeService.updateNodeStyles(this.iaData().iaTree, 0);
   }
 
   //Toggle visibility of indicators in the tree chart
@@ -167,8 +168,8 @@ export class IaTreeComponent implements OnInit {
     console.log(node);
     node.data.isRoot = true;
     await this.fetchService.simulateDelay(2000); //so we can see spinner spin
-    await this.iaTreeService.crawlFromRoots(this.iaTree!, this.brokenLinks); //to-do: set colors properly in this function instead of calling updateNodeStyles afterwards
-    this.iaTreeService.updateNodeStyles(this.iaTree, 0);
+    await this.iaTreeService.crawlFromRoots(this.iaData().iaTree!); //to-do: set colors properly in this function instead of calling updateNodeStyles afterwards
+    this.iaTreeService.updateNodeStyles(this.iaData().iaTree, 0);
   }
   //End of get child pages
 
@@ -267,7 +268,7 @@ export class IaTreeComponent implements OnInit {
           command: () => {
             this.selectedNode.data.customStyleKey = 'new';
             this.selectedNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
-            this.updateNodeStyles(this.iaTree, 0);
+            this.iaTreeService.updateNodeStyles(this.iaData().iaTree, 0);
             this.selectedNode = null!;
           }
         },
@@ -277,7 +278,7 @@ export class IaTreeComponent implements OnInit {
           command: () => {
             this.selectedNode.data.customStyleKey = 'rot';
             this.selectedNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
-            this.updateNodeStyles(this.iaTree, 0);
+            this.iaTreeService.updateNodeStyles(this.iaData().iaTree, 0);
             this.selectedNode = null!;
           }
         },
@@ -287,7 +288,7 @@ export class IaTreeComponent implements OnInit {
           command: () => {
             this.selectedNode.data.customStyleKey = 'move';
             this.selectedNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
-            this.updateNodeStyles(this.iaTree, 0);
+            this.iaTreeService.updateNodeStyles(this.iaData().iaTree, 0);
             this.selectedNode = null!;
           }
         },
@@ -301,7 +302,7 @@ export class IaTreeComponent implements OnInit {
             this.selectedNode.data.customStyle = false;
             this.selectedNode.data.customStyleKey = null;
             this.selectedNode.data.borderStyle = 'border-2 border-primary border-round shadow-2';
-            this.updateNodeStyles(this.iaTree, 0);
+            this.iaTreeService.updateNodeStyles(this.iaData().iaTree, 0);
             this.selectedNode = null!;
           }
         },
@@ -436,7 +437,7 @@ export class IaTreeComponent implements OnInit {
     this.editNode('label');
 
     this.updateMenu(); // refresh context menu, undo, etc.
-    this.updateNodeStyles(this.iaTree, 0); // refresh styles
+    this.iaTreeService.updateNodeStyles(this.iaData().iaTree, 0); // refresh styles
   }
 
   //Will be used to create a container to mark pages for template change
@@ -460,7 +461,7 @@ export class IaTreeComponent implements OnInit {
       return null;
     };
 
-    const location = findParent(this.iaTree || []);
+    const location = findParent(this.iaData().iaTree || []);
     if (!location) return; // if not found
 
     const { parentContainer, parentNode } = location;
@@ -495,17 +496,17 @@ export class IaTreeComponent implements OnInit {
 
     // UI refresh
     this.updateMenu();
-    this.updateNodeStyles(this.iaTree, 0);
+    this.iaTreeService.updateNodeStyles(this.iaData().iaTree, 0);
   }
 
   //TODO: if this was notOrphan, update crawl status of parent node so that this node can be rediscovered on crawl
   deleteNode() {
-    if (!this.iaTree || !this.selectedNode) return;
+    if (!this.iaData().iaTree || !this.selectedNode) return;
 
     const nodeToDelete = this.selectedNode;
 
     // Root-level (don't delete the root!!!)
-    const rootIndex = this.iaTree.findIndex(n => n === nodeToDelete);
+    const rootIndex = this.iaData().iaTree.findIndex(n => n === nodeToDelete);
     if (rootIndex > -1) {
       console.warn('Cannot delete root node.');
       return;
@@ -530,7 +531,7 @@ export class IaTreeComponent implements OnInit {
       return false;
     };
 
-    findAndDelete(this.iaTree);
+    findAndDelete(this.iaData().iaTree);
     this.updateMenu();
   }
 
@@ -550,7 +551,7 @@ export class IaTreeComponent implements OnInit {
     if (!this.selectedNode.data.customStyle) {
       this.selectedNode.data.customStyleKey = 'rot';
       this.selectedNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
-      this.updateNodeStyles(this.iaTree, 0);
+      this.iaTreeService.updateNodeStyles(this.iaData().iaTree, 0);
     }
     this.updateMenu();
   }
@@ -650,27 +651,7 @@ export class IaTreeComponent implements OnInit {
     });
 
     console.log('Drag parent URL', dragNode.data.originalParent);
-    this.updateNodeStyles(this.iaTree, 0);
-  }
-
-  private updateNodeStyles(nodes: TreeNode[] | null, level = 0): void {
-    if (!nodes) return;
-
-    for (const node of nodes) {
-
-      const borderStyle = node.data?.borderStyle || 'border-2 border-primary border-round shadow-2';
-
-      const bgClass = this.iaTreeService.bgColors[level % this.iaTreeService.bgColors.length];
-      const bgStyle = this.iaTreeService.contextStyles[node.data?.customStyleKey] ?? bgClass;
-
-      node.styleClass = `${borderStyle} ${bgStyle}`;
-
-      if (node.children && node.children.length > 0) {
-        //console.log('Node status', node.data.isContainer, level);
-        const nextLevel = node.data.isContainer ? level : level + 1;
-        this.updateNodeStyles(node.children, nextLevel);
-      }
-    }
+    this.iaTreeService.updateNodeStyles(this.iaData().iaTree, 0);
   }
 
 }

@@ -1,15 +1,15 @@
 <p>To do: set up crawl for root URLs to complete IA tree, also set up referring link/search term/url structure crawl (for unique links that aren't in the IA tree)</p>
-<ng-container *ngIf="iaTree">
+<ng-container *ngIf="iaData().iaTree">
 
     <h2>IA structure</h2>
-    <p *ngIf="iaTree.length === 0">No child pages found.</p>
+    <p *ngIf="iaData().iaTree.length === 0">No child pages found.</p>
 
-    <p-tabs value="0" *ngIf="iaTree.length > 0">
+    <p-tabs value="0" *ngIf="iaData().iaTree.length > 0">
         <p-tablist>
             <p-tab value="0">Chart</p-tab>
             <p-tab value="1">Table</p-tab>
-            <p-tab value="2" *ngIf="brokenLinks.length > 0">Broken links</p-tab>
-            <p-tab value="3" *ngIf="searchMatches.length > 0">Search matches</p-tab>
+            <p-tab value="2" *ngIf="iaData().brokenLinks.length > 0">Broken links</p-tab>
+            <p-tab value="3" *ngIf="iaData().searchMatches.length > 0">Search matches</p-tab>
         </p-tablist>
         <p-tabpanels>
             <p-tabpanel value="0">
@@ -40,8 +40,8 @@
                     <p-button label="Maximize IA chart" severity="secondary" outlined styleClass="secondary-outline" (click)="maximize(chartContainer)" icon="pi pi-window-maximize" />
                 </div>
                 <!--CHART-->
-                <div #chartContainer *ngIf="iaTree.length > 0" class="overflow-auto max-h-75vh surface-ground surface-border border-1 py-3 mb-3 ia-chart-container">
-                    <p-organization-chart [value]="iaTree">
+                <div #chartContainer *ngIf="iaData().iaTree.length > 0" class="overflow-auto max-h-75vh surface-ground surface-border border-1 py-3 mb-3 ia-chart-container">
+                    <p-organization-chart [value]="iaData().iaTree">
                         <ng-template let-node pTemplate="default">
                             <!--STATUS ICONS-->
                             <div class="flex flex-row gap-2 justify-content-between align-items-center -mx-2 -my-3" *ngIf="!getToggleStates().allFalse">
@@ -74,7 +74,7 @@
                 <!--TREE TABLE-->
                 <p-contextMenu #cm [model]="options"></p-contextMenu>
                 <h2>IA structure tree</h2>
-                <p-tree [value]="iaTree" styleClass="w-full md:w-[30rem]"
+                <p-tree [value]="iaData().iaTree" styleClass="w-full md:w-[30rem]"
                         [selectionMode]="selectable ? 'multiple' : null" [(selection)]="selectedNode"
                         [draggableNodes]="draggable" [droppableNodes]="true" draggableScope="self" droppableScope="self" (onNodeDrop)="handleNodeDrop($event)" [validateDrop]="true"
                         [contextMenu]="cm" (onNodeContextMenuSelect)="onNodeContextMenu($event)">
@@ -100,8 +100,8 @@
             <p-tabpanel value="2">
                 <!--BROKEN LINKS-->
                 <h2>Broken links</h2>
-                <p *ngIf="brokenLinks.length === 0">No broken links found on this page<span *ngIf="iaTree[0].children?.length"> or on any detected child pages</span>.</p>
-                <p-table *ngIf="brokenLinks.length > 0" [value]="brokenLinks" size="small" stripedRows [tableStyle]="{ 'min-width': '50rem' }">
+                <p *ngIf="iaData().brokenLinks.length === 0">No broken links found on this page<span *ngIf="iaData().iaTree[0].children?.length"> or on any detected child pages</span>.</p>
+                <p-table *ngIf="iaData().brokenLinks.length > 0" [value]="iaData().brokenLinks" size="small" stripedRows [tableStyle]="{ 'min-width': '50rem' }">
                     <ng-template #header>
                         <tr>
                             <th>Parent page</th>
@@ -121,9 +121,9 @@
             <p-tabpanel value="3">
                 <!--Search Matches-->
                 <h2>Search matches</h2>
-                <p *ngIf="searchMatches.length === 0">No matches found.</p>
+                <p *ngIf="iaData().searchMatches.length === 0">No matches found.</p>
                 <ol class="mt-0">
-                    <ng-container *ngFor="let match of searchMatches">
+                    <ng-container *ngFor="let match of iaData().searchMatches">
                         <li><a [href]="match.url" target="_blank" class="no-underline">{{match.h1}}</a></li>
                     </ng-container>
                 </ol>
