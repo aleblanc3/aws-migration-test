@@ -3,6 +3,7 @@ import { TreeNode } from 'primeng/api';
 import { ThemeService } from '../../../services/theme.service';
 import { FetchService } from '../../../services/fetch.service';
 import { BreadcrumbNode, PageMeta, BrokenLinks, SearchMatches } from '../data/data.model';
+import { IaStateService } from './ia-state.service';
 
 @Injectable({
   providedIn: 'root'
@@ -10,8 +11,12 @@ import { BreadcrumbNode, PageMeta, BrokenLinks, SearchMatches } from '../data/da
 export class IaTreeService {
   private theme = inject(ThemeService);
   private fetchService = inject(FetchService);
+  private iaState = inject(IaStateService);
 
   //For tracking progress while building IA chart
+  iaData = this.iaState.getIaData;
+  searchData = this.iaState.getSearchData;
+
   isChartLoading = false;
   iaProgress = 0;
   totalUrls = 0;
@@ -92,7 +97,7 @@ export class IaTreeService {
 
       if (node.children && node.children.length > 0) {
         //console.log('Node status', node.data.isContainer, level);
-        const nextLevel = node.data.isContainer ? level : level + 1;
+        const nextLevel = node.data.customStyleKey === 'template' ? level : level + 1;
         this.updateNodeStyles(node.children, nextLevel);
       }
     }
@@ -100,7 +105,7 @@ export class IaTreeService {
 
 
   //Step 2a: Get single page IA data
-  async getPageMetaAndLinks(url: string, searchTerms?: string[]): Promise<{ h1?: string; breadcrumb?: string[]; links?: string[], status: number, matched?: boolean; }> {
+  async getPageMetaAndLinks(url: string): Promise<PageMeta> {
     try {
       const doc = await this.fetchService.fetchContent(url, "prod", 5);
 
@@ -129,13 +134,23 @@ export class IaTreeService {
 
       const result: PageMeta = { h1, breadcrumb, links, status: 200 };
       //Check search terms (optional step)      
-      if (searchTerms && searchTerms.length > 0) {
+      if (this.searchData().terms && this.searchData().terms.length > 0) {
         const pageText = doc.body?.textContent?.toLowerCase() ?? "";
-        result.matched = searchTerms.some(term =>
-          pageText.includes(term.toLowerCase())
-        );
+        const matched = this.searchData().terms.some(term => {
+          if (typeof term === 'string') {
+            return pageText.includes(term);
+          } else {  // term is a RegExp
+            return term.test(pageText);
+          }
+        });
+        //Collect list of search term matches
+        if (matched) {
+          this.iaData().searchMatches.push({
+            url,
+            h1: h1 ?? "Missing H1"
+          });
+        }
       }
-
       return result;
     } catch (err) {
       console.error(`Failed to fetch ${url}`, err);
@@ -143,7 +158,7 @@ export class IaTreeService {
     }
   }
   //Step 2b: Crawl all child pages for IA data
-  async buildIaTree(urls: string[], depth: number, brokenLinks: BrokenLinks[], parentUrl?: string, level = 0, searchTerms: (string | RegExp)[] | null = null, searchMatches?: SearchMatches[]): Promise<TreeNode[]> {
+  async buildIaTree(urls: string[], depth: number, parentUrl?: string, level = 0): Promise<TreeNode[]> {
     if (depth <= 0) return [];
 
     //reset progress tracker
@@ -159,27 +174,19 @@ export class IaTreeService {
     const bgClass = this.bgColors[level % this.bgColors.length];
 
     for (const url of urls) {
-      const meta = await this.getPageMetaAndLinks(url, ["GST", "dental"]);
+      const meta = await this.getPageMetaAndLinks(url);
 
       this.processedUrls++; //Increase processed URLs
       this.iaProgress = Math.round((this.processedUrls / this.totalUrls) * 100); //Update progress
 
       //Collect list of broken links
-      if ((!meta || meta.status !== 200) && brokenLinks) {
-        brokenLinks.push({
+      if ((!meta || meta.status !== 200) && this.iaData().brokenLinks) {
+        this.iaData().brokenLinks.push({
           parentUrl,
           url,
           status: meta?.status || 0
         });
         continue;
-      }
-
-      //Collect list of search term matches (todo: add label and which match was found etc.)
-      if (meta?.matched && searchMatches) {
-        searchMatches.push({
-          url,
-          h1: meta.h1 ?? "Missing H1"
-        });
       }
 
       //Collect list of referring pages
@@ -230,24 +237,26 @@ export class IaTreeService {
 
         let limit = total; // default: no limit        
         if (this.skipFormsAndPubs.has(url)) { limit = 5; } // limit forms & pubs pages
+        console.log(`Crawling ${total} links from ${url}, depth ${depth}, limit ${limit}`);
 
         const links = meta.links.slice(0, limit); //trim excess links
 
-        node.children = await this.buildIaTree(links, depth - 1, brokenLinks, url, level + 1, searchTerms, searchMatches); //get child nodes
+        node.children = await this.buildIaTree(links, depth - 1, url, level + 1); //get child nodes
 
         if (total > limit) { //add dummy node if we limited the child nodes
+          console.log(`... adding dummy node for ${total - limit} additional links`);
           node.children?.push({
             label: `+ ${total - limit} more...`,
             data: {
               h1: `+ ${total - limit} more...`,
-              url: null,
-              originalParent: parentUrl,
+              url: url,
+              originalParent: url,
               editing: null,
               customStyle: true,
               customStyleKey: 'template',
               borderStyle: 'border-2 border-primary border-round shadow-2 border-dashed',
               isRoot: false,
-              isCrawled: false,
+              isCrawled: true,
               crawlDepth: 0,
               isUserAdded: false,
               notOrphan: true,
@@ -273,10 +282,10 @@ export class IaTreeService {
     }
 
     //de-dupe collected data
-    if (searchMatches && level === 0) {
-      const uniqueMatches = new Map(searchMatches.map(m => [m.url, m]));
-      searchMatches.length = 0; //clear array
-      searchMatches.push(...uniqueMatches.values());
+    if (this.iaData().searchMatches && level === 0) {
+      const uniqueMatches = new Map(this.iaData().searchMatches.map(m => [m.url, m]));
+      this.iaData().searchMatches.length = 0; //clear array
+      this.iaData().searchMatches.push(...uniqueMatches.values());
     }
 
     return nodes;
@@ -284,7 +293,7 @@ export class IaTreeService {
 
   //NEEDS TESTING
   //Build initial context for crawl (i.e. the start of the breadcrumb)
-  setTreeContext(iaTree: TreeNode[], breadcrumbs: BreadcrumbNode[][]): void {
+  async setTreeContext(iaTree: TreeNode[], breadcrumbs: BreadcrumbNode[][]): Promise<void> {
 
     const findChildByUrl = (nodes: TreeNode[] | undefined, url?: string | null) => {
       if (!nodes || !url) return undefined;
@@ -308,8 +317,8 @@ export class IaTreeService {
               url: crumb.url ?? null,
               originalParent: parentUrl,
               editing: null,
-              customStyle: false,
-              customStyleKey: null,
+              customStyle: crumb.isBeforeRoot ?? false,
+              customStyleKey: crumb.isBeforeRoot ? 'template' : null,
               borderStyle: 'border-2 border-primary border-round shadow-2',
               isRoot: crumb.isRoot,
               isCrawled: false,
@@ -355,7 +364,7 @@ export class IaTreeService {
   }
 
   //Crawl from pages marked as data.isRoot
-  async crawlFromRoots(node: TreeNode[], brokenLinks: BrokenLinks[], searchTerms: (string | RegExp)[] | null = null, searchMatches?: SearchMatches[]): Promise<void> {
+  async crawlFromRoots(node: TreeNode[]): Promise<void> {
     const roots = this.findCrawlRoots(node);
 
     let index = 1;
@@ -368,7 +377,7 @@ export class IaTreeService {
 
       const depth = Math.max((root.data.crawlDepth ?? 0), 2); // 2 will crawl 1st level of children only.
       console.log(`Depth: ${depth}`);
-      const children = await this.buildIaTree([root.data.url], depth, brokenLinks, undefined, 0, searchTerms, searchMatches);
+      const children = await this.buildIaTree([root.data.url], depth, undefined, 0); //doesn't matter that this parent is undefined, we're only grabbing the children
 
       if (children.length > 0) {
         const builtRoot = children[0];
