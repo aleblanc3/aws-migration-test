@@ -16,7 +16,7 @@
         <div class="header-with-filter">
           <span>{{ col.header }}</span>
 
-          <!-- Down-arrow filter button ONLY for Link Type -->
+          <!-- Down-arrow filter button for Link Type -->
           <button
             *ngIf="col.field === 'type'"
             pButton
@@ -26,6 +26,17 @@
             (click)="typePanel?.toggle($event)"
             aria-label="Filter link types"
           ></button>
+
+          <!-- NEW: Down-arrow filter button for Match status -->
+          <button
+            *ngIf="col.field === 'matchStatus'"
+            pButton
+            type="button"
+            class="p-button-text p-button-sm"
+            icon="pi pi-chevron-down"
+            (click)="statusPanel?.toggle($event)"
+            aria-label="Filter link text health"
+          ></button>
         </div>
       </th>
     </tr>
@@ -34,7 +45,6 @@
   <ng-template pTemplate="body" let-rowData let-rowIndex="rowIndex">
     <tr [pReorderableRow]="rowIndex" [pSelectableRow]="rowData">
       <td>
-        <!-- purely decorative drag handle; no click handler so a11y rule is fine -->
         <span
           class="pi pi-bars"
           pReorderableRowHandle
@@ -48,13 +58,41 @@
 
           <span *ngSwitchCase="'type'">{{ rowData.type }}</span>
 
-          <span
-            *ngSwitchCase="'text'"
-            [ngClass]="getTextClass(rowData)"
-            [ngStyle]="getTextStyle(rowData)"
-          >
+          <span *ngSwitchCase="'text'" [ngStyle]="getTextStyle(rowData)">
             {{ rowData.text }}
-            <div class="muted" *ngIf="rowData.href">({{ rowData.href }})</div>
+
+            <div
+              class="muted variants"
+              *ngIf="
+                rowData.hasTextConflict && getOtherVariants(rowData).length
+              "
+            >
+              also:
+              <ng-container
+                *ngFor="
+                  let v of getOtherVariantsPreview(rowData);
+                  let last = last
+                "
+              >
+                {{ v }}<span *ngIf="!last"> · </span>
+              </ng-container>
+              <ng-container *ngIf="getOtherVariantsExtraCount(rowData) > 0">
+                , +{{ getOtherVariantsExtraCount(rowData) }} more
+              </ng-container>
+            </div>
+
+            <div class="muted" *ngIf="rowData.href">
+              (
+              <a
+                [href]="rowData.absUrl || rowData.href"
+                target="_blank"
+                rel="noopener"
+                class="break-all"
+              >
+                {{ rowData.href }}
+              </a>
+              )
+            </div>
           </span>
 
           <span *ngSwitchCase="'destH1'" class="break-all">
@@ -62,6 +100,26 @@
           </span>
 
           <span *ngSwitchCase="'matchStatus'" class="flex justify-center">
+            <!-- 404 / broken -->
+            <i
+              *ngIf="rowData.is404"
+              class="pi pi-exclamation-triangle text-bad"
+              title="404/410 (Not found)"
+              style="margin-right: 0.25rem"
+            ></i>
+
+            <!-- Missing anchor on same page -->
+            <i
+              *ngIf="rowData.anchorMissing"
+              class="pi pi-link"
+              title="Anchor target not found on page"
+              style="
+                margin-right: 0.25rem;
+                transform: rotate(45deg);
+                opacity: 0.8;
+              "
+            ></i>
+
             <i
               *ngIf="rowData.matchStatus === 'match'"
               class="pi pi-check-circle text-ok"
@@ -82,7 +140,6 @@
             ></i>
           </span>
 
-          <!-- Search term / Clicks and any other fields -->
           <span *ngSwitchDefault>{{ rowData[col.field] || "—" }}</span>
         </ng-container>
       </td>
@@ -90,7 +147,7 @@
   </ng-template>
 </p-table>
 
-<!-- Move the overlay OUTSIDE the table to avoid table parser issues -->
+<!-- Popover for Link Type -->
 <p-popover
   #typePanel
   [dismissable]="true"
@@ -98,7 +155,6 @@
   [styleClass]="'link-type-popover'"
 >
   <div class="filter-panel">
-    <!-- custom close button -->
     <button
       pButton
       type="button"
@@ -108,7 +164,6 @@
       aria-label="Close filter"
     ></button>
 
-    <!-- ALL / types UI -->
     <div class="filter-row">
       <p-checkbox
         [(ngModel)]="allSelected"
@@ -129,7 +184,6 @@
         [inputId]="'type-' + i"
         binary="true"
       ></p-checkbox>
-      <!-- label activates checkbox; no custom click needed (fixes a11y lint) -->
       <label class="filter-label" [attr.for]="'type-' + i">
         {{ t }}
       </label>
@@ -137,6 +191,63 @@
 
     <div class="filter-muted" *ngIf="allSelected">
       All types are currently included.
+    </div>
+  </div>
+</p-popover>
+
+<!-- NEW: Popover for Match status -->
+<p-popover
+  #statusPanel
+  [dismissable]="true"
+  [appendTo]="'body'"
+  [styleClass]="'link-type-popover'"
+>
+  <div class="filter-panel">
+    <button
+      pButton
+      type="button"
+      class="p-button-text p-button-sm close-btn"
+      icon="pi pi-times"
+      (click)="statusPanel.hide()"
+      aria-label="Close filter"
+    ></button>
+
+    <div class="filter-row">
+      <p-checkbox
+        [(ngModel)]="matchAllSelected"
+        (onChange)="onMatchAllToggle()"
+        inputId="allMatch"
+        binary="true"
+      ></p-checkbox>
+      <label class="filter-label" for="allMatch">ALL</label>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="filter-row">
+      <p-checkbox
+        [(ngModel)]="matchChecks.match"
+        (pOnChange)="onMatchToggle('match')"
+        [disabled]="matchAllSelected"
+        inputId="ms-match"
+        binary="true"
+      ></p-checkbox>
+      <label class="filter-label" for="ms-match">match</label>
+    </div>
+
+    <div class="filter-row">
+      <p-checkbox
+        [(ngModel)]="matchChecks.mismatch"
+        (pOnChange)="onMatchToggle('mismatch')"
+        [disabled]="matchAllSelected"
+        inputId="ms-mismatch"
+        binary="true"
+      ></p-checkbox>
+      <label class="filter-label" for="ms-mismatch">mismatch</label>
+    </div>
+
+    <div class="filter-muted" *ngIf="matchAllSelected">
+      All match statuses are currently included.
     </div>
   </div>
 </p-popover>
