@@ -198,7 +198,16 @@ export class IaStateService {
   // Save IA state to local storage (browser memory)
   saveToLocalStorage() {
     const state = this.getIaState();
-    localStorage.setItem('iaState', JSON.stringify(state));
+    const cleanTree = this.removeParents(state.iaData.iaTree);
+    const cleanState = {
+      ...state,
+      iaData: {
+        ...state.iaData,
+        iaTree: cleanTree
+      }
+    };
+    console.log('Clean state:', cleanState);
+    localStorage.setItem('iaState', JSON.stringify(cleanState));
 
     if (!this.production) {
       console.groupCollapsed('IA State saved to localStorage');
@@ -234,6 +243,17 @@ export class IaStateService {
     }
   }
 
+  private removeParents(nodes: TreeNode[]): TreeNode[] {
+    return nodes.map(node => {
+      const { parent, ...rest } = node; // remove the parent reference
+
+      return {
+        ...rest,
+        children: node.children ? this.removeParents(node.children) : []
+      };
+    });
+  }
+
   // Load from local storage (browser memory)
   loadFromLocalStorage() {
     const saved = localStorage.getItem('iaState');
@@ -249,10 +269,15 @@ export class IaStateService {
   // Export as JSON (for sharing with someone else)
   exportIaState() {
     const state = this.getIaState();
-    const exportState = { //don't stringify regex!
+    const cleanTree = this.removeParents(state.iaData.iaTree);
+    const exportState = { //remove circular references in iaTree and don't stringify search regex!
       ...state,
       searchData: {
         rawTerms: state.searchData.rawTerms,
+      },
+      iaData: {
+        ...state.iaData,
+        iaTree: cleanTree
       },
     };
     const data = JSON.stringify(exportState, null, 2);
@@ -306,7 +331,7 @@ export class IaStateService {
       'In scope',
       'Orphaned',
       'Parent URL',
-      'Original Parent URL',
+      'Old Parent URL',
       'Status',
     ].join(','));
 
@@ -331,6 +356,13 @@ export class IaStateService {
           default: customStyle = '';
         }
 
+        // Check for page moves
+        if (data.originalParent && data.originalParent !== parentUrl && customStyle === '') { customStyle = 'Page move'; }
+
+        // Original parent
+        let oldParent = '';
+        if (data.originalParent && data.originalParent !== parentUrl) { oldParent = data.originalParent; }
+
         rows.push([
           `"${data.h1 || ''}"`,
           data.url || '',
@@ -338,8 +370,8 @@ export class IaStateService {
           data.isUserAdded ? 'Yes' : 'No',
           data.notOrphan ? 'No' : 'Yes',
           parentUrl || '',
-          data.originalParent || '',
-          data.customStyleKey || '',
+          oldParent || '',
+          customStyle || '',
         ].join(','));
 
         if (node.children?.length) {
