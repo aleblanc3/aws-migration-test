@@ -22,8 +22,6 @@ import { LinkListComponent } from '../components/link-list.component';
 import { FetchService } from '../../../services/fetch.service';
 import { ThemeService } from '../../../services/theme.service';
 
-import { environment } from '../../../../environments/environment';
-
 import { IaStateService } from '../services/ia-state.service';
 
 @Component({
@@ -109,7 +107,7 @@ export class ValidateUrlsComponent implements OnInit {
       }
     }
     catch (error) {
-      console.log(error);
+      console.error(error);
       if ((error as Error).message.startsWith("Blocked host")) {
         link.status = "blocked";
       }
@@ -134,7 +132,7 @@ export class ValidateUrlsComponent implements OnInit {
     //Recheck bad URLs
     const badUrls = urls.filter(url => url.status === 'bad');
     badUrls.forEach(badUrl => (badUrl.status = 'checking'));
-    const { urlChecked, urlTotal } = this.iaState.getUrlData();
+    const { urlChecked } = this.iaState.getUrlData();
     this.iaState.setUrlData({ urlChecked: urlChecked - badUrls.length });
     const urlsToRecheck = badUrls.map(badUrl =>
       this.checkStatus(badUrl).finally(() => {
@@ -192,7 +190,7 @@ export class ValidateUrlsComponent implements OnInit {
 
   /*** Remove a bad link pair or just the link for prototypes ***/
   remove(link: UrlItem, type: 'prod' | 'proto') {
-    let { urlPairs, urlChecked, urlTotal, urlPercent } = this.iaState.getUrlData();
+    let { urlPairs, urlChecked, urlTotal } = this.iaState.getUrlData();
     let decrement = 1;
     if (type === 'prod') {
       const pair = urlPairs.find(p => p.production === link);
