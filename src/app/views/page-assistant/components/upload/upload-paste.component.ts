@@ -55,7 +55,7 @@ export class UploadPasteComponent {
     this.error = '';
 
     try {
-      const mainHTML = await this.urlDataService.extractContent(this.userInput);
+      const mainHTML = await this.urlDataService.process(this.userInput);
 
       //Emit original data & set modified to same (no changes)
       if (this.mode === 'original') {
