@@ -19,29 +19,10 @@ export class SearchCriteriaComponent implements OnInit {
   public iaState = inject(IaStateService);
 
   ngOnInit(): void {
-    this.updateTerms();
+    this.iaState.updateTerms();
   }
 
   searchData = this.iaState.getSearchData;
-
-  updateTerms() {
-    this.searchData().terms = this.searchData().rawTerms
-      .split(/[\n;\t]+/) // split on semicolons, newlines, tabs
-      .map(term => term.trim()) // trim whitespace
-      .filter(Boolean) // filter out empties
-      .map(term => {
-        try {
-          if (term.startsWith('regex:')) {
-            const pattern = term.slice(6);
-            return new RegExp(pattern, 'smi');
-          }
-          else return term.toLowerCase();
-        }
-        catch (error) { console.log(error); return `invalid ${term}`; }
-      });
-
-    this.searchData().terms = Array.from(new Set(this.searchData().terms)); // unique set
-  }
 
   updateRawTerms() {
     this.searchData().rawTerms = this.searchData().terms.map(term => {
@@ -56,12 +37,12 @@ export class SearchCriteriaComponent implements OnInit {
 
   onKeydownTerm(event: KeyboardEvent) {
     if (event.key === ';' || event.key === 'Enter' || event.key === 'Tab') {
-      this.updateTerms();
+      this.iaState.updateTerms();
     }
   }
 
   onPasteTerm() {
-    setTimeout(() => this.updateTerms(), 0);
+    setTimeout(() => this.iaState.updateTerms(), 0);
   }
 
   removeTerm(term: string | RegExp) {

@@ -37,6 +37,7 @@ export interface IaData {
 }
 
 export interface IaState {
+  version: number;
   activeStep: number;
   urlData: UrlData;
   breadcrumbData: BreadcrumbData;
@@ -95,6 +96,25 @@ export class IaStateService {
   getSearchData = computed(() => this.searchData());
   setSearchData(partial: Partial<SearchData>) {
     this.searchData.update(curr => ({ ...curr, ...partial }));
+  }
+
+  // Parse raw terms into terms array
+  public updateTerms() {
+    this.searchData().terms = this.searchData().rawTerms
+      .split(/[\n;\t]+/) // split on semicolons, newlines, tabs
+      .map(term => term.trim()) // trim whitespace
+      .filter(Boolean) // filter out empties
+      .map(term => {
+        try {
+          if (term.startsWith('regex:')) {
+            const pattern = term.slice(6);
+            return new RegExp(pattern, 'smi');
+          }
+          else return term.toLowerCase();
+        }
+        catch (error) { console.error(error); return `invalid ${term}`; }
+      });
+    this.searchData().terms = Array.from(new Set(this.searchData().terms)); // unique set
   }
 
   // Step 4: IA tree
@@ -166,6 +186,7 @@ export class IaStateService {
   // Get IA state
   getIaState(): IaState {
     return {
+      version: 0.1,
       activeStep: this.activeStep(),
       urlData: this.urlData(),
       breadcrumbData: this.breadcrumbData(),
@@ -177,7 +198,16 @@ export class IaStateService {
   // Save IA state to local storage (browser memory)
   saveToLocalStorage() {
     const state = this.getIaState();
-    localStorage.setItem('iaState', JSON.stringify(state));
+    const cleanTree = this.removeParents(state.iaData.iaTree);
+    const cleanState = {
+      ...state,
+      iaData: {
+        ...state.iaData,
+        iaTree: cleanTree
+      }
+    };
+    console.log('Clean state:', cleanState);
+    localStorage.setItem('iaState', JSON.stringify(cleanState));
 
     if (!this.production) {
       console.groupCollapsed('IA State saved to localStorage');
@@ -213,6 +243,17 @@ export class IaStateService {
     }
   }
 
+  private removeParents(nodes: TreeNode[]): TreeNode[] {
+    return nodes.map(node => {
+      const { parent, ...rest } = node; // remove the parent reference
+
+      return {
+        ...rest,
+        children: node.children ? this.removeParents(node.children) : []
+      };
+    });
+  }
+
   // Load from local storage (browser memory)
   loadFromLocalStorage() {
     const saved = localStorage.getItem('iaState');
@@ -227,7 +268,19 @@ export class IaStateService {
 
   // Export as JSON (for sharing with someone else)
   exportIaState() {
-    const data = JSON.stringify(this.getIaState(), null, 2);
+    const state = this.getIaState();
+    const cleanTree = this.removeParents(state.iaData.iaTree);
+    const exportState = { //remove circular references in iaTree and don't stringify search regex!
+      ...state,
+      searchData: {
+        rawTerms: state.searchData.rawTerms,
+      },
+      iaData: {
+        ...state.iaData,
+        iaTree: cleanTree
+      },
+    };
+    const data = JSON.stringify(exportState, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 
@@ -246,9 +299,15 @@ export class IaStateService {
     reader.onload = () => {
       try {
         const state: IaState = JSON.parse(reader.result as string);
+        //REMINDER: update version number when making incompatible changes to IaState and create a migration function for older versions
+        if (state.version !== 0.1) {
+          console.warn("Incompatible IA state version. Import skipped.");
+          return;
+        }
         this.urlData.set(state.urlData);
         this.breadcrumbData.set(state.breadcrumbData);
         this.searchData.set(state.searchData);
+        this.updateTerms(); //rebuild terms from rawTerms
         this.iaData.set(state.iaData);
         this.saveToLocalStorage();
         console.log('IA state successfully imported');
@@ -264,7 +323,7 @@ export class IaStateService {
     const iaTree: TreeNode[] = this.iaData().iaTree;
     const rows: string[] = [];
 
-    // Custom headers (in your preferred order + descriptions)
+    // Headers for CSV
     rows.push([
       'Page Title (h1)',
       'URL',
@@ -272,7 +331,7 @@ export class IaStateService {
       'In scope',
       'Orphaned',
       'Parent URL',
-      'Original Parent URL',
+      'Old Parent URL',
       'Status',
     ].join(','));
 
@@ -297,6 +356,13 @@ export class IaStateService {
           default: customStyle = '';
         }
 
+        // Check for page moves
+        if (data.originalParent && data.originalParent !== parentUrl && customStyle === '') { customStyle = 'Page move'; }
+
+        // Original parent
+        let oldParent = '';
+        if (data.originalParent && data.originalParent !== parentUrl) { oldParent = data.originalParent; }
+
         rows.push([
           `"${data.h1 || ''}"`,
           data.url || '',
@@ -304,8 +370,8 @@ export class IaStateService {
           data.isUserAdded ? 'Yes' : 'No',
           data.notOrphan ? 'No' : 'Yes',
           parentUrl || '',
-          data.originalParent || '',
-          data.customStyleKey || '',
+          oldParent || '',
+          customStyle || '',
         ].join(','));
 
         if (node.children?.length) {

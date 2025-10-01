@@ -255,6 +255,7 @@ export class IaRelationshipService {
         crumb.isRoot = isRoot;
         crumb.isDescendant = isDescendant;
         crumb.minDepth = depthMap.get(crumb.url!);
+        crumb.isBeforeRoot = false;
 
         if (isRoot) {
           // Root page
@@ -274,6 +275,7 @@ export class IaRelationshipService {
           if (crumb.icon?.includes('pi-times')) { hasBreakBeforeRoot = true; }
           crumb.styleClass = this.Colors.gray;
           crumb.linkTooltip = 'Page will be shown in IA map for context but no links will be crawled';
+          crumb.isBeforeRoot = true;
         }
 
         // Bold descendants without changing their validity color

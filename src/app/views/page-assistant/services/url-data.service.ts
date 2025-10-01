@@ -14,44 +14,25 @@ export class UrlDataService {
   private uploadState = inject(UploadStateService);
   private fetchService = inject(FetchService)
 
-  //Block unknown hosts
-  private allowedHosts = new Set([
-    "cra-design.github.io",
-    "cra-proto.github.io",
-    "gc-proto.github.io",
-    "test.canada.ca",
-    "www.canada.ca"
-  ]);
-
-  /** Gets HTML content from a URL and processes it. 
-    * Note: remove type later if it isn't needed */
+  /** Gets HTML content from a URL and processes it. **/
 
   async fetchAndProcess(url: string): Promise<htmlProcessingResult> {
-    const parsedUrl = new URL(url);
-
-    //Check if host is allowed
-    if (!this.allowedHosts.has(parsedUrl.host)) {
-      throw new Error(`${parsedUrl.host} is blocked`);
-    }
-
     //Get HTML content
-    const response = await fetch(`${url}?_=${Date.now()}`);
-    if (!response.ok) {
-      throw new Error(`Fetch failed: HTTP ${response.status}`);
-    }
-    console.warn(`Response code: ${response.status}`);
-
-    const html = await response.text();
-
+    const doc = await this.fetchService.fetchContent(`${url}?_=${Date.now()}`, "both")
     //Process HTML and return main element
-    return await this.extractContent(html);
-
+    return await this.extractContent(doc);
   }
 
+  async process(input: string): Promise<htmlProcessingResult> {
+    //Get HTML content
+    const doc = new DOMParser().parseFromString(input, 'text/html');
+    //Process HTML and return main element
+    return await this.extractContent(doc);
+  }
 
   //Runs all clean-up functions (might need to add type for full html document from url vs. snippet from copy/paste)
-  async extractContent(html: string): Promise<htmlProcessingResult> {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
+  async extractContent(doc: Document): Promise<htmlProcessingResult> {
+    //const doc = new DOMParser().parseFromString(html, 'text/html');
     const foundFlags = { hidden: false, modal: false, dynamic: false };
 
     // Save extra data
@@ -349,7 +330,7 @@ export class UrlDataService {
 
   //Remove irrelevent stuff
   private cleanupUnnecessaryElements(doc: Document): void {
-    const noisySelectors = ['section#chat-bottom-bar', '#gc-pft', '.wb-disable-allow', 'header', 'footer', 'charlie'];
+    const noisySelectors = ['section#chat-bottom-bar', '#gc-pft', '.wb-disable-allow', 'body > header', 'footer', 'charlie'];
     noisySelectors.forEach(selector => {
       doc.querySelectorAll(selector).forEach(el => el.remove());
     });
@@ -374,13 +355,14 @@ export class UrlDataService {
     let found = false
     const modals = doc.querySelectorAll('.modal-dialog.modal-content');
     modals.forEach(modal => {
+      console.log([...modal.childNodes]);
       // Unhide if it has 'mfp-hide'
       modal.classList.remove('mfp-hide');
       // Wrap content in a styled <div>
       const wrapper = doc.createElement('div');
       wrapper.setAttribute(
         'style',
-        'border: 2px dashed #666; padding: 8px; border-radius: 4px;'
+        'border: 2px dashed #666; border-radius: 4px;'
       );
       // Move children into the wrapper
       while (modal.firstChild) {
@@ -540,9 +522,9 @@ export class UrlDataService {
 
     switch (name) {
       case 'snippet':
-        original = await this.extractContent(sampleSnippetO);
+        original = await this.process(sampleSnippetO);
         originalHtml = original.html;
-        modifiedHtml = (await this.extractContent(sampleSnippetM)).html;
+        modifiedHtml = (await this.process(sampleSnippetM)).html;
         break;
 
       case 'word':
@@ -552,9 +534,9 @@ export class UrlDataService {
         break;
 
       default:
-        original = await this.extractContent(sampleHtmlO);
+        original = await this.process(sampleHtmlO);
         originalHtml = original.html;
-        modifiedHtml = (await this.extractContent(sampleHtmlM)).html;
+        modifiedHtml = (await this.process(sampleHtmlM)).html;
         break;
     }
 

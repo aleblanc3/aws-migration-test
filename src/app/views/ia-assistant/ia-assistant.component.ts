@@ -6,7 +6,6 @@ import { TranslateModule } from '@ngx-translate/core';
 import { StepperModule } from 'primeng/stepper';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
-import { ConfirmationService, TreeNode } from 'primeng/api';
 import { TextareaModule } from 'primeng/textarea';
 import { InputTextModule } from 'primeng/inputtext';
 import { IftaLabelModule } from 'primeng/iftalabel';
@@ -20,20 +19,11 @@ import { BadgeModule } from 'primeng/badge';
 import { ToolbarModule } from 'primeng/toolbar';
 import { FileUploadModule } from 'primeng/fileupload';
 
-import { PageData, BreadcrumbNode, BrokenLinks, SearchMatches } from './data/data.model'
-import { IaRelationshipService } from './services/ia-relationship.service';
-import { IaTreeService } from './services/ia-tree.service';
-import { FetchService } from '../../services/fetch.service';
-import { ThemeService } from '../../services/theme.service';
-
-import { IaTreeComponent } from './components/ia-tree.component';
-import { SearchCriteriaComponent } from './components/search-criteria.component';
-
-import { environment } from '../../../environments/environment';
-
 import { IaStateService } from './services/ia-state.service';
 import { ValidateUrlsComponent } from "./components/validate-urls.component";
 import { SetRootsComponent } from "./components/set-roots.component";
+import { SearchCriteriaComponent } from './components/search-criteria.component';
+import { IaTreeComponent } from './components/ia-tree.component';
 
 
 @Component({
@@ -60,49 +50,6 @@ import { SetRootsComponent } from "./components/set-roots.component";
  `
 })
 export class IaAssistantComponent {
-  private confirmationService = inject(ConfirmationService);
-  private iaService = inject(IaRelationshipService);
-  private fetchService = inject(FetchService);
-  private theme = inject(ThemeService);
-  private iaTreeService = inject(IaTreeService);
   public iaState = inject(IaStateService);
-
-  production = environment.production;
-
-  /******************************************
-   * GET ROOT URLS AND VALIDATE BREADCRUMBS *
-   ******************************************/
-  //breadcrumbs: BreadcrumbNode[][] = [];
-  //rootPages: PageData[] = [];
-  //breadcrumbProgress = 0;
-  //breadcrumbStep = '';
-  //hasBreakBeforeRoot = false;
-  //hasBreakAfterRoot = false;
-
-  breadcrumbData = this.iaState.getBreadcrumbData;
-
-
-  /*****************
-   * SEARCH TERMS  *
-   *****************/
-
-  terms: string[] = [];
-  /**********************
-  *  BUILD THE IA TREE  *
-  ***********************/
-  iaTree: TreeNode[] = [];
-  brokenLinks: BrokenLinks[] = []
-  searchMatches: SearchMatches[] = []
-
-  async buildIaTree(): Promise<void> {
-    this.iaTreeService.setTreeContext(this.iaTree, this.iaState.getBreadcrumbData().breadcrumbs);
-    await this.iaTreeService.crawlFromRoots(this.iaTree, this.brokenLinks, this.terms, this.searchMatches);
-    this.iaTreeService.updateNodeStyles(this.iaTree, 0);
-    console.log("Search matches:")
-    console.log(this.searchMatches);
-  }
-
-
-
 }
 

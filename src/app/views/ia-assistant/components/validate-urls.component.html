@@ -39,13 +39,13 @@
 
     <div class="flex flex-column gap-2 mt-3" *ngIf="urlsChecking.length > 0 || urlsProtoChecking.length > 0">
         <ng-container *ngFor="let url of urlsChecking">
-            <p-chip styleClass="bg-yellow-100" class="max-w-max">
+            <p-chip styleClass="bg-yellow-100 text-black-alpha-90" class="max-w-max">
                 <i class="pi pi-spin pi-spinner"></i>
                 <span>{{ url.href }}</span>
             </p-chip>
         </ng-container>
         <ng-container *ngFor="let url of urlsProtoChecking">
-            <p-chip styleClass="bg-orange-100" class="max-w-max">
+            <p-chip styleClass="bg-orange-100 text-black-alpha-90" class="max-w-max">
                 <i class="pi pi-spin pi-spinner"></i>
                 <span>{{ url.href }}</span>
             </p-chip>
@@ -55,51 +55,56 @@
 
 <p-confirmpopup />
 <h2 *ngIf="urlsBad.length > 0 || urlsProtoBad.length > 0" class="mb-0">Broken links</h2>
-<ca-link-list labelKey="Broken"
-              [links]="urlsBad"
-              type="prod"
-              (approve)="approve($event.url, $event.event, 'prod')"
-              (remove)="remove($event, 'prod')"
-              *ngIf="urlsBad.length > 0">
-</ca-link-list>
-<ca-link-list labelKey="Broken"
-              [links]="urlsProtoBad"
-              type="proto"
-              (approve)="approve($event.url, $event.event, 'proto')"
-              (remove)="remove($event, 'proto')"
-              *ngIf="urlsProtoBad.length > 0">
-</ca-link-list>
+<div class="flex flex-column gap-2">
+    <ca-link-list labelKey="Broken"
+                  [links]="urlsBad"
+                  type="prod"
+                  (approve)="approve($event.url, $event.event, 'prod')"
+                  (remove)="remove($event, 'prod')"
+                  *ngIf="urlsBad.length > 0">
+    </ca-link-list>
+    <ca-link-list labelKey="Broken"
+                  [links]="urlsProtoBad"
+                  type="proto"
+                  (approve)="approve($event.url, $event.event, 'proto')"
+                  (remove)="remove($event, 'proto')"
+                  *ngIf="urlsProtoBad.length > 0">
+    </ca-link-list>
+</div>
 <h2 *ngIf="urlsRedirected.length > 0 || urlsProtoRedirected.length > 0" class="mb-0">Redirected links</h2>
-<ca-link-list labelKey="Redirected"
-              [links]="urlsRedirected"
-              type="prod"
-              (approve)="approve($event.url, $event.event, 'prod')"
-              (remove)="remove($event, 'prod')"
-              *ngIf="urlsRedirected.length > 0">
-</ca-link-list>
-<ca-link-list labelKey="Redirected"
-              [links]="urlsProtoRedirected"
-              type="proto"
-              (approve)="approve($event.url, $event.event, 'proto')"
-              (remove)="remove($event, 'proto')"
-              *ngIf="urlsProtoRedirected.length > 0">
-</ca-link-list>
+<div class="flex flex-column gap-2">
+    <ca-link-list labelKey="Redirected"
+                  [links]="urlsRedirected"
+                  type="prod"
+                  (approve)="approve($event.url, $event.event, 'prod')"
+                  (remove)="remove($event, 'prod')"
+                  *ngIf="urlsRedirected.length > 0">
+    </ca-link-list>
+    <ca-link-list labelKey="Redirected"
+                  [links]="urlsProtoRedirected"
+                  type="proto"
+                  (approve)="approve($event.url, $event.event, 'proto')"
+                  (remove)="remove($event, 'proto')"
+                  *ngIf="urlsProtoRedirected.length > 0">
+    </ca-link-list>
+</div>
 <h2 *ngIf="urlsBlocked.length > 0 || urlsProtoBlocked.length > 0" class="mb-0">Blocked links</h2>
-<ca-link-list labelKey="Blocked"
-              [links]="urlsBlocked"
-              type="prod"
-              (approve)="approve($event.url, $event.event, 'prod')"
-              (remove)="remove($event, 'prod')"
-              *ngIf="urlsBlocked.length > 0">
-</ca-link-list>
-<ca-link-list labelKey="Blocked"
-              [links]="urlsProtoBlocked"
-              type="proto"
-              (approve)="approve($event.url, $event.event, 'proto')"
-              (remove)="remove($event, 'proto')"
-              *ngIf="urlsProtoBlocked.length > 0">
-</ca-link-list>
-
+<div class="flex flex-column gap-2">
+    <ca-link-list labelKey="Blocked"
+                  [links]="urlsBlocked"
+                  type="prod"
+                  (approve)="approve($event.url, $event.event, 'prod')"
+                  (remove)="remove($event, 'prod')"
+                  *ngIf="urlsBlocked.length > 0">
+    </ca-link-list>
+    <ca-link-list labelKey="Blocked"
+                  [links]="urlsProtoBlocked"
+                  type="proto"
+                  (approve)="approve($event.url, $event.event, 'proto')"
+                  (remove)="remove($event, 'proto')"
+                  *ngIf="urlsProtoBlocked.length > 0">
+    </ca-link-list>
+</div>
 <ng-container *ngIf="urlsOk.length > 0 || urlsProtoOk.length > 0">
     <h2 class="mb-0">Valid links</h2>
     <ul class="my-0 list-none">

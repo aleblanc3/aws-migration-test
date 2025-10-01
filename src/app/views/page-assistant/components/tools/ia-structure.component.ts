@@ -238,7 +238,7 @@ export class IaStructureComponent implements OnInit {
     new: 'bg-green-700 hover:bg-green-600 text-white',
     rot: 'bg-red-700 hover:bg-red-600 text-white',
     move: 'bg-yellow-700 hover:bg-yellow-600 text-black',
-    template: 'surface-700 hover:surface-600 text-white'
+    template: 'surface-200 hover:surface-300 text-white'
   };
 
   //Step 2a: Get single page IA data

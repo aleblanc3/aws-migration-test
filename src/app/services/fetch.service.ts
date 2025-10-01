@@ -52,7 +52,8 @@ export class FetchService {
     url: string,
     mode: "GET" | "HEAD" = "HEAD",
     retries = 3,
-    delay: number | "random" | "none" = "none"
+    delay: number | "random" | "none" = "none",
+    suppressErrors = false
   ): Promise<Response> {
     for (let attempt = 1; attempt <= retries; attempt++) {
       await this.simulateDelay(delay);
@@ -63,25 +64,30 @@ export class FetchService {
             : await fetch(url); // plain GET to avoid CORS error
         if (response.ok) return response;
         else {
-          console.warn(`Fetch attempt #${attempt}. Status: ${response.status}. Method: ${mode}`);
-          if (attempt === retries) throw new Error(`Fetch failed ${attempt} times. Method: ${mode}. Status: ${response.status} for ${url}`);
-          await this.delay(50); //50ms delay before retry
+          if (!suppressErrors) { console.warn(`Fetch attempt #${attempt}. Status: ${response.status}. Method: ${mode}`); }
+          if (attempt < retries) { await this.delay(50); continue; } //50ms delay before retry
+          if (suppressErrors) return this.suppressError(url);
+          throw new Error(`Fetch failed ${attempt} times. Method: ${mode}. Status: ${response.status} for ${url}`);
         }
       } catch (error) {
-        if (attempt === retries) throw new Error((error as Error).message);
+        if (attempt < retries) { await this.delay(50); continue; }
+        if (suppressErrors === true) return this.suppressError(url);
+        else if (attempt === retries) throw new Error((error as Error).message);
       }
     }
-    throw new Error(`Unexpected error for ${url}`); //fallback, could be CORS or URLs blocked for safety reasons (suspected phishing etc.)
+    if (suppressErrors === true) return this.suppressError(url);
+    else throw new Error(`Unexpected error for ${url}`); //fallback, could be CORS or URLs blocked for safety reasons (suspected phishing etc.)
   }
 
   public async fetchContent(
     url: string,
     hostMode: "prod" | "proto" | "both" | "none" = "both",
     retries = 3,
-    delay: number | "random" | "none" = "none"
+    delay: number | "random" | "none" = "none",
+    suppressErrors = false
   ): Promise<Document> {
     url = this.validateHost(url, hostMode);
-    const response = await this.fetchWithRetry(url, "GET", retries, delay);
+    const response = await this.fetchWithRetry(url, "GET", retries, delay, suppressErrors);
     const html = await response.text();
     return new DOMParser().parseFromString(html, "text/html");
   }
@@ -111,6 +117,19 @@ export class FetchService {
   //adds delay on both dev and prod (useful for adding short delays before retrying a failed fetch, only use this if the delay is required on prod)
   public async delay(delay: number): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, delay)); //user input delay
+  }
+
+  //fake Response for suppressing CORS errors (should only be used when fetching external content, hostMode = "none:")
+  private suppressError(
+    url: string,
+    status = 500,
+    statusText = "Suppressed fetch error"
+  ): Response {
+    return new Response(null, {
+      status,
+      statusText,
+      headers: { "X-Suppressed-Error": "true", "X-Source-Url": url },
+    });
   }
 
 }
