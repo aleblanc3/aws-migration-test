@@ -32,12 +32,7 @@ export class WebDiffService {
 
   //Styles for HTML diff
   getRenderedDiffStyles(): string {
-    return `
-      /* Import canada.ca CSS */
-        @import url('https://use.fontawesome.com/releases/v5.15.4/css/all.css');
-        @import url('https://www.canada.ca/etc/designs/canada/wet-boew/css/theme.min.css');
-        @import url('https://www.canada.ca/etc/designs/canada/wet-boew/méli-mélo/2024-09-kejimkujik.min.css');
-
+    return `     
     /* Shadow DOM container and layout fixes */
       :host {
         all: initial;
