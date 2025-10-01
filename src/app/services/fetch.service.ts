@@ -53,7 +53,7 @@ export class FetchService {
     mode: "GET" | "HEAD" = "HEAD",
     retries = 3,
     delay: number | "random" | "none" = "none",
-    suppressErrors: boolean = false
+    suppressErrors = false
   ): Promise<Response> {
     for (let attempt = 1; attempt <= retries; attempt++) {
       await this.simulateDelay(delay);
@@ -84,7 +84,7 @@ export class FetchService {
     hostMode: "prod" | "proto" | "both" | "none" = "both",
     retries = 3,
     delay: number | "random" | "none" = "none",
-    suppressErrors: boolean = false
+    suppressErrors = false
   ): Promise<Document> {
     url = this.validateHost(url, hostMode);
     const response = await this.fetchWithRetry(url, "GET", retries, delay, suppressErrors);
