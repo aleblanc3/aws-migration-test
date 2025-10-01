@@ -1,3 +1,12 @@
+/* Import fontawesome CSS <--see if there is a more efficient way to include these icons in shadowdom */
+@import url('https://use.fontawesome.com/releases/v5.15.4/css/all.css');
+
+@font-face {
+  font-family: "Glyphicons Halflings";
+  src: url(https://www.canada.ca/etc/designs/canada/wet-boew/fonts/glyphicons-halflings-regular.woff2) format("woff2");
+}
+
+
 .d2h-file-side-diff {
   overflow-x: scroll;
   overflow-y: scroll;
