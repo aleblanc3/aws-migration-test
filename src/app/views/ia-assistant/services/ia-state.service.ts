@@ -112,7 +112,7 @@ export class IaStateService {
           }
           else return term.toLowerCase();
         }
-        catch (error) { console.log(error); return `invalid ${term}`; }
+        catch (error) { console.error(error); return `invalid ${term}`; }
       });
     this.searchData().terms = Array.from(new Set(this.searchData().terms)); // unique set
   }
