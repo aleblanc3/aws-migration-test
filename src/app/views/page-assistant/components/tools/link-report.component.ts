@@ -13,6 +13,7 @@ import type {
   DestMeta,
 } from '../../services/content-extractor.service';
 import { FetchService } from '../../../../services/fetch.service';
+import { Output, EventEmitter } from '@angular/core';
 
 type LinkType =
   | 'CRA page'
@@ -117,12 +118,6 @@ type DebugExtractResult = ExtractResult & {
   anchorMeta?: { id?: string; headingTag?: string };
 };
 
-/** Optional debug fields the extractor may include */
-interface DedupeGroup {
-  rep: HeadingData;
-  names: Set<string>;
-}
-
 interface HeadingData {
   order: number; // Index
   type: LinkType; // Link Type
@@ -161,6 +156,7 @@ type ColumnField =
   | 'text'
   | 'destH1'
   | 'matchStatus'
+  | 'explanation'
   | 'searchTerm'
   | 'clicks';
 
@@ -228,6 +224,15 @@ interface UploadDataShape {
         gap: 0.25rem;
         padding: 0.25rem 0.25rem 0.1rem;
       }
+      .variant-list {
+        list-style: none;
+        margin: 0.15rem 0 0; /* tight spacing */
+        padding: 0;
+      }
+      .variant-list > li {
+        margin: 0.05rem 0;
+      }
+
       .filter-row {
         display: flex;
         align-items: center;
@@ -243,9 +248,22 @@ interface UploadDataShape {
         cursor: pointer;
         user-select: none;
       }
+
       .filter-muted {
         color: #6b7280;
         font-size: 12px;
+      }
+      .exp-badge {
+        display: inline-block;
+        margin-left: 0.35rem;
+        padding: 0.1rem 0.45rem;
+        font-size: 12px;
+        line-height: 1.1;
+        border-radius: 9999px;
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+        white-space: nowrap;
       }
     `,
   ],
@@ -256,9 +274,18 @@ export class LinkReportComponent implements OnInit {
   private readonly linkAi = inject(LinkAiService);
   private readonly extractor = inject(ContentExtractorService);
   private readonly fetchService = inject(FetchService);
-
+  @Output() problemsChange = new EventEmitter<boolean>();
   @ViewChild('typePanel') typePanel!: Popover;
-
+  private emitProblems(): void {
+    const hasProblems = this.headings.some(
+      (r) =>
+        r.hasTextConflict ||
+        r.is404 ||
+        r.anchorMissing ||
+        r.matchStatus === 'mismatch',
+    );
+    this.problemsChange.emit(hasProblems);
+  }
   // data & selection
   headings: HeadingData[] = [];
   selectedHeading!: HeadingData;
@@ -270,6 +297,7 @@ export class LinkReportComponent implements OnInit {
     { field: 'text', header: 'Link name on page' },
     { field: 'destH1', header: 'Destination link content' },
     { field: 'matchStatus', header: 'Link text health' },
+    { field: 'explanation', header: 'Explanation' },
     { field: 'searchTerm', header: 'Search term' },
     { field: 'clicks', header: 'Clicks' },
   ];
@@ -485,19 +513,68 @@ export class LinkReportComponent implements OnInit {
     const raw = r.absUrl || r.href || '';
     if (!raw) return '';
 
-    // anchors: keep the hash string as-is, normalized
+    // anchor links are intentionally kept distinct by their hash
     if (r.type === 'anchor') {
       return raw.trim().toLowerCase();
     }
 
-    // normalize http(s) URLs (lowercase host, drop hash, trim trailing slash)
     try {
-      const u = new URL(raw);
+      // 1) normalize URL
+      let u = new URL(raw);
+
+      // Force https for stability
+      u.protocol = 'https:';
+
+      // Lowercase host and fold apex→www for canada.ca
+      u.hostname = u.hostname
+        .toLowerCase()
+        .replace(/^canada\.ca$/, 'www.canada.ca');
+
+      // Canonicalize AEM repo paths to vanity
+      u = new URL(canonicalizeCanadaHref(u.toString()));
+
+      // Drop hash
       u.hash = '';
-      u.hostname = u.hostname.toLowerCase();
-      if (u.pathname.endsWith('/') && u.pathname !== '/') {
+
+      // Drop all query params by default (add allowlist if you ever need them)
+      u.search = '';
+
+      // Fold index.html
+      u.pathname = u.pathname.replace(/\/index\.html?$/i, '/');
+
+      // 2) CRA-specific folding:
+      //    collapse filenames that include a regional/provincial code before "-e.html"
+      //    e.g. 5000-g-on-e.html -> 5000-g-e.html
+      if (/^\/en\/revenue-agency\//i.test(u.pathname)) {
+        // common province/territory short codes + 'c' (combined)
+        const PT = new Set([
+          'ab',
+          'bc',
+          'mb',
+          'nb',
+          'nl',
+          'ns',
+          'nt',
+          'nu',
+          'on',
+          'pe',
+          'qc',
+          'sk',
+          'yt',
+          'c',
+        ]);
+        u.pathname = u.pathname.replace(
+          /\/([^/]+?)-([a-z]{1,3})-e\.html$/i,
+          (_m, base, code) =>
+            PT.has(String(code).toLowerCase()) ? `/${base}-e.html` : _m,
+        );
+      }
+
+      // Trim trailing slash (but not the root "/")
+      if (u.pathname.length > 1 && u.pathname.endsWith('/')) {
         u.pathname = u.pathname.slice(0, -1);
       }
+
       return u.toString();
     } catch {
       return raw.trim().toLowerCase();
@@ -505,30 +582,34 @@ export class LinkReportComponent implements OnInit {
   }
 
   private dedupeByDestination(rows: HeadingData[]): HeadingData[] {
-    const map = new Map<string, DedupeGroup>();
+    interface Group {
+      rep: HeadingData;
+      names: Set<string>;
+      count: number;
+    }
+
+    const map = new Map<string, Group>();
 
     for (const r of rows) {
       const key = this.destKeyForRow(r) || `row-${r.order}`;
       const g = map.get(key);
-
       if (g) {
+        g.count += 1;
         g.names.add(r.text);
-        // keep first rep; optional: prefer Canada.ca here if you want
       } else {
-        map.set(key, { rep: { ...r }, names: new Set([r.text]) });
+        map.set(key, { rep: { ...r }, names: new Set([r.text]), count: 1 });
       }
     }
 
     const out: HeadingData[] = [];
     let idx = 1;
-    for (const { rep, names } of map.values()) {
+    for (const { rep, names, count } of map.values()) {
       out.push({
         ...rep,
         order: idx++,
-        // only flag conflicts (different texts → same destination)
+        repeatCount: count,
         hasTextConflict: names.size > 1,
         textVariants: Array.from(names),
-        // repeatCount intentionally omitted
       });
     }
     return out;
@@ -601,6 +682,7 @@ export class LinkReportComponent implements OnInit {
 
     // 2) Enrich only the deduped set (extract content + AI + logging)
     await this.enrichWithExtractedContent(doc);
+    this.emitProblems();
   }
   // Match-status filter state
   matchAllSelected = true; // ALL by default
@@ -811,6 +893,7 @@ export class LinkReportComponent implements OnInit {
 
     // Final summary table
     this.logSummaryTable();
+    this.emitProblems();
   }
 
   // ---------- helpers ----------
@@ -892,6 +975,20 @@ export class LinkReportComponent implements OnInit {
     } catch {
       return null;
     }
+  }
+
+  buildMismatchReason(row: HeadingData): string {
+    // Prefer AI rationale if you have it; otherwise show a compact placeholder
+    if (row.aiRationale && row.aiRationale.trim()) {
+      return row.aiRationale.trim();
+    }
+    const parts: string[] = [];
+    if (row.hasTextConflict)
+      parts.push('Different link names → same destination.');
+    if (row.is404) parts.push('Destination not found (404/410).');
+    if (row.anchorMissing) parts.push('Anchor target missing.');
+    if (!parts.length) parts.push('Reason placeholder.');
+    return parts.join(' ');
   }
 
   /** 6-type classifier; order matters. Canada.ca = apex or www only. */

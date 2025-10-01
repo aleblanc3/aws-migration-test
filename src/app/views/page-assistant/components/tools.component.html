@@ -1,63 +1,105 @@
-<p>Use these tools to analyze and improve your web page. You can restructure headings, generate an IA diagram, find guidance on the components used in your page, integrate SEO and user insights into your updates, check your link quality, or convert your page to a different template.</p>
+<p>
+  Use these tools to analyze and improve your web page. You can restructure
+  headings, generate an IA diagram, find guidance on the components used in your
+  page, integrate SEO and user insights into your updates, check your link
+  quality, or convert your page to a different template.
+</p>
 
 <!--REMINDER: remove *ngIf="!production" as tools are finished (or close enough for people to use them)-->
 
-<p-accordion [(value)]="activePanels" [multiple]="true" class="flex flex-column gap-3">
+<p-accordion
+  [(value)]="activePanels"
+  [multiple]="true"
+  class="flex flex-column gap-3"
+>
+  <p-accordion-panel
+    [value]="0"
+    class="border-1 border-round-md border-surface"
+    *ngIf="!production"
+  >
+    <p-accordion-header>Heading structure</p-accordion-header>
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(0)">
+      View or reorganize your heading structure.
+    </p>
+    <p-accordion-content>
+      <ca-heading-structure></ca-heading-structure>
+    </p-accordion-content>
+  </p-accordion-panel>
 
-    <p-accordion-panel [value]="0" class="border-1 border-round-md border-surface" *ngIf="!production">
-        <p-accordion-header>Heading structure</p-accordion-header>
-        <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(0)">View or reorganize your heading structure.</p>
-        <p-accordion-content>
-            <ca-heading-structure></ca-heading-structure>
-        </p-accordion-content>
-    </p-accordion-panel>
+  <p-accordion-panel
+    [value]="1"
+    class="border-1 border-round-md border-surface"
+  >
+    <p-accordion-header>IA structure</p-accordion-header>
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(1)">
+      Check if your page is an IA orphan and view its current IA diagram.
+    </p>
+    <p-accordion-content>
+      <ca-ia-structure></ca-ia-structure>
+    </p-accordion-content>
+  </p-accordion-panel>
 
-    <p-accordion-panel [value]="1" class="border-1 border-round-md border-surface">
-        <p-accordion-header>IA structure</p-accordion-header>
-        <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(1)">Check if your page is an IA orphan and view its current IA diagram.</p>
-        <p-accordion-content>
-            <ca-ia-structure></ca-ia-structure>
-        </p-accordion-content>
-    </p-accordion-panel>
+  <p-accordion-panel
+    [value]="2"
+    class="border-1 border-round-sm border-surface"
+  >
+    <p-accordion-header>Component guidance</p-accordion-header>
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(2)">
+      Find guidance on the components used on your page and check for deprecated
+      code or unexpected classes or elements.
+    </p>
+    <p-accordion-content>
+      <ca-component-guidance></ca-component-guidance>
+    </p-accordion-content>
+  </p-accordion-panel>
 
-    <p-accordion-panel [value]="2" class="border-1 border-round-sm border-surface">
-        <p-accordion-header>Component guidance</p-accordion-header>
-        <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(2)">Find guidance on the components used on your page and check for deprecated code or unexpected classes or elements.</p>
-        <p-accordion-content>
-            <ca-component-guidance></ca-component-guidance>
-        </p-accordion-content>
-    </p-accordion-panel>
+  <p-accordion-panel
+    [value]="3"
+    class="border-1 border-round-sm border-surface"
+    *ngIf="!production"
+  >
+    <p-accordion-header>SEO</p-accordion-header>
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(3)">
+      Add doormat text.
+    </p>
+    <p-accordion-content>
+      <ca-seo></ca-seo>
+    </p-accordion-content>
+  </p-accordion-panel>
 
-    <p-accordion-panel [value]="3" class="border-1 border-round-sm border-surface" *ngIf="!production">
-        <p-accordion-header>SEO</p-accordion-header>
-        <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(3)">Add doormat text.</p>
-        <p-accordion-content>
-            <ca-seo></ca-seo>
-        </p-accordion-content>
-    </p-accordion-panel>
+  <p-accordion-panel
+    [value]="4"
+    class="border-1 border-round-sm border-surface"
+    *ngIf="!production"
+  >
+    <p-accordion-header>User insights</p-accordion-header>
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(4)">
+      Add doormat text.
+    </p>
+    <p-accordion-content>
+      <ca-user-insights></ca-user-insights>
+    </p-accordion-content>
+  </p-accordion-panel>
 
-    <p-accordion-panel [value]="4" class="border-1 border-round-sm border-surface" *ngIf="!production">
-        <p-accordion-header>User insights</p-accordion-header>
-        <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(4)">Add doormat text.</p>
-        <p-accordion-content>
-            <ca-user-insights></ca-user-insights>
-        </p-accordion-content>
-    </p-accordion-panel>
-
-    <p-accordion-panel [value]="5" class="border-1 border-round-sm border-surface" *ngIf="!production">
+  <!-- <p-accordion-panel [value]="5" class="border-1 border-round-sm border-surface" *ngIf="!production">
         <p-accordion-header>Link report</p-accordion-header>
         <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(5)">Add doormat text.</p>
         <p-accordion-content>
             <ca-link-report></ca-link-report>
         </p-accordion-content>
-    </p-accordion-panel>
+    </p-accordion-panel> -->
 
-    <p-accordion-panel [value]="6" class="border-1 border-round-md border-surface" *ngIf="!production">
-        <p-accordion-header>Template conversion</p-accordion-header>
-        <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(6)">Add doormat text.</p>
-        <p-accordion-content>
-            <ca-template-conversion></ca-template-conversion>
-        </p-accordion-content>
-    </p-accordion-panel>
-
+  <p-accordion-panel
+    [value]="5"
+    class="border-1 border-round-md border-surface"
+    *ngIf="!production"
+  >
+    <p-accordion-header>Template conversion</p-accordion-header>
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(6)">
+      Add doormat text.
+    </p>
+    <p-accordion-content>
+      <ca-template-conversion></ca-template-conversion>
+    </p-accordion-content>
+  </p-accordion-panel>
 </p-accordion>
