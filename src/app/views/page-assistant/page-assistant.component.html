@@ -1,112 +1,245 @@
-<h1 id="wb-cont">{{ 'title.page' | translate}}</h1>
-<p>{{'page.compare.description' | translate }}</p>
+<h1 id="wb-cont">{{ "title.page" | translate }}</h1>
+<p>{{ "page.compare.description" | translate }}</p>
 
 <!-- Control Buttons -->
 <div class="flex flex-wrap justify-content-between mb-3">
-    <div class="flex gap-2">
-        <p-button label="Send to GenAI" [icon]="isLoading ? 'pi pi-spinner pi-spin' : 'pi pi-comments'" severity="primary"
-                  (onClick)="sendToAI()"
-                  [pTooltip]="aiDisabled" showDelay="1000" hideDelay="300"
-                  [disabled]="!uploadData?.originalHtml || isLoading || isDisabled"></p-button>
-        <ca-ai-options (promptChange)="onPromptChange($event)" (aiChange)="onAiChange($event)" (aiSubmit)="sendToAI()" (customPrompt)="onAppendCustom($event)" (editPrompt)="onPrependLevel($event)"></ca-ai-options>
-    </div>
-    <div class="flex gap-2"><p-button label="Share" icon="pi pi-share-alt" severity="secondary" (onClick)="shareLink()" *ngIf="canShare"></p-button>
-        <p-button label="Reset" icon="pi pi-trash" severity="danger" (onClick)="clearAll($event)"></p-button>
-    </div>
+  <div class="flex gap-2">
+    <p-button
+      label="Send to GenAI"
+      [icon]="isLoading ? 'pi pi-spinner pi-spin' : 'pi pi-comments'"
+      severity="primary"
+      (onClick)="sendToAI()"
+      [pTooltip]="aiDisabled"
+      showDelay="1000"
+      hideDelay="300"
+      [disabled]="!uploadData?.originalHtml || isLoading || isDisabled"
+    ></p-button>
+    <ca-ai-options
+      (promptChange)="onPromptChange($event)"
+      (aiChange)="onAiChange($event)"
+      (aiSubmit)="sendToAI()"
+      (customPrompt)="onAppendCustom($event)"
+      (editPrompt)="onPrependLevel($event)"
+    ></ca-ai-options>
+  </div>
+  <div class="flex gap-2">
+    <p-button
+      label="Share"
+      icon="pi pi-share-alt"
+      severity="secondary"
+      (onClick)="shareLink()"
+      *ngIf="canShare"
+    ></p-button>
+    <p-button
+      label="Reset"
+      icon="pi pi-trash"
+      severity="danger"
+      (onClick)="clearAll($event)"
+    ></p-button>
+  </div>
 </div>
 <p-toast />
 <p-confirmdialog>
-    <ng-template #message let-message>
-        <div class="flex flex-row align-items-center gap-3">
-            <i [ngClass]="message.icon" class="text-6xl text-red-500"></i>
-            <div [innerHTML]="message.message"></div>
-        </div>
-    </ng-template>
+  <ng-template #message let-message>
+    <div class="flex flex-row align-items-center gap-3">
+      <i [ngClass]="message.icon" class="text-6xl text-red-500"></i>
+      <div [innerHTML]="message.message"></div>
+    </div>
+  </ng-template>
 </p-confirmdialog>
-<p-message *ngIf="statusMessage" [severity]="statusSeverity" [text]="statusMessage" closable></p-message>
+<p-message
+  *ngIf="statusMessage"
+  [severity]="statusSeverity"
+  [text]="statusMessage"
+  closable
+></p-message>
 
 <!-- Results Section -->
 
 <p-tabs value="0" class="mt-3">
-    <p-tablist>
-        <p-tab value="0"><i class="pi pi-eye mr-1"></i>Web page</p-tab>
-        <p-tab value="1"><i class="pi pi-code mr-1"></i>Page source</p-tab>
-        <p-tab value="2"><i class="pi pi-wrench mr-1"></i>Tools</p-tab>
-    </p-tablist>
-    <!-- Rendered page -->
-    <p-tabpanels class="shadow-1">
+  <p-tablist>
+    <p-tab value="0"><i class="pi pi-eye mr-1"></i>Web page</p-tab>
+    <p-tab value="1"><i class="pi pi-code mr-1"></i>Page source</p-tab>
+    <p-tab value="2"><i class="pi pi-wrench mr-1"></i>Tools</p-tab>
+    <p-tab value="3"><i class="pi pi-info-circle mr-1"></i>Metadata</p-tab>
+    <p-tab value="4"><i class="pi pi-chart-bar mr-1"></i>Data</p-tab>
+    <p-tab value="5">
+      <i class="pi pi-exclamation-triangle mr-1"></i>
+      Problems
+      <span class="tab-badge" *ngIf="problemsFeatureCount > 0">
+        {{ problemsFeatureCount }}
+      </span>
+    </p-tab>
+  </p-tablist>
+  <!-- Rendered page -->
+  <p-tabpanels class="shadow-1">
+    <p-tabpanel value="0">
+      <!--Switch view -->
+      <ca-horizontal-radio-buttons
+        label="page.compare.view"
+        [name]="'webView'"
+        [options]="webViewOptions"
+        [(selected)]="webSelectedView"
+        (selectedChange)="onWebViewChange($event)"
+      ></ca-horizontal-radio-buttons>
 
-        <p-tabpanel value="0">
+      <!--Toolbar-->
+      <div class="sticky top-0 z-5 bg-primary-reverse p-0">
+        <p-toolbar>
+          <ng-template #start>
+            <ng-container *ngIf="webSelectedView() === WebViewType.Diff">
+              <div class="flex flex-row align-items-center gap-2">
+                <div>
+                  <p-button
+                    icon="pi pi-chevron-left"
+                    text
+                    severity="primary"
+                    (onClick)="prev()"
+                    ariaLabel="Previous change"
+                    pTooltip="Previous change"
+                    showDelay="1000"
+                    hideDelay="300"
+                  />
+                  <span>{{ displayCounter }}</span>
+                  <p-button
+                    icon="pi pi-chevron-right"
+                    text
+                    severity="primary"
+                    (onClick)="next()"
+                    ariaLabel="Next change"
+                    pTooltip="Next change"
+                    showDelay="1000"
+                    hideDelay="300"
+                  />
+                </div>
 
-            <!--Switch view -->
-            <ca-horizontal-radio-buttons label="page.compare.view" [name]="'webView'" [options]="webViewOptions" [(selected)]="webSelectedView" (selectedChange)="onWebViewChange($event)"></ca-horizontal-radio-buttons>
+                <p-splitbutton
+                  label="Accept"
+                  icon="pi pi-check"
+                  severity="success"
+                  outlined
+                  size="small"
+                  class="secondary-outline"
+                  (onClick)="toolbarAccept()"
+                  [model]="acceptItems"
+                  [buttonProps]="{ ariaLabel: 'Accept selected changes' }"
+                  [menuButtonProps]="{ ariaLabel: 'More accept options' }"
+                  pTooltip="Accept selected changes"
+                  tooltipPosition="top"
+                  showDelay="1000"
+                  hideDelay="300"
+                />
+                <p-splitbutton
+                  label="Reject"
+                  icon="pi pi-times"
+                  severity="danger"
+                  outlined
+                  size="small"
+                  class="secondary-outline"
+                  (onClick)="toolbarReject()"
+                  [model]="rejectItems"
+                  [buttonProps]="{ ariaLabel: 'Reject selected changes' }"
+                  [menuButtonProps]="{ ariaLabel: 'More reject options' }"
+                  pTooltip="Reject selected changes"
+                  tooltipPosition="top"
+                  showDelay="1000"
+                  hideDelay="300"
+                />
 
-            <!--Toolbar-->
-            <div class="sticky top-0 z-5 bg-primary-reverse p-0">
-                <p-toolbar>
-                    <ng-template #start>
-                        <ng-container *ngIf="webSelectedView() === WebViewType.Diff">
-                            <div class="flex flex-row align-items-center gap-2">
-                                <div>
-                                    <p-button icon="pi pi-chevron-left" text severity="primary" (onClick)="prev()" ariaLabel="Previous change"
-                                              pTooltip="Previous change" showDelay="1000" hideDelay="300" />
-                                    <span>{{ displayCounter}}</span>
-                                    <p-button icon="pi pi-chevron-right" text severity="primary" (onClick)="next()" ariaLabel="Next change"
-                                              pTooltip="Next change" showDelay="1000" hideDelay="300" />
-                                </div>
-
-                                <p-splitbutton label="Accept" icon="pi pi-check" severity="success" outlined size="small" class="secondary-outline" (onClick)="toolbarAccept()" [model]="acceptItems"
-                                               [buttonProps]="{'ariaLabel': 'Accept selected changes'}" [menuButtonProps]="{'ariaLabel': 'More accept options'}"
-                                               pTooltip="Accept selected changes" tooltipPosition="top" showDelay="1000" hideDelay="300" />
-                                <p-splitbutton label="Reject" icon="pi pi-times" severity="danger" outlined size="small" class="secondary-outline" (onClick)="toolbarReject()" [model]="rejectItems"
-                                               [buttonProps]="{'ariaLabel': 'Reject selected changes'}" [menuButtonProps]="{'ariaLabel': 'More reject options'}"
-                                               pTooltip="Reject selected changes" tooltipPosition="top" showDelay="1000" hideDelay="300" />
-
-                                <span *ngIf="displayNumHighlighted" class="text-color-secondary pl-1">{{ displayNumHighlighted }}</span>
-                            </div>
-                        </ng-container>
-                        <ng-container *ngIf="webSelectedView() === WebViewType.Original || webSelectedView() === WebViewType.Modified">
-                            <p-togglebutton [(ngModel)]="toggleEdit" offLabel="Edit" onLabel="Save" offIcon="pi pi-pen-to-square" onIcon="pi pi-save" ariaLabel="Edit/Save" styleClass="font-bold border-none w-6rem"
-                                            (onChange)="toolbarToggleEdit(webSelectedView())" />
-                            <p-togglebutton [(ngModel)]="toggleCopy" offLabel="Copy code" onLabel="Copied" offIcon="pi pi-clipboard" onIcon="" ariaLabel="Copy code" styleClass="font-bold border-none w-9rem"
-                                            (onChange)="toolbarToggleCopy(webSelectedView())" />
-                        </ng-container>
-                    </ng-template>
-                    <ng-template #center>
-                    </ng-template>
-                    <ng-template #end>
-                        <!--Legend-->
-                        <div class="group-legend">
-                            <div *ngFor="let item of legendItems()" class="legend-item">
-                                <div class="legend-box" [ngStyle]="{
-                            'background-color': item.style === 'highlight' ? item.colour : 'transparent',
-                            border: item.style === 'line'
-                                ? '2px ' + (item.lineStyle || 'solid') + ' ' + item.colour
-                                : 'none', }"></div>
-                                <span class="legend-text">{{ item.text }}</span>
-                            </div>
-                        </div>
-                    </ng-template>
-                </p-toolbar>
+                <span
+                  *ngIf="displayNumHighlighted"
+                  class="text-color-secondary pl-1"
+                  >{{ displayNumHighlighted }}</span
+                >
+              </div>
+            </ng-container>
+            <ng-container
+              *ngIf="
+                webSelectedView() === WebViewType.Original ||
+                webSelectedView() === WebViewType.Modified
+              "
+            >
+              <p-togglebutton
+                [(ngModel)]="toggleEdit"
+                offLabel="Edit"
+                onLabel="Save"
+                offIcon="pi pi-pen-to-square"
+                onIcon="pi pi-save"
+                ariaLabel="Edit/Save"
+                styleClass="font-bold border-none w-6rem"
+                (onChange)="toolbarToggleEdit(webSelectedView())"
+              />
+              <p-togglebutton
+                [(ngModel)]="toggleCopy"
+                offLabel="Copy code"
+                onLabel="Copied"
+                offIcon="pi pi-clipboard"
+                onIcon=""
+                ariaLabel="Copy code"
+                styleClass="font-bold border-none w-9rem"
+                (onChange)="toolbarToggleCopy(webSelectedView())"
+              />
+            </ng-container>
+          </ng-template>
+          <ng-template #center> </ng-template>
+          <ng-template #end>
+            <!--Legend-->
+            <div class="group-legend">
+              <div *ngFor="let item of legendItems()" class="legend-item">
+                <div
+                  class="legend-box"
+                  [ngStyle]="{
+                    'background-color':
+                      item.style === 'highlight' ? item.colour : 'transparent',
+                    border:
+                      item.style === 'line'
+                        ? '2px ' +
+                          (item.lineStyle || 'solid') +
+                          ' ' +
+                          item.colour
+                        : 'none',
+                  }"
+                ></div>
+                <span class="legend-text">{{ item.text }}</span>
+              </div>
             </div>
-            <!--Shadow Dom-->
-            <div #liveContainer class="live-container p-0" [ngClass]="webSelectedView()"></div>
+          </ng-template>
+        </p-toolbar>
+      </div>
+      <!--Shadow Dom-->
+      <div
+        #liveContainer
+        class="live-container p-0"
+        [ngClass]="webSelectedView()"
+      ></div>
+    </p-tabpanel>
+    <!-- Source code -->
+    <p-tabpanel value="1">
+      <!--Switch view -->
+      <ca-horizontal-radio-buttons
+        label="page.compare.view"
+        [name]="'sourceView'"
+        [options]="sourceViewOptions"
+        [(selected)]="sourceSelectedView"
+        (selectedChange)="onSourceViewChange($event)"
+      ></ca-horizontal-radio-buttons>
+      <!--Source view-->
+      <div
+        #sourceContainer
+        class="source-container p-0"
+        [ngClass]="sourceSelectedView()"
+      ></div>
+    </p-tabpanel>
 
-        </p-tabpanel>
-        <!-- Source code -->
-        <p-tabpanel value="1">
+    <!-- Page details (metadata and misc reports) -->
+    <p-tabpanel value="2">
+      <ca-page-tools></ca-page-tools>
+    </p-tabpanel>
 
-            <!--Switch view -->
-            <ca-horizontal-radio-buttons label="page.compare.view" [name]="'sourceView'" [options]="sourceViewOptions" [(selected)]="sourceSelectedView" (selectedChange)="onSourceViewChange($event)"></ca-horizontal-radio-buttons>
-            <!--Source view-->
-            <div #sourceContainer class="source-container p-0" [ngClass]="sourceSelectedView()"></div>
-
-        </p-tabpanel>
-
-        <!-- Page details (metadata and misc reports) -->
-        <p-tabpanel value="2">
-            <ca-page-tools></ca-page-tools>
-        </p-tabpanel>
-
-    </p-tabpanels>
+    <p-tabpanel value="5">
+      <ca-page-problems
+        (summary)="onProblemsSummary($any($event))"
+      ></ca-page-problems>
+    </p-tabpanel>
+  </p-tabpanels>
 </p-tabs>

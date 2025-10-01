@@ -1,0 +1,24 @@
+<p>
+  Review issues detected on your page. Each section summarizes problems we
+  found.
+</p>
+<p-accordion
+  [(value)]="activePanels"
+  [multiple]="true"
+  class="flex flex-column gap-3"
+>
+  <p-accordion-panel
+    [value]="0"
+    class="border-1 border-round-md border-surface"
+  >
+    <p-accordion-header>Link report</p-accordion-header>
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(0)">
+      Check link text vs destination content and flag duplicate destinations.
+    </p>
+    <p-accordion-content>
+      <ca-link-report
+        (problemsChange)="onLinkReportProblem($event)"
+      ></ca-link-report>
+    </p-accordion-content>
+  </p-accordion-panel>
+</p-accordion>
