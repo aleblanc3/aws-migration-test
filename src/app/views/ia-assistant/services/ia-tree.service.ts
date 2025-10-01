@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { TreeNode } from 'primeng/api';
 import { ThemeService } from '../../../services/theme.service';
 import { FetchService } from '../../../services/fetch.service';
-import { BreadcrumbNode, PageMeta, BrokenLinks, SearchMatches } from '../data/data.model';
+import { BreadcrumbNode, PageMeta } from '../data/data.model';
 import { IaStateService } from './ia-state.service';
 
 @Injectable({
