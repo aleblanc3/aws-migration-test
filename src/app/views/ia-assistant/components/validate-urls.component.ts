@@ -148,6 +148,7 @@ export class ValidateUrlsComponent implements OnInit {
 
   /*** Validate URL pairs ***/
   async validateUrlPairs() {
+    this.setUrlPairs();
     const { urlPairs, includePrototypeLinks } = this.iaState.getUrlData();
     if (!urlPairs?.length) return;
 
