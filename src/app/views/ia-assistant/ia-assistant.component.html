@@ -10,6 +10,41 @@
                     <p-button icon="pi pi-file-export" pTooltip="Export JSON file" tooltipPosition="top" outlined styleClass="secondary-outline" severity="secondary" (onClick)="iaState.exportIaState()" />
 
                     <p-button icon="pi pi-download" pTooltip="Download CSV" tooltipPosition="top" outlined styleClass="secondary-outline" severity="secondary" (onClick)="iaState.exportIaTreeAsCsv()" [disabled]="iaState.getIaData().iaTree.length === 0" />
+
+                    <p-button *ngIf="isDev" icon="pi pi-github" pTooltip="Export to GitHub" tooltipPosition="top" outlined styleClass="secondary-outline" severity="secondary" (onClick)="op.toggle($event)" [disabled]="iaState.getIaData().iaTree.length === 0" />
+
+
+                    <p-popover #op>
+                        <div class="flex flex-column gap-2">
+                            <p-iftalabel>
+                                <input type="text" id="owner" pInputText [(ngModel)]="owner" pSize="small" fluid (blur)="updateRepoList()" />
+                                <label for="repo">Owner</label>
+                            </p-iftalabel>
+                            <p-iftalabel>
+                                <input type="text" id="repo" pInputText [(ngModel)]="repo" pSize="small" fluid />
+                                <label for="repo">Repository</label>
+                            </p-iftalabel>
+                            <p-dropdown
+                                        [options]="repos"
+                                        [(ngModel)]="repo"
+                                        placeholder="Select a repo">
+                            </p-dropdown>
+                            <p-iftalabel>
+                                <input type="text" id="branch" pInputText [(ngModel)]="branch" pSize="small" fluid />
+                                <label for="branch">Branch</label>
+                            </p-iftalabel>
+                            <p-iftalabel>
+                                <input type="text" id="token" pInputText [(ngModel)]="userToken" pSize="small" fluid />
+                                <label for="token">GitHub Token</label>
+                            </p-iftalabel>
+                            <p-button icon="pi pi-github" label="Export to GitHub" severity="primary" (onClick)="exportProjectToGitHub(owner,repo,branch,userToken,true)" [disabled]="iaState.getIaData().iaTree.length === 0" />
+
+                        </div>
+                    </p-popover>
+
+
+
+
                 </div>
             </ng-template>
             <ng-template #center>
