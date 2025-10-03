@@ -8,27 +8,19 @@ import { AccordionModule } from 'primeng/accordion';
 import { TranslateModule } from '@ngx-translate/core';
 
 //Child components
-import { HeadingStructureComponent } from './tools/heading-structure.component';
 import { IaStructureComponent } from './tools/ia-structure.component';
-import { ComponentGuidanceComponent } from './tools/component-guidance.component';
-import { SeoComponent } from './tools/seo.component';
-import { UserInsightsComponent } from './tools/user-insights.component';
 import { TemplateConversionComponent } from './tools/template-conversion.component';
-
 import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'ca-page-tools',
+  standalone: true,
   imports: [
     CommonModule,
     TranslateModule,
     AccordionModule,
-    TemplateConversionComponent,
-    SeoComponent,
-    UserInsightsComponent,
-    ComponentGuidanceComponent,
-    HeadingStructureComponent,
     IaStructureComponent,
+    TemplateConversionComponent,
   ],
   templateUrl: './tools.component.html',
   styles: `

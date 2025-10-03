@@ -1,11 +1,4 @@
-import {
-  Component,
-  OnInit,
-  ElementRef,
-  ViewChild,
-  effect,
-  inject,
-} from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild, effect, inject } from '@angular/core';
 import { CommonModule, LocationStrategy } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -19,14 +12,11 @@ import { ProgressBarModule } from 'primeng/progressbar';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { TreeTableModule } from 'primeng/treetable';
-import {
-  Tree,
-  TreeNodeContextMenuSelectEvent,
-  TreeNodeDropEvent,
-} from 'primeng/tree';
+import { Tree, TreeNodeContextMenuSelectEvent, TreeNodeDropEvent } from 'primeng/tree';
 import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
 import { InputGroup } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
+
 
 //Services
 import { UploadStateService } from '../../services/upload-state.service';
@@ -40,52 +30,37 @@ import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'ca-ia-structure',
-  imports: [
-    CommonModule,
-    FormsModule,
+  imports: [CommonModule, FormsModule,
     TranslateModule,
-    TableModule,
-    ButtonModule,
-    IftaLabel,
-    BreadcrumbModule,
-    OrganizationChartModule,
-    ProgressBarModule,
-    InputNumberModule,
-    InputTextModule,
-    TreeTableModule,
-    Tree,
-    ContextMenuModule,
-    InputGroup,
-    InputGroupAddonModule,
-  ],
+    TableModule, ButtonModule, IftaLabel, BreadcrumbModule, OrganizationChartModule, ProgressBarModule, InputNumberModule, InputTextModule, TreeTableModule, Tree, ContextMenuModule, InputGroup, InputGroupAddonModule,],
   providers: [TreeDragDropService],
   templateUrl: './ia-structure.component.html',
   styles: `
     /* remove link style from tree & fix indentation for line breaks in table */
     .ia-label {
-      white-space: pre-line;
+      white-space: pre-line; 
       display: inline-block;
-      color: var(--text-color) !important;
+      color: var(--text-color) !important; 
       text-decoration: none !important;
-    }
+    } 
 
     /* fix tree text color for dark backgrounds */
-    ::ng-deep .p-tree li[class*='text-white'] > .p-tree-node-content .ia-label {
+    ::ng-deep .p-tree li[class*="text-white"] > .p-tree-node-content .ia-label {
       color: #ffffff !important;
     }
 
     /* fix tree text color for light backgrounds */
-    ::ng-deep .p-tree li[class*='text-black'] > .p-tree-node-content .ia-label {
+    ::ng-deep .p-tree li[class*="text-black"] > .p-tree-node-content .ia-label {
       color: #000000 !important;
     }
 
     /* remove default hover style from tree nodes */
     ::ng-deep .p-tree .p-tree-node-content:hover {
-      background-color: unset !important;
+      background-color: unset !important; 
     }
 
     /* remove link style from IA chart */
-    ::ng-deep .ia-chart-container .p-organizationchart-node a {
+    ::ng-deep .ia-chart-container .p-organizationchart-node a { 
       color: var(--text-color) !important;
       text-decoration: none !important;
     }
@@ -99,7 +74,7 @@ import { environment } from '../../../../../environments/environment';
     ::ng-deep .ia-chart-container .p-organizationchart-node.text-black a {
       color: #000000 !important;
     }
-  `,
+`
 })
 export class IaStructureComponent implements OnInit {
   private uploadState = inject(UploadStateService);
@@ -119,20 +94,22 @@ export class IaStructureComponent implements OnInit {
   ngOnInit() {
     const data = this.uploadState.getUploadData();
     this.breadcrumb = data?.breadcrumb || [];
-    this.originalUrl = data?.originalUrl || '';
-    this.options = [...this.baseMenu];
+    this.originalUrl = data?.originalUrl || "";
+    this.options = [
+      ...this.baseMenu
+    ];
     this.baseHref = this.locationStrategy.getBaseHref();
   }
 
-  originalUrl = '';
+  originalUrl = "";
   //Breadcrumb & orphan status
   breadcrumb: MenuItem[] = [];
   urlFound: boolean | null = null;
 
   //IA chart
   iaChart: TreeNode[] | null = null;
-  brokenLinks: { parentUrl?: string; url: string; status: number }[] = [];
-  depth = 4; //default value
+  brokenLinks: { parentUrl?: string, url: string, status: number }[] = []
+  depth = 4 //default value
 
   //For tracking progress while building IA chart
   isChartLoading = false;
@@ -145,32 +122,28 @@ export class IaStructureComponent implements OnInit {
     'https://www.canada.ca/en/revenue-agency/services/forms-publications/forms.html',
     'https://www.canada.ca/fr/agence-revenu/services/formulaires-publications/formulaires.html',
     'https://www.canada.ca/en/revenue-agency/services/forms-publications/publications.html',
-    'https://www.canada.ca/fr/agence-revenu/services/formulaires-publications/publications.html',
+    'https://www.canada.ca/fr/agence-revenu/services/formulaires-publications/publications.html'
   ]);
 
   //Button fxn
   async checkIA() {
+
     //IA orphan status
-    this.urlFound = await this.checkParentLinks(
-      this.breadcrumb,
-      this.originalUrl,
-    );
+    this.urlFound = await this.checkParentLinks(this.breadcrumb, this.originalUrl);
 
     //IA tree
     this.iaChart = await this.buildIaTree([this.originalUrl], this.depth); // depth defaults to 4 but user can select 2 to 6
 
     //Set focus to first element in chart
     setTimeout(() => {
-      const firstNode = document.querySelector('.p-organizationchart-node a');
+      const firstNode = document.querySelector(".p-organizationchart-node a");
       if (firstNode) (firstNode as HTMLElement).focus();
     });
+
   }
 
   //Step 1: Check if breadcrumb orphan via parent page
-  async checkParentLinks(
-    breadcrumbs: MenuItem[],
-    originalUrl: string,
-  ): Promise<boolean> {
+  async checkParentLinks(breadcrumbs: MenuItem[], originalUrl: string): Promise<boolean> {
     if (!breadcrumbs?.length) return false;
 
     const lastBreadcrumb = breadcrumbs[breadcrumbs.length - 1]; //get breadcrumb parent
@@ -192,11 +165,11 @@ export class IaStructureComponent implements OnInit {
       const doc = parser.parseFromString(html, 'text/html');
 
       const links = Array.from(doc.querySelectorAll('a')) //get all links on parent page
-        .map((a) => a.getAttribute('href'))
+        .map(a => a.getAttribute('href'))
         .filter((href): href is string => !!href);
 
       // Make links absolute
-      const absoluteLinks = links.map((href) => {
+      const absoluteLinks = links.map(href => {
         try {
           return new URL(href, targetUrl).href;
         } catch {
@@ -205,10 +178,9 @@ export class IaStructureComponent implements OnInit {
       });
 
       const found = absoluteLinks.includes(originalUrl);
-      console.log(
-        `Original URL ${found ? 'found' : 'NOT found'} in ${targetUrl}`,
-      );
+      console.log(`Original URL ${found ? 'found' : 'NOT found'} in ${targetUrl}`);
       return found;
+
     } catch (err) {
       console.error('Error checking breadcrumb target:', err);
       return false;
@@ -218,33 +190,35 @@ export class IaStructureComponent implements OnInit {
   //Set background color
 
   get bgColors(): string[] {
-    return this.theme.darkMode() ? this.bgColorsDark : this.bgColorsLight;
+    return this.theme.darkMode()
+      ? this.bgColorsDark
+      : this.bgColorsLight;
   }
 
   bgColorsLight: string[] = [
-    'surface-0 hover:bg-primary-50',
-    'bg-primary-50 hover:bg-primary-100',
-    'bg-primary-100 hover:bg-primary-200',
-    'bg-primary-200 hover:bg-primary-300',
-    'bg-primary-300 hover:bg-primary-400',
-    'bg-primary-400 hover:bg-primary-500',
-    'bg-primary-500 hover:bg-primary-600 text-white',
-    'bg-primary-600 hover:bg-primary-700 text-white',
-    'bg-primary-700 hover:bg-primary-800 text-white',
-    'bg-primary-800 hover:bg-primary-900 text-white',
+    "surface-0 hover:bg-primary-50",
+    "bg-primary-50 hover:bg-primary-100",
+    "bg-primary-100 hover:bg-primary-200",
+    "bg-primary-200 hover:bg-primary-300",
+    "bg-primary-300 hover:bg-primary-400",
+    "bg-primary-400 hover:bg-primary-500",
+    "bg-primary-500 hover:bg-primary-600 text-white",
+    "bg-primary-600 hover:bg-primary-700 text-white",
+    "bg-primary-700 hover:bg-primary-800 text-white",
+    "bg-primary-800 hover:bg-primary-900 text-white",
   ];
 
   bgColorsDark: string[] = [
-    'surface-0 hover:bg-primary-900',
-    'bg-primary-900 hover:bg-primary-800',
-    'bg-primary-800 hover:bg-primary-700',
-    'bg-primary-700 hover:bg-primary-600',
-    'bg-primary-600 hover:bg-primary-500',
-    'bg-primary-500 hover:bg-primary-400',
-    'bg-primary-400 hover:bg-primary-300  text-black',
-    'bg-primary-300 hover:bg-primary-200 text-black',
-    'bg-primary-200 hover:bg-primary-100 text-black',
-    'bg-primary-100 hover:bg-primary-50 text-black',
+    "surface-0 hover:bg-primary-900",
+    "bg-primary-900 hover:bg-primary-800",
+    "bg-primary-800 hover:bg-primary-700",
+    "bg-primary-700 hover:bg-primary-600",
+    "bg-primary-600 hover:bg-primary-500",
+    "bg-primary-500 hover:bg-primary-400",
+    "bg-primary-400 hover:bg-primary-300  text-black",
+    "bg-primary-300 hover:bg-primary-200 text-black",
+    "bg-primary-200 hover:bg-primary-100 text-black",
+    "bg-primary-100 hover:bg-primary-50 text-black",
   ];
 
   get contextStyles(): Record<string, string> {
@@ -257,23 +231,18 @@ export class IaStructureComponent implements OnInit {
     new: 'bg-green-200 hover:bg-green-300 text-black',
     rot: 'bg-red-200 hover:bg-red-300 text-black',
     move: 'bg-yellow-200 hover:bg-yellow-300 text-black',
-    template: 'surface-200 hover:surface-300 text-black',
+    template: 'surface-200 hover:surface-300 text-black'
   };
 
   contextStylesDark: Record<string, string> = {
     new: 'bg-green-700 hover:bg-green-600 text-white',
     rot: 'bg-red-700 hover:bg-red-600 text-white',
     move: 'bg-yellow-700 hover:bg-yellow-600 text-black',
-    template: 'surface-200 hover:surface-300 text-white',
+    template: 'surface-200 hover:surface-300 text-white'
   };
 
   //Step 2a: Get single page IA data
-  async getPageMetaAndLinks(url: string): Promise<{
-    h1?: string;
-    breadcrumb?: string[];
-    links?: string[];
-    status: number;
-  } | null> {
+  async getPageMetaAndLinks(url: string): Promise<{ h1?: string; breadcrumb?: string[]; links?: string[], status: number } | null> {
     try {
       //Get HTML content
       const res = await fetch(url);
@@ -287,35 +256,25 @@ export class IaStructureComponent implements OnInit {
 
       //Get H1 (or double H1)
       const h1Elements = Array.from(doc.querySelectorAll('h1'));
-      const h1: string = h1Elements
-        .map((e) => e.textContent?.trim())
-        .filter(Boolean)
-        .join('<br>');
+      const h1: string = h1Elements.map(e => e.textContent?.trim()).filter(Boolean).join('<br>');
 
       //Get breadcrumb
-      const breadcrumb = Array.from(
-        doc.querySelectorAll('.breadcrumb li a'),
-      ).map(
-        (a) =>
-          new URL((a as HTMLAnchorElement).getAttribute('href') || '', url)
-            .href,
-      );
+      const breadcrumb = Array.from(doc.querySelectorAll('.breadcrumb li a'))
+        .map(a => new URL((a as HTMLAnchorElement).getAttribute('href') || '', url).href);
 
       //Get unique links
-      const anchors = Array.from(
-        doc.querySelectorAll('main a[href]'),
-      ) as HTMLAnchorElement[];
+      const anchors = Array.from(doc.querySelectorAll('main a[href]')) as HTMLAnchorElement[];
       const baseUrl = new URL(url).origin;
       const links = Array.from(
         new Set( //unique set
           anchors //from my array of anchors
-            .map((a) => {
+            .map(a => {
               const u = new URL(a.getAttribute('href') || '', url); // map absolute link
               u.hash = ''; // without #id's
               return u.href;
             })
-            .filter((u) => u.startsWith(baseUrl) && u !== url), // on same domain but not self
-        ),
+            .filter(u => u.startsWith(baseUrl) && u !== url) // on same domain but not self
+        )
       );
 
       return { h1, breadcrumb, links, status };
@@ -325,12 +284,7 @@ export class IaStructureComponent implements OnInit {
     }
   }
   //Step 2b: Crawl all child pages for IA data
-  async buildIaTree(
-    urls: string[],
-    depth: number,
-    parentUrl?: string,
-    level = 0,
-  ): Promise<TreeNode[]> {
+  async buildIaTree(urls: string[], depth: number, parentUrl?: string, level = 0): Promise<TreeNode[]> {
     if (depth <= 0) return [];
 
     //reset progress tracker
@@ -355,7 +309,7 @@ export class IaStructureComponent implements OnInit {
         this.brokenLinks.push({
           parentUrl,
           url,
-          status: meta?.status || 0,
+          status: meta?.status || 0
         });
         continue;
       }
@@ -375,11 +329,11 @@ export class IaStructureComponent implements OnInit {
           editing: null,
           customStyle: false,
           customStyleKey: null,
-          borderStyle: 'border-2 border-primary border-round shadow-2',
+          borderStyle: 'border-2 border-primary border-round shadow-2'
         },
         expanded: true,
         styleClass: `border-2 border-primary border-round shadow-2 ${bgClass}`,
-        children: [],
+        children: []
       };
 
       // Recurse into children
@@ -388,22 +342,14 @@ export class IaStructureComponent implements OnInit {
 
         const total = meta.links.length; //total links (used for limiting displayed child pages)
 
-        let limit = total; // default: no limit
-        if (this.skipFormsAndPubs.has(url)) {
-          limit = 5;
-        } // limit forms & pubs pages
+        let limit = total; // default: no limit        
+        if (this.skipFormsAndPubs.has(url)) { limit = 5; } // limit forms & pubs pages
 
         const links = meta.links.slice(0, limit); //trim excess links
 
-        node.children = await this.buildIaTree(
-          links,
-          depth - 1,
-          url,
-          level + 1,
-        ); //get child nodes
+        node.children = await this.buildIaTree(links, depth - 1, url, level + 1); //get child nodes
 
-        if (total > limit) {
-          //add dummy node if we limited the child nodes
+        if (total > limit) { //add dummy node if we limited the child nodes
           node.children?.push({
             label: `+ ${total - limit} more...`,
             data: {
@@ -413,12 +359,11 @@ export class IaStructureComponent implements OnInit {
               editing: null,
               customStyle: true,
               customStyleKey: 'template',
-              borderStyle:
-                'border-2 border-primary border-round shadow-2 border-dashed',
+              borderStyle: 'border-2 border-primary border-round shadow-2 border-dashed'
             },
             expanded: true,
             styleClass: `border-2 border-primary border-round shadow-2 border-dashed surface-100 hover:surface-200`,
-            children: [],
+            children: []
           });
         }
       }
@@ -438,7 +383,7 @@ export class IaStructureComponent implements OnInit {
     return nodes;
   }
 
-  //Prevent default click on org chart links <-- Do we want this??
+  //Prevent default click on org chart links <-- Do we want this?? 
   onNodeClick(event: MouseEvent) {
     if (event.button === 0) {
       event.preventDefault();
@@ -458,6 +403,7 @@ export class IaStructureComponent implements OnInit {
     }
   }
 
+
   //Context menu
   @ViewChild('cm') cm!: ContextMenu;
   options: MenuItem[] = []; //options for editing chart nodes
@@ -469,7 +415,7 @@ export class IaStructureComponent implements OnInit {
       command: () => {
         console.log('Edit ', this.selectedNode);
         this.editNode('label');
-      },
+      }
     },
     {
       label: 'Edit url',
@@ -477,10 +423,10 @@ export class IaStructureComponent implements OnInit {
       command: () => {
         console.log('Edit ', this.selectedNode);
         this.editNode('link');
-      },
+      }
     },
     {
-      separator: true,
+      separator: true
     },
     {
       label: 'Add child page',
@@ -488,18 +434,18 @@ export class IaStructureComponent implements OnInit {
       command: () => {
         console.log('Add ', this.selectedNode);
         this.addChildNode();
-      },
+      }
     },
     {
       label: 'Delete page',
       icon: 'pi pi-trash',
       command: () => {
-        console.log('Delete ', this.selectedNode);
+        console.log('Delete ', this.selectedNode)
         this.deleteNode();
-      },
+      }
     },
     {
-      separator: true,
+      separator: true
     },
     {
       label: 'Change template',
@@ -509,19 +455,19 @@ export class IaStructureComponent implements OnInit {
           label: 'Split into subway pattern',
           icon: 'pi pi-sitemap',
           command: () => {
-            console.log('Change template ', this.selectedNode);
+            console.log('Change template ', this.selectedNode)
             this.addParentNode('subway');
-          },
+          }
         },
         {
           label: 'Combine into single page',
           icon: 'pi pi-file-check',
           command: () => {
-            console.log('Change template ', this.selectedNode);
+            console.log('Change template ', this.selectedNode)
             this.addParentNode('combine');
-          },
+          }
         },
-      ],
+      ]
     },
     {
       label: 'Change style',
@@ -532,36 +478,33 @@ export class IaStructureComponent implements OnInit {
           icon: 'pi pi-file-plus',
           command: () => {
             this.selectedNode.data.customStyleKey = 'new';
-            this.selectedNode.data.borderStyle =
-              'border-2 border-primary border-round border-dashed shadow-2';
+            this.selectedNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
             this.updateNodeStyles(this.iaChart, 0);
             this.selectedNode = null!;
-          },
+          }
         },
         {
           label: 'ROT',
           icon: 'pi pi-trash',
           command: () => {
             this.selectedNode.data.customStyleKey = 'rot';
-            this.selectedNode.data.borderStyle =
-              'border-2 border-primary border-round border-dashed shadow-2';
+            this.selectedNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
             this.updateNodeStyles(this.iaChart, 0);
             this.selectedNode = null!;
-          },
+          }
         },
         {
           label: 'Page move',
           icon: 'pi pi-sitemap',
           command: () => {
             this.selectedNode.data.customStyleKey = 'move';
-            this.selectedNode.data.borderStyle =
-              'border-2 border-primary border-round border-dashed shadow-2';
+            this.selectedNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
             this.updateNodeStyles(this.iaChart, 0);
             this.selectedNode = null!;
-          },
+          }
         },
         {
-          separator: true,
+          separator: true
         },
         {
           label: 'Reset custom style',
@@ -569,46 +512,45 @@ export class IaStructureComponent implements OnInit {
           command: () => {
             this.selectedNode.data.customStyle = false;
             this.selectedNode.data.customStyleKey = null;
-            this.selectedNode.data.borderStyle =
-              'border-2 border-primary border-round shadow-2';
+            this.selectedNode.data.borderStyle = 'border-2 border-primary border-round shadow-2';
             this.updateNodeStyles(this.iaChart, 0);
             this.selectedNode = null!;
-          },
+          }
         },
-      ],
+      ]
     },
     {
-      separator: true,
+      separator: true
     },
     {
       label: 'Export to CSV',
       icon: 'pi pi-file-export',
       disabled: true, // TODO: implement export
       command: () => {
-        console.log('Export ', this.selectedNode);
+        console.log('Export ', this.selectedNode)
         this.exportTable();
-      },
+      }
     },
     {
-      separator: true,
+      separator: true
     },
     {
       label: 'Open page in new page assistant',
       icon: 'pi pi-sparkles',
       command: () => {
-        console.log('Open link in page assistant ', this.selectedNode);
+        console.log('Open link in page assistant ', this.selectedNode)
         this.openInPageAssistant();
-      },
+      }
     },
     {
       label: 'Open page in new tab',
       icon: 'pi pi-external-link',
       command: () => {
-        console.log('Open link in new tab ', this.selectedNode);
+        console.log('Open link in new tab ', this.selectedNode)
         this.openNodeUrl();
-      },
+      }
     },
-  ];
+  ]
   selectedNode!: TreeNode;
   draggable = true;
   selectable = true;
@@ -621,18 +563,14 @@ export class IaStructureComponent implements OnInit {
   baseHref: string | null = null;
 
   onNodeContextMenu(event: TreeNodeContextMenuSelectEvent) {
-    if (this.editingNode) {
-      //auto-save before switching
+    if (this.editingNode) { //auto-save before switching
       this.editingNode.data.editing = null;
     }
     this.selectedNode = event.node;
     const customStyle = this.selectedNode.data.customStyle;
 
-    this.options.forEach((item) => {
-      if (
-        item.label === 'Open page in new page assistant' ||
-        item.label === 'Open page in new tab'
-      ) {
+    this.options.forEach(item => {
+      if (item.label === 'Open page in new page assistant' || item.label === 'Open page in new tab') {
         item.disabled = !this.selectedNode?.data?.url?.trim(); //disable if no URL
       }
       if (item.label === 'Change template' || item.label === 'Change style') {
@@ -662,8 +600,7 @@ export class IaStructureComponent implements OnInit {
       this.selectable = false;
       // auto-focus on input
       setTimeout(() => {
-        const input =
-          document.querySelector<HTMLInputElement>('input.ia-label');
+        const input = document.querySelector<HTMLInputElement>('input.ia-label');
         input?.focus();
       });
     }
@@ -673,10 +610,7 @@ export class IaStructureComponent implements OnInit {
     if (this.selectedNode) {
       this.selectedNode.data.editing = null;
     }
-    if (this.selectedNode.data.url === 'https://www.canada.ca/') {
-      this.editNode('link');
-      return;
-    } // don't allow default URLs
+    if (this.selectedNode.data.url === 'https://www.canada.ca/') { this.editNode('link'); return; } // don't allow default URLs
     this.draggable = true;
     this.selectable = false;
   }
@@ -698,10 +632,9 @@ export class IaStructureComponent implements OnInit {
         editing: false,
         customStyle: false,
         customStyleKey: 'new',
-        borderStyle:
-          'border-2 border-primary border-round border-dashed shadow-2',
+        borderStyle: 'border-2 border-primary border-round border-dashed shadow-2'
       },
-      children: [],
+      children: []
     };
 
     // Push into parent
@@ -723,10 +656,7 @@ export class IaStructureComponent implements OnInit {
     if (!this.selectedNode) return;
 
     // Find the parent node and the array the selected node is in
-    const findParent = (
-      nodes: TreeNode[],
-      parentNode?: TreeNode,
-    ): { parentContainer: TreeNode[]; parentNode: TreeNode | null } | null => {
+    const findParent = (nodes: TreeNode[], parentNode?: TreeNode): { parentContainer: TreeNode[]; parentNode: TreeNode | null } | null => {
       for (const node of nodes) {
         if (node === this.selectedNode) {
           return {
@@ -747,10 +677,7 @@ export class IaStructureComponent implements OnInit {
 
     const { parentContainer, parentNode } = location;
 
-    const label =
-      action === 'subway'
-        ? 'Split into subway pattern'
-        : 'Combine into single page';
+    const label = action === 'subway' ? 'Split into subway pattern' : 'Combine into single page';
 
     //Create new parent node
     const newParentNode: TreeNode = {
@@ -763,11 +690,10 @@ export class IaStructureComponent implements OnInit {
         customStyle: true, // prevents style changes
         customStyleKey: 'template',
         isContainer: true, // used to keep child nodes at proper level and prevent drag/drop of these wrappers into each other
-        borderStyle:
-          'border-2 border-primary border-round border-dashed shadow-2',
+        borderStyle: 'border-2 border-primary border-round border-dashed shadow-2'
       },
       expanded: true,
-      children: [this.selectedNode],
+      children: [this.selectedNode]
     };
 
     // Replace the original node with the new parent node (which contains the original node as a child)
@@ -790,7 +716,7 @@ export class IaStructureComponent implements OnInit {
     const nodeToDelete = this.selectedNode;
 
     // Root-level (don't delete the root!!!)
-    const rootIndex = this.iaChart.findIndex((n) => n === nodeToDelete);
+    const rootIndex = this.iaChart.findIndex(n => n === nodeToDelete);
     if (rootIndex > -1) {
       console.warn('Cannot delete root node.');
       return;
@@ -800,13 +726,9 @@ export class IaStructureComponent implements OnInit {
     const findAndDelete = (nodes: TreeNode[]): boolean => {
       for (const node of nodes) {
         const children: TreeNode[] = node.children ?? [];
-        const childIndex = children.findIndex((c) => c === nodeToDelete);
+        const childIndex = children.findIndex(c => c === nodeToDelete);
         if (childIndex > -1) {
-          this.undoArray.push({
-            node: nodeToDelete,
-            parent: node,
-            index: childIndex,
-          });
+          this.undoArray.push({ node: nodeToDelete, parent: node, index: childIndex });
           children.splice(childIndex, 1);
           node.children = children.length ? children : undefined;
           return true;
@@ -838,8 +760,7 @@ export class IaStructureComponent implements OnInit {
     this.selectedNode = last.node;
     if (!this.selectedNode.data.customStyle) {
       this.selectedNode.data.customStyleKey = 'rot';
-      this.selectedNode.data.borderStyle =
-        'border-2 border-primary border-round border-dashed shadow-2';
+      this.selectedNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
       this.updateNodeStyles(this.iaChart, 0);
     }
     this.updateMenu();
@@ -849,21 +770,20 @@ export class IaStructureComponent implements OnInit {
   updateMenu() {
     this.options = [...this.baseMenu];
 
-    const deleteIndex = this.options.findIndex(
-      (option) => option.label === 'Delete page',
-    );
+    const deleteIndex = this.options.findIndex(option => option.label === 'Delete page');
 
     if (this.undoArray.length > 0 && deleteIndex !== -1) {
       this.options.splice(deleteIndex + 1, 0, {
         label: 'Restore page',
         icon: 'pi pi-history',
-        command: () => this.restoreNode(),
+        command: () => this.restoreNode()
       });
     }
   }
 
   //Placeholder for export function
-  exportTable() {}
+  exportTable() {
+  }
 
   //Open link in new tab
   openNodeUrl() {
@@ -872,10 +792,7 @@ export class IaStructureComponent implements OnInit {
 
   //Make share link a service so it can be used on both share.component.ts and here
   openInPageAssistant() {
-    const baseUrl = (window.location.origin + this.baseHref).replace(
-      /\/+$/,
-      '',
-    );
+    const baseUrl = (window.location.origin + this.baseHref).replace(/\/+$/, '');
     const urlParam = encodeURIComponent(this.selectedNode.data.url);
     const shareLink = `${baseUrl}/page-assistant/share?url=${urlParam}`;
     console.log('Open in page assistant: ', shareLink);
@@ -888,24 +805,19 @@ export class IaStructureComponent implements OnInit {
 
     if (!dragNode || !dropNode) return;
 
-    if (
-      (dropNode.data.isContainer || dropNode.parent?.data?.isContainer) &&
-      dragNode.data.isContainer
-    )
-      return; // not foolproof but tries to prevent dropping a container into another container
+    if ((dropNode.data.isContainer || dropNode.parent?.data?.isContainer) && dragNode.data.isContainer) return; // not foolproof but tries to prevent dropping a container into another container
     event.accept?.(); // accept the drop
 
     //Reset move style so move style can be removed if user puts it back
     if (dragNode.data.customStyleKey === 'move') {
       dragNode.data.customStyleKey = '';
-      dragNode.data.borderStyle =
-        'border-2 border-primary border-round shadow-2';
+      dragNode.data.borderStyle = 'border-2 border-primary border-round shadow-2';
     }
 
     //Get target element
     const targetEl = event.originalEvent?.target as HTMLElement;
     const tag = targetEl.tagName.toLowerCase(); // will be <a> or <div> if dropped on a node or <li> if dropped between nodes
-    const droppedOnNode: boolean = tag !== 'li';
+    const droppedOnNode: boolean = tag !== 'li'
 
     //Check if no change to IA structure
     const dragParentUrl = dragNode.data.originalParent; //parentUrl is the original parent before any changes
@@ -914,16 +826,8 @@ export class IaStructureComponent implements OnInit {
     const dropGrandparentUrl = dropNode.parent?.data?.originalParent ?? '';
 
     //console.log('Tag should be a if dropped on node:\n', tag);
-    if (droppedOnNode) {
-      console.log('Dropped on node');
-      console.log('Checking if parentUrl matches node Url:\n', dropUrl);
-    } else {
-      console.log('Dropped between nodes');
-      console.log(
-        'Checking if parentUrl matches sibling parent Url:\n',
-        dropParentUrl,
-      );
-    }
+    if (droppedOnNode) { console.log('Dropped on node'); console.log('Checking if parentUrl matches node Url:\n', dropUrl); }
+    else { console.log('Dropped between nodes'); console.log('Checking if parentUrl matches sibling parent Url:\n', dropParentUrl); }
     //console.log('Drag parentUrl:\n', dragParentUrl);
 
     const droppedOnParent = droppedOnNode && dragParentUrl === dropUrl;
@@ -933,37 +837,21 @@ export class IaStructureComponent implements OnInit {
     //console.log('Dropped on parent: ', droppedOnParent);
 
     //Check if dropping sibling onto a container
-    const droppedOnContainerSibling =
-      dropNode.data.isContainer &&
-      droppedOnNode &&
-      dragParentUrl === dropParentUrl;
-    const droppedBetweenContainerSibling =
-      dropNode.parent?.data?.isContainer &&
-      !droppedOnNode &&
-      dragParentUrl === dropGrandparentUrl;
+    const droppedOnContainerSibling = dropNode.data.isContainer && droppedOnNode && dragParentUrl === dropParentUrl;
+    const droppedBetweenContainerSibling = dropNode.parent?.data?.isContainer && !droppedOnNode && dragParentUrl === dropGrandparentUrl;
     //console.log('Dropped on container sibling: ', droppedOnContainerSibling);
     //console.log('Dropped between container sibling: ', droppedBetweenContainerSibling);
 
     //Check for custom style (containers & dummy nodes)
-    const isCustom = dragNode.data.customStyle;
+    const isCustom = dragNode.data.customStyle
     //console.log('Container or dummy node: ', isCustom);
 
     //console.log('Event drop', event);
 
     //Set move style when not reordering siblings, moving siblings into a template container, dragging a custom style node, or moving a new page
-    if (
-      !(
-        droppedOnParent ||
-        reorderedSiblings ||
-        droppedOnContainerSibling ||
-        droppedBetweenContainerSibling ||
-        isCustom ||
-        dragNode.data.customStyleKey === 'new'
-      )
-    ) {
+    if (!(droppedOnParent || reorderedSiblings || droppedOnContainerSibling || droppedBetweenContainerSibling || isCustom || dragNode.data.customStyleKey === 'new')) {
       dragNode.data.customStyleKey = 'move';
-      dragNode.data.borderStyle =
-        'border-2 border-primary border-round border-dashed shadow-2';
+      dragNode.data.borderStyle = 'border-2 border-primary border-round border-dashed shadow-2';
     }
 
     //Cleanup dragover style (happens when hovering on parent but dropping between parent and top child)
@@ -980,9 +868,8 @@ export class IaStructureComponent implements OnInit {
     if (!nodes) return;
 
     for (const node of nodes) {
-      const borderStyle =
-        node.data?.borderStyle ||
-        'border-2 border-primary border-round shadow-2';
+
+      const borderStyle = node.data?.borderStyle || 'border-2 border-primary border-round shadow-2';
 
       const bgClass = this.bgColors[level % this.bgColors.length];
       const bgStyle = this.contextStyles[node.data?.customStyleKey] ?? bgClass;
@@ -996,4 +883,6 @@ export class IaStructureComponent implements OnInit {
       }
     }
   }
+
+
 }
