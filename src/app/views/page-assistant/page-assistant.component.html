@@ -60,16 +60,15 @@
   <p-tablist>
     <p-tab value="0"><i class="pi pi-eye mr-1"></i>Web page</p-tab>
     <p-tab value="1"><i class="pi pi-code mr-1"></i>Page source</p-tab>
-    <p-tab value="2"><i class="pi pi-wrench mr-1"></i>Tools</p-tab>
-    <p-tab value="3"><i class="pi pi-info-circle mr-1"></i>Metadata</p-tab>
-    <p-tab value="4"><i class="pi pi-chart-bar mr-1"></i>Data</p-tab>
-    <p-tab value="5">
+    <p-tab value="2">
       <i class="pi pi-exclamation-triangle mr-1"></i>
       Problems
       <span class="tab-badge" *ngIf="problemsFeatureCount > 0">
         {{ problemsFeatureCount }}
       </span>
     </p-tab>
+    <p-tab value="3"><i class="pi pi-chart-bar mr-1"></i>Data</p-tab>
+    <p-tab value="4"><i class="pi pi-chart-wrench mr-1"></i>Tools</p-tab>
   </p-tablist>
   <!-- Rendered page -->
   <p-tabpanels class="shadow-1">
@@ -231,15 +230,18 @@
       ></div>
     </p-tabpanel>
 
-    <!-- Page details (metadata and misc reports) -->
     <p-tabpanel value="2">
-      <ca-page-tools></ca-page-tools>
+      <ca-page-problems></ca-page-problems>
     </p-tabpanel>
 
-    <p-tabpanel value="5">
-      <ca-page-problems
-        (summary)="onProblemsSummary($any($event))"
-      ></ca-page-problems>
+    <!-- Data tabpanel -->
+    <p-tabpanel value="3">
+      <ca-page-data></ca-page-data>
     </p-tabpanel>
   </p-tabpanels>
+
+  <!-- Tool tabpanel -->
+  <p-tabpanel value="4">
+    <ca-page-tools></ca-page-tools>
+  </p-tabpanel>
 </p-tabs>

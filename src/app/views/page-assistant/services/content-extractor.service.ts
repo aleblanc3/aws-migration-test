@@ -126,20 +126,15 @@ export class ContentExtractorService {
 
   // ========== CANADA.CA RULES ==========
 
+  // replace the H1 selection block inside fromCanadaDoc with this:
+
   private fromCanadaDoc(doc: Document): ExtractResult {
     const main = doc.querySelector('main') || doc.body;
 
-    // H1 with source tag
-    let titleSource: ExtractResult['titleSource'] = undefined;
-    const h1Text: string | null =
-      main.querySelector('h1')?.textContent?.trim() ||
-      doc.querySelector('h1')?.textContent?.trim() ||
-      null;
+    // H1 (prefer subway/section H1)
+    const { text: h1Text, source: titleSource } = this.getCanadaH1(main, doc);
 
-    if (main.querySelector('h1')) titleSource = 'main>h1';
-    else if (doc.querySelector('h1')) titleSource = 'document h1';
-
-    // Intro paragraph heuristics with source tag
+    // Intro paragraph heuristics with source tag (unchanged except using main)
     let introEl: Element | null =
       main.querySelector('.gc-lead, .lead, .pagetagline, p.lead') || null;
     let introSource: ExtractResult['introSource'] = null;
@@ -150,7 +145,7 @@ export class ContentExtractorService {
       else if (cls.contains('pagetagline')) introSource = 'pagetagline';
       else if (cls.contains('lead') && introEl.tagName === 'P')
         introSource = 'p.lead';
-      else introSource = 'lead'; // generic match from the selector list
+      else introSource = 'lead';
     } else {
       const beforeH2 = this.firstMeaningfulPBeforeHeading(main, /^H2$/i);
       if (beforeH2) {
@@ -317,6 +312,58 @@ export class ContentExtractorService {
     }
 
     return null;
+  }
+
+  // add this helper inside ContentExtractorService (near the other private helpers)
+
+  /** Prefer subway/section H1s, strip visually hidden text (e.g., .wb-inv) */
+  private getCanadaH1(
+    main: Element,
+    doc: Document,
+  ): {
+    text: string | null;
+    source: ExtractResult['titleSource'];
+  } {
+    const stripHidden = (el: Element | null): string | null => {
+      if (!el) return null;
+      const clone = el.cloneNode(true) as Element;
+      // remove visually-hidden fragments that append the global H1
+      clone
+        .querySelectorAll('.wb-inv, .wb-invisible, .visually-hidden')
+        .forEach((n) => n.remove());
+      const t = clone.textContent?.trim() ?? null;
+      // re-use cleanText and also strip wrapping quotes
+      const cleaned =
+        this.cleanText(t)
+          ?.replace(/^["'“”]+|["'“”]+$/g, '')
+          .trim() ?? null;
+      return cleaned;
+    };
+
+    // 1) Subway/section H1
+    const nameH1 =
+      main.querySelector('h1[property="name"]') ||
+      doc.querySelector('h1[property="name"]');
+    if (nameH1) return { text: stripHidden(nameH1), source: 'main>h1' };
+
+    // 2) Thickline H1 (still a common pattern)
+    const thick =
+      main.querySelector('h1.gc-thickline') ||
+      doc.querySelector('h1.gc-thickline');
+    if (thick) return { text: stripHidden(thick), source: 'main>h1' };
+
+    // 3) Any H1 in main
+    const h1Main = main.querySelector('h1');
+    if (h1Main) return { text: stripHidden(h1Main), source: 'main>h1' };
+
+    // 4) Any H1 in the document
+    const h1Doc = doc.querySelector('h1');
+    if (h1Doc) return { text: stripHidden(h1Doc), source: 'document h1' };
+
+    return {
+      text: null,
+      source: undefined as unknown as ExtractResult['titleSource'],
+    };
   }
 
   private firstParagraphInSection(sectionRoot: Element): string | null {

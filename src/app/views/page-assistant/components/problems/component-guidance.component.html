@@ -1,5 +1,4 @@
-<h2 class="mt-0">Guidance</h2>
-<ul>
+<!-- <ul>
     <li *ngFor="let item of guidanceList">
         <a [href]="item.url | translate" target="_blank" rel="noopener">{{ item.name | translate }}<i class="pi pi-external-link ml-1" style="font-size: .75rem"></i></a>
     </li>
@@ -18,4 +17,23 @@
             {{v.type}}: {{v.detail}}
         </li>
     </ul>
-</ng-container>
+</ng-container> -->
+<p-table [value]="tableRows" dataKey="url" styleClass="p-datatable-sm">
+  <ng-template pTemplate="header">
+    <tr>
+      <th *ngFor="let col of cols">{{ col.header }}</th>
+    </tr>
+  </ng-template>
+
+  <ng-template pTemplate="body" let-row>
+    <tr>
+      <td>{{ row.order }}</td>
+      <td>{{ row.component }}</td>
+      <td>
+        <a [href]="row.url" target="_blank" rel="noopener">
+          {{ row.url }}
+        </a>
+      </td>
+    </tr>
+  </ng-template>
+</p-table>

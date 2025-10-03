@@ -51,8 +51,9 @@ import { PromptTemplates } from './data/ai-prompts.constants';
 //Components
 import { AiOptionsComponent } from './components/ai-options.component';
 import { HorizontalRadioButtonsComponent } from '../../components/horizontal-radio-buttons/horizontal-radio-buttons.component';
+import { PageProblemsComponent } from './components/problems.component';
+import { PageDataComponent } from './components/data.component';
 import { PageToolsComponent } from './components/tools.component';
-import { ProblemsPanelComponent } from './components/problems.component';
 
 @Component({
   selector: 'ca-page-assistant-compare',
@@ -70,11 +71,12 @@ import { ProblemsPanelComponent } from './components/problems.component';
     ToggleButtonModule,
     TooltipModule,
     ConfirmDialogModule,
+    PageToolsComponent,
     SplitButtonModule,
     AiOptionsComponent,
     HorizontalRadioButtonsComponent,
-    PageToolsComponent,
-    ProblemsPanelComponent,
+    PageProblemsComponent,
+    PageDataComponent,
   ],
   templateUrl: './page-assistant.component.html',
   styleUrl: './page-assistant.component.css',

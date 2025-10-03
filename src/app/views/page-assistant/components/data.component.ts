@@ -8,33 +8,32 @@ import { AccordionModule } from 'primeng/accordion';
 import { TranslateModule } from '@ngx-translate/core';
 
 //Child components
-import { HeadingStructureComponent } from './problems/heading-structure.component';
-import { ComponentGuidanceComponent } from './problems/component-guidance.component';
-import { SeoComponent } from './problems/seo.component';
-import { UserInsightsComponent } from './problems/user-insights.component';
-import { LinkReportComponent } from './problems/link-report.component';
+import { SearchComponent } from './data/search.component';
+import { ChatLogsComponent } from './data/chatLogs.component';
+import { FeedbackComponent } from './data/feedback.component';
+import { UxTestingComponent } from './data/uxTesting.component';
 import { environment } from '../../../../environments/environment';
 
 @Component({
-  selector: 'ca-page-problems',
+  selector: 'ca-page-data',
+  standalone: true,
   imports: [
     CommonModule,
     TranslateModule,
     AccordionModule,
-    SeoComponent,
-    UserInsightsComponent,
-    LinkReportComponent,
-    ComponentGuidanceComponent,
-    HeadingStructureComponent,
+    SearchComponent,
+    ChatLogsComponent,
+    FeedbackComponent,
+    UxTestingComponent,
   ],
-  templateUrl: './problems.component.html',
+  templateUrl: './data.component.html',
   styles: `
     :host {
       display: block;
     }
   `,
 })
-export class PageProblemsComponent {
+export class PageDataComponent {
   production: boolean = environment.production;
   activePanels: number[] = [];
 
