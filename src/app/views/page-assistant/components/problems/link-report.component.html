@@ -59,40 +59,56 @@
           <span *ngSwitchCase="'type'">{{ rowData.type }}</span>
 
           <span *ngSwitchCase="'text'" [ngStyle]="getTextStyle(rowData)">
-            {{ rowData.text }}
+            <!-- A) DEFAULT (no variants) — keep your existing look -->
+            <ng-container *ngIf="!rowData.hasTextConflict; else variantNames">
+              {{ rowData.text }}
+              <div class="muted" *ngIf="rowData.href">
+                (
+                <a
+                  [href]="rowData.absUrl || rowData.href"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  {{ rowData.absUrl || rowData.href }}
+                </a>
+                )
+              </div>
+            </ng-container>
 
-            <div
-              class="muted variants"
-              *ngIf="
-                rowData.hasTextConflict && getOtherVariants(rowData).length
-              "
+            <!-- B) VARIANTS (different link names → same destination) -->
+            <ng-template #variantNames>
+              <!-- main name first, same font/size -->
+              <div>{{ rowData.text }}</div>
+
+              <!-- then every other variant on its own line, same font/size -->
+              <ul class="variant-list">
+                <li *ngFor="let v of getOtherVariants(rowData)">{{ v }}</li>
+              </ul>
+
+              <!-- clickable destination URL under the list -->
+              <div class="muted" *ngIf="rowData.href">
+                (
+                <a
+                  [href]="rowData.absUrl || rowData.href"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  {{ rowData.absUrl || rowData.href }}
+                </a>
+                )
+              </div>
+            </ng-template>
+          </span>
+          <span *ngSwitchCase="'explanation'">
+            <span
+              *ngIf="rowData.matchStatus === 'mismatch'; else noExp"
+              class="exp-badge"
+              role="note"
+              [title]="buildMismatchReason(rowData)"
             >
-              also:
-              <ng-container
-                *ngFor="
-                  let v of getOtherVariantsPreview(rowData);
-                  let last = last
-                "
-              >
-                {{ v }}<span *ngIf="!last"> · </span>
-              </ng-container>
-              <ng-container *ngIf="getOtherVariantsExtraCount(rowData) > 0">
-                , +{{ getOtherVariantsExtraCount(rowData) }} more
-              </ng-container>
-            </div>
-
-            <div class="muted" *ngIf="rowData.href">
-              (
-              <a
-                [href]="rowData.absUrl || rowData.href"
-                target="_blank"
-                rel="noopener"
-                class="break-all"
-              >
-                {{ rowData.href }}
-              </a>
-              )
-            </div>
+              {{ buildMismatchReason(rowData) }}
+            </span>
+            <ng-template #noExp>—</ng-template>
           </span>
 
           <span *ngSwitchCase="'destH1'" class="break-all">
@@ -106,6 +122,7 @@
               class="pi pi-exclamation-triangle text-bad"
               title="404/410 (Not found)"
               style="margin-right: 0.25rem"
+              aria-hidden="true"
             ></i>
 
             <!-- Missing anchor on same page -->
@@ -118,26 +135,37 @@
                 transform: rotate(45deg);
                 opacity: 0.8;
               "
+              aria-hidden="true"
             ></i>
 
-            <i
-              *ngIf="rowData.matchStatus === 'match'"
-              class="pi pi-check-circle text-ok"
-              title="Match"
-            ></i>
-            <i
-              *ngIf="rowData.matchStatus === 'mismatch'"
-              class="pi pi-times-circle text-bad"
-              title="Mismatch"
-            ></i>
-            <i
-              *ngIf="
-                rowData.matchStatus === 'unknown' ||
-                rowData.matchStatus === 'na'
-              "
-              class="pi pi-question-circle text-unk"
-              title="Unknown"
-            ></i>
+            <!-- Duplicates: show ONLY a red exclamation, hide match/mismatch/question -->
+            <ng-container *ngIf="rowData.hasTextConflict; else normalStatus">
+              <i
+                class="pi pi-exclamation-triangle text-bad"
+                title="Different link names point to the same destination"
+              ></i>
+            </ng-container>
+
+            <ng-template #normalStatus>
+              <i
+                *ngIf="rowData.matchStatus === 'match'"
+                class="pi pi-check-circle text-ok"
+                title="Match"
+              ></i>
+              <i
+                *ngIf="rowData.matchStatus === 'mismatch'"
+                class="pi pi-times-circle text-bad"
+                title="Mismatch"
+              ></i>
+              <i
+                *ngIf="
+                  rowData.matchStatus === 'unknown' ||
+                  rowData.matchStatus === 'na'
+                "
+                class="pi pi-question-circle text-unk"
+                title="Unknown"
+              ></i>
+            </ng-template>
           </span>
 
           <span *ngSwitchDefault>{{ rowData[col.field] || "—" }}</span>

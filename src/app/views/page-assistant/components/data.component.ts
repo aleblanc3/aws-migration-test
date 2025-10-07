@@ -8,28 +8,32 @@ import { AccordionModule } from 'primeng/accordion';
 import { TranslateModule } from '@ngx-translate/core';
 
 //Child components
-import { IaStructureComponent } from './tools/ia-structure.component';
-import { TemplateConversionComponent } from './tools/template-conversion.component';
+import { SearchComponent } from './data/search.component';
+import { ChatLogsComponent } from './data/chatLogs.component';
+import { FeedbackComponent } from './data/feedback.component';
+import { UxTestingComponent } from './data/uxTesting.component';
 import { environment } from '../../../../environments/environment';
 
 @Component({
-  selector: 'ca-page-tools',
+  selector: 'ca-page-data',
   standalone: true,
   imports: [
     CommonModule,
     TranslateModule,
     AccordionModule,
-    IaStructureComponent,
-    TemplateConversionComponent,
+    SearchComponent,
+    ChatLogsComponent,
+    FeedbackComponent,
+    UxTestingComponent,
   ],
-  templateUrl: './tools.component.html',
+  templateUrl: './data.component.html',
   styles: `
     :host {
       display: block;
     }
   `,
 })
-export class PageToolsComponent {
+export class PageDataComponent {
   production: boolean = environment.production;
   activePanels: number[] = [];
 
