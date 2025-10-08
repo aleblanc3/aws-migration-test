@@ -1,0 +1,58 @@
+<h2>Export to GitHub</h2>
+<p>Export the current in-scope pages for your project to a GitHub repository. You can specify the owner, repository, branch, and provide a <p-button icon="pi pi-question-circle" (onClick)="showHelp = !showHelp" [rounded]="true" [text]="true" styleClass="-m-3 nohover" iconPos="right" severity="help" label="GitHub token"></p-button> for authentication.</p>
+<p>The pages will be exported in Jekyll format. Redirects for the included pages are automatically set up, so you don't need to update links in your repo manually. If you create new pages directly in GitHub, remember to list them in your <code>/source/data/exclude-redirect-links.json</code> file.</p>
+
+
+<div *ngIf="showHelp" class="text-sm mt-2">
+    <p>To push changes to a repository, you need a valid GitHub token. Your token works like a username and password, so keep it private and do not share it with anyone.</p>
+
+    <p>Follow these steps to create a new GitHub token:</p>
+
+    <ol>
+        <li>Go to your GitHub <strong>Settings</strong>.</li>
+        <li>Select <strong>Developer settings</strong>.</li>
+        <li>Click <strong>Personal Access Tokens</strong> &gt; <strong>Fine-grained tokens</strong>.</li>
+        <li>Click <strong>Generate new token</strong>.</li>
+        <li>Give your token a <strong>unique name</strong> and a <strong>description</strong>.</li>
+        <li>Under <strong>Resource owner</strong>, select either cra-design or your personal account.</li>
+        <li>Under <strong>Repository access</strong>, select <strong>All repositories</strong>.</li>
+        <li>Add the necessary <strong>permissions</strong> for pushing changes to repositories:
+            <ul>
+                <li><strong>Administration</strong> (Access: Read and write)</li>
+                <li><strong>Contents</strong> (Access: Read and write)</li>
+                <li><strong>Metadata</strong> (Access: Read-only)</li>
+                <li><strong>Pages</strong> (Access: Read and write)</li>
+            </ul>
+        </li>
+        <li>Copy the generated token and enter it into the GitHub token field whenever you push changes to GitHub.</li>
+    </ol>
+
+    <p><strong>Important:</strong> Keep this token secret. Treat it like a password.</p>
+
+</div>
+
+<!--TODO: Generate link to repo and a bookmarklet for toggling between repo and Canada.ca-->
+<p-fieldset legend="Export settings">
+    <div class="flex flex-column gap-2">
+        <div class="flex flex-column gap-1">
+            <p-iftalabel>
+                <input type="text" id="owner" pInputText [(ngModel)]="gitHubData().owner" pSize="small" fluid (blur)="updateOwner();updateRepoList()" maxlength="39" [pKeyFilter]="ownerFilter" [ngClass]="{ 'ng-invalid ng-dirty': ownerError }" />
+                <label for="repo">Owner</label>
+            </p-iftalabel>
+            <p-message severity="error" variant="simple" size="small" *ngIf="ownerError">{{ownerError}}</p-message>
+        </div>
+        <p-iftalabel>
+            <p-autocomplete id="repo" [(ngModel)]="gitHubData().repo" [suggestions]="filteredRepos" (input)="updateRepo()" (completeMethod)="filterRepos($event)" [dropdown]=true pSize="small" maxlength="100" [pKeyFilter]="repoFilter" fluid />
+            <label for="repo">Repository</label>
+        </p-iftalabel>
+        <p-iftalabel>
+            <input type="text" id="branch" pInputText [(ngModel)]="gitHubData().branch" pSize="small" fluid (blur)="updateBranch()" [pKeyFilter]="branchFilter" />
+            <label for="branch">Branch</label>
+        </p-iftalabel>
+        <p-iftalabel>
+            <p-password feedback="false" id="token" [(ngModel)]="userToken" pSize="small" fluid />
+            <label for="token">GitHub Token</label>
+        </p-iftalabel>
+        <p-button icon="pi pi-github" label="Export to GitHub" severity="primary" (onClick)="exportProjectToGitHub(gitHubData().owner,gitHubData().repo,gitHubData().branch,userToken,true)" [disabled]="iaData().iaTree.length === 0" />
+    </div>
+</p-fieldset>
