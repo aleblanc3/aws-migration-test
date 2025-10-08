@@ -99,7 +99,10 @@
       <!-- Metadata Results -->
       <ca-metadata-result
         [results]="state.results"
-        [showTranslations]="state.translateToFrench">
+        [showTranslations]="state.translateToFrench"
+        [isProcessing]="state.isProcessing"
+        [processingIndex]="state.documentProcessingIndex"
+        (documentSelected)="onDocumentSelected($event.file, $event.index)">
       </ca-metadata-result>
 
       <!-- CSV Export -->

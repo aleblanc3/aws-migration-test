@@ -51,7 +51,8 @@ export class MetadataAssistantComponent implements OnInit, OnDestroy {
     results: [],
     error: null,
     selectedModel: 'mistralai/mistral-small-3.2-24b-instruct:free',
-    translateToFrench: false
+    translateToFrench: false,
+    documentProcessingIndex: null
   };
 
   urlInput = '';
@@ -210,5 +211,93 @@ export class MetadataAssistantComponent implements OnInit, OnDestroy {
   private getModelDisplayName(modelValue: string): string {
     const model = this.models.find(m => m.value === modelValue);
     return model ? model.name : modelValue;
+  }
+
+  // Document processing methods
+  onDocumentSelected(file: File, resultIndex: number): void {
+    if (!this.apiKeyService.hasApiKey$.value) {
+      this.stateService.setError(this.translate.instant('metadata.errors.noApiKey'));
+      return;
+    }
+
+    const result = this.state.results[resultIndex];
+    if (!result.frenchTranslatedDescription || !result.frenchTranslatedKeywords) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.translate.instant('metadata.document.errors.noTranslation'),
+        life: 4000
+      });
+      return;
+    }
+
+    this.stateService.setDocumentProcessingIndex(resultIndex);
+    this.stateService.updateState({
+      isProcessing: true,
+      currentStep: 'processing-document'
+    });
+
+    this.metadataService.processDocument(file).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (documentMetadata) => {
+        this.stateService.updateResultWithDocumentMetadata(resultIndex, documentMetadata);
+        this.stateService.updateState({ currentStep: 'evaluating' });
+
+        // Now evaluate the metadata
+        this.evaluateMetadata(resultIndex, documentMetadata);
+      },
+      error: (error) => {
+        console.error('Document processing error:', error);
+        this.stateService.updateState({
+          isProcessing: false,
+          documentProcessingIndex: null,
+          currentStep: 'complete'
+        });
+        this.messageService.add({
+          severity: 'error',
+          summary: this.translate.instant('metadata.document.errors.processingFailed'),
+          detail: error.message,
+          life: 5000
+        });
+      }
+    });
+  }
+
+  private evaluateMetadata(resultIndex: number, documentMetadata: { description: string, keywords: string }): void {
+    const result = this.state.results[resultIndex];
+    const translatedMetadata = {
+      description: result.frenchTranslatedDescription!,
+      keywords: result.frenchTranslatedKeywords!
+    };
+
+    this.metadataService.evaluateMetadata(translatedMetadata, documentMetadata).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (evaluationResult) => {
+        this.stateService.updateResultWithEvaluation(resultIndex, evaluationResult);
+        this.stateService.updateState({
+          isProcessing: false
+        });
+        this.messageService.add({
+          severity: 'success',
+          summary: this.translate.instant('metadata.document.evaluationComplete'),
+          life: 4000
+        });
+      },
+      error: (error) => {
+        console.error('Evaluation error:', error);
+        this.stateService.updateState({
+          isProcessing: false,
+          documentProcessingIndex: null,
+          currentStep: 'complete'
+        });
+        this.messageService.add({
+          severity: 'error',
+          summary: this.translate.instant('metadata.document.errors.evaluationFailed'),
+          detail: error.message,
+          life: 5000
+        });
+      }
+    });
   }
 }

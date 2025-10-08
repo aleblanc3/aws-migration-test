@@ -3,6 +3,18 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, from, of, throwError } from 'rxjs';
 import { catchError, map, retry, timeout, switchMap } from 'rxjs/operators';
 import { ApiKeyService } from './api-key.service';
+import { FileParseService } from './file-parse.service';
+
+export interface DocumentMetadata {
+  description: string;
+  keywords: string;
+}
+
+export interface EvaluationResult {
+  suggestedDescription: string;
+  suggestedKeywords: string;
+  rationale: string;
+}
 
 export interface MetadataResult {
   url: string;
@@ -11,6 +23,8 @@ export interface MetadataResult {
   metaKeywords: string;
   frenchTranslatedDescription?: string;
   frenchTranslatedKeywords?: string;
+  documentMetadata?: DocumentMetadata;
+  evaluationResult?: EvaluationResult;
   language: 'en' | 'fr';
   modelUsed?: string;
   fallbackUsed?: boolean;
@@ -50,6 +64,7 @@ export class MetadataAssistantService {
 
   private http = inject(HttpClient);
   private apiKeyService = inject(ApiKeyService);
+  private fileParseService = inject(FileParseService);
 
   processUrls(options: ProcessingOptions): Observable<MetadataResult[]> {
     const results: MetadataResult[] = [];
@@ -575,5 +590,118 @@ French keywords (comma-separated):`;
     // Clean up the keywords list
     const keywords = cleaned.split(',').map(k => k.trim()).filter(k => k.length > 0);
     return keywords.join(', ');
+  }
+
+  // Document processing methods
+  processDocument(file: File): Observable<DocumentMetadata> {
+    return from(this.extractDocumentText(file)).pipe(
+      switchMap(content => {
+        if (!content || content.length < 50) {
+          return throwError(() => new Error('Document content too short or invalid for processing'));
+        }
+        return this.generateMetadataFromDocument(content);
+      })
+    );
+  }
+
+  private async extractDocumentText(file: File): Promise<string> {
+    const arrayBuffer = await file.arrayBuffer();
+    return this.fileParseService.extractDocxParagraphs(arrayBuffer);
+  }
+
+  private generateMetadataFromDocument(content: string): Observable<DocumentMetadata> {
+    const apiKey = this.apiKeyService.getCurrentKey();
+    if (!apiKey) {
+      return throwError(() => new Error('API key not configured'));
+    }
+
+    // Use same prompts as French metadata generation but for French content
+    const descriptionPrompt = `En tant qu'expert en référencement, analysez attentivement le contenu suivant et fournissez un résumé concis et complet adapté à une méta-description en français. Le résumé DOIT être parfaitement adapté au contenu spécifique fourni. Utilisez des termes spécifiques au sujet, écrivez en phrases complètes, et assurez-vous que le résumé se termine de manière concise dans les 275 caractères. IMPORTANT: Fournissez UNIQUEMENT la méta-description elle-même SANS commentaire supplémentaire.\n\n${content}\n\nRésumé:`;
+
+    const keywordsPrompt = `En tant qu'expert en optimisation pour les moteurs de recherche, analysez attentivement le contenu suivant et identifiez 10 mots-clés méta significatifs qui sont DIRECTEMENT EXTRAITS du contenu. IMPORTANT: Retournez UNIQUEMENT une liste de mots-clés séparés par des virgules sans AUCUNE note supplémentaire. Excluez 'Agence du revenu du Canada' des mots-clés.\n\n${content}\n\nMots-clés:`;
+
+    // Use Mistral Small for French metadata generation
+    const model = 'mistralai/mistral-small-3.2-24b-instruct:free';
+
+    return this.callOpenRouter(descriptionPrompt, model, 200).pipe(
+      switchMap(description => {
+        return this.callOpenRouter(keywordsPrompt, model, 100).pipe(
+          map(keywords => ({
+            description: this.cleanMetadataResponse(description),
+            keywords: this.cleanKeywordsResponse(keywords)
+          }))
+        );
+      })
+    );
+  }
+
+  evaluateMetadata(
+    translatedMetadata: { description: string, keywords: string },
+    documentMetadata: DocumentMetadata
+  ): Observable<EvaluationResult> {
+    const apiKey = this.apiKeyService.getCurrentKey();
+    if (!apiKey) {
+      return throwError(() => new Error('API key not configured'));
+    }
+
+    const evaluationPrompt = `Vous êtes un expert en optimisation pour les moteurs de recherche (SEO) pour l'Agence du revenu du Canada. Vous devez évaluer deux versions de métadonnées en français et suggérer la meilleure version finale.
+
+VERSION 1 - Traduit de l'anglais:
+Description: ${translatedMetadata.description}
+Mots-clés: ${translatedMetadata.keywords}
+
+VERSION 2 - Généré à partir du document français:
+Description: ${documentMetadata.description}
+Mots-clés: ${documentMetadata.keywords}
+
+Analysez ces deux versions et fournissez:
+1. Une méta-description finale suggérée (maximum 275 caractères)
+2. Des mots-clés méta finaux suggérés (format: liste séparée par des virgules)
+3. Une brève justification de vos choix
+
+IMPORTANT: Votre réponse DOIT être structurée EXACTEMENT comme suit, sans texte supplémentaire:
+
+DESCRIPTION: [votre méta-description suggérée]
+KEYWORDS: [vos mots-clés suggérés]
+RATIONALE: [votre justification]`;
+
+    const model = 'mistralai/mistral-small-3.2-24b-instruct:free';
+
+    return this.callOpenRouter(evaluationPrompt, model, 400, this.TRANSLATION_TIMEOUT).pipe(
+      retry({ count: 1, delay: 2000 }),
+      map(response => this.parseEvaluationResponse(response)),
+      catchError(error => {
+        console.error('Error evaluating metadata:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  private parseEvaluationResponse(response: string): EvaluationResult {
+    const lines = response.trim().split('\n');
+    let suggestedDescription = '';
+    let suggestedKeywords = '';
+    let rationale = '';
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (trimmedLine.startsWith('DESCRIPTION:')) {
+        suggestedDescription = trimmedLine.substring('DESCRIPTION:'.length).trim();
+      } else if (trimmedLine.startsWith('KEYWORDS:')) {
+        suggestedKeywords = trimmedLine.substring('KEYWORDS:'.length).trim();
+      } else if (trimmedLine.startsWith('RATIONALE:')) {
+        rationale = trimmedLine.substring('RATIONALE:'.length).trim();
+      }
+    }
+
+    // Clean up the extracted values
+    suggestedDescription = this.cleanMetadataResponse(suggestedDescription);
+    suggestedKeywords = this.cleanKeywordsResponse(suggestedKeywords);
+
+    return {
+      suggestedDescription,
+      suggestedKeywords,
+      rationale: rationale || 'No rationale provided'
+    };
   }
 }

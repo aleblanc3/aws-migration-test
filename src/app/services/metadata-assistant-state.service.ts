@@ -5,7 +5,7 @@ import { MetadataResult } from './metadata-assistant.service';
 export interface MetadataProcessingState {
   isProcessing: boolean;
   currentUrl: string;
-  currentStep: 'idle' | 'scraping' | 'generating' | 'translating' | 'complete';
+  currentStep: 'idle' | 'scraping' | 'generating' | 'translating' | 'processing-document' | 'evaluating' | 'complete';
   progress: number;
   totalUrls: number;
   processedUrls: number;
@@ -13,6 +13,7 @@ export interface MetadataProcessingState {
   error: string | null;
   selectedModel: string;
   translateToFrench: boolean;
+  documentProcessingIndex: number | null;
 }
 
 @Injectable({
@@ -29,7 +30,8 @@ export class MetadataAssistantStateService {
     results: [],
     error: null,
     selectedModel: 'mistralai/mistral-small-3.2-24b-instruct:free',
-    translateToFrench: false
+    translateToFrench: false,
+    documentProcessingIndex: null
   };
 
   private stateSubject = new BehaviorSubject<MetadataProcessingState>(this.initialState);
@@ -120,5 +122,38 @@ export class MetadataAssistantStateService {
       currentStep: 'idle',
       error: null
     });
+  }
+
+  // Document processing methods
+  updateResultWithDocumentMetadata(index: number, documentMetadata: { description: string, keywords: string }): void {
+    const state = this.getState();
+    const updatedResults = [...state.results];
+    if (updatedResults[index]) {
+      updatedResults[index] = {
+        ...updatedResults[index],
+        documentMetadata
+      };
+      this.updateState({ results: updatedResults });
+    }
+  }
+
+  updateResultWithEvaluation(index: number, evaluationResult: { suggestedDescription: string, suggestedKeywords: string, rationale: string }): void {
+    const state = this.getState();
+    const updatedResults = [...state.results];
+    if (updatedResults[index]) {
+      updatedResults[index] = {
+        ...updatedResults[index],
+        evaluationResult
+      };
+      this.updateState({
+        results: updatedResults,
+        documentProcessingIndex: null,
+        currentStep: 'complete'
+      });
+    }
+  }
+
+  setDocumentProcessingIndex(index: number | null): void {
+    this.updateState({ documentProcessingIndex: index });
   }
 }
