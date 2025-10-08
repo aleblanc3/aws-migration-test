@@ -108,17 +108,17 @@ export class ExportGitHubService {
         div.remove();
       });
 
-      //Remove empty elements (not recursive, consider doing multiple passes if needed)
+      /*Remove empty elements (not recursive, consider doing multiple passes if needed) <-- This removes font awesome icons since they are in empty spans
       mainEl.querySelectorAll("div, section, p, span, li, strong").forEach(el => {
         if (el.childElementCount === 0 && !el.textContent?.trim()) {
           el.remove();
         }
-      });
+      });*/
 
-      //Fix nested elements <-- need to find page to test this
+      /*Fix nested elements <-- need to find page to test this
       ["strong", "b", "em", "i", "u"].forEach(tag => {
         let nested = mainEl.querySelectorAll(`${tag} ${tag}`);
-
+      
         while (nested.length > 0) {
           nested.forEach(inner => {
             const parent = inner.parentElement;
@@ -133,7 +133,7 @@ export class ExportGitHubService {
           // Update nested list in case there are multiple levels
           nested = mainEl.querySelectorAll(`${tag} ${tag}`);
         }
-      });
+      });*/
 
       // Fix relative URLs
       mainEl.querySelectorAll<HTMLElement>("*").forEach(el => {
