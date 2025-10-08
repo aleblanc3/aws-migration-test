@@ -16,7 +16,12 @@
     <!-- Upload Section -->
     <div
       class="flex flex-column align-items-center justify-content-center p-3 border-dashed border-round border-200 surface-100 hover:surface-200 hover:border-primary-400 transition-colors transition-duration-300 cursor-pointer w-full max-w-30rem min-h-12rem"
+      role="button"
+      tabindex="0"
+      aria-label="Select a source .docx or .pptx file"
       (click)="fileInput.click()"
+      (keyup.enter)="fileInput.click()"
+      (keyup.space)="fileInput.click()"
       (dragover)="onDragOver($event)"
       (dragleave)="onDragLeave($event)"
       (drop)="onDrop($event)"
@@ -33,11 +38,13 @@
           <i
             *ngIf="isDocx(selectedFile)"
             class="pi pi-file-word text-blue-500 text-2xl mr-1"
+            aria-hidden="true"
           ></i>
           <fa-icon
             *ngIf="isPptx(selectedFile)"
             [icon]="faFilePowerpoint"
             class="text-orange-500 text-2xl mr-1"
+            aria-hidden="true"
           ></fa-icon>
 
           {{ selectedFile.name }}
@@ -46,6 +53,7 @@
       <ng-template #dragArea>
         <i
           class="pi pi-upload border-2 border-circle border-300 p-3 text-3xl text-color-secondary mb-2 hover:bg-primary hover:text-white transition-colors transition-duration-300"
+          aria-hidden="true"
         ></i>
         <p class="m-0 text-center text-sm">
           Drag and drop .docx or .pptx source language file here.
@@ -57,12 +65,13 @@
       <button
         pButton
         type="button"
-        label="Upload file"
         icon="pi pi-upload"
         class="p-button p-component p-button-primary"
         [disabled]="!selectedFile"
         (click)="previewSource()"
-      ></button>
+      >
+        Upload file
+      </button>
     </div>
 
     <!-- Preview Panel -->
@@ -88,7 +97,13 @@
             gap: 0.5rem;
             width: 100%;
           "
+          role="button"
+          tabindex="0"
           (click)="isExpanded = !isExpanded"
+          (keyup.enter)="isExpanded = !isExpanded"
+          (keyup.space)="isExpanded = !isExpanded"
+          [attr.aria-expanded]="isExpanded"
+          aria-controls="preview-panel-content"
         >
           <div class="d-flex align-items-center">
             <i
@@ -98,10 +113,11 @@
                 'pi-minus': isExpanded,
               }"
               style="margin-right: 0.5rem"
+              aria-hidden="true"
             ></i>
-            <span class="p-panel-title font-semibold" style="color: black"
-              >Preview source language file</span
-            >
+            <span class="p-panel-title font-semibold" style="color: black">
+              Preview source language file
+            </span>
           </div>
 
           <button
@@ -109,15 +125,22 @@
             type="button"
             class="p-button-text p-button-icon-only flex-shrink-0"
             title="Copy All"
+            aria-label="Copy all preview text"
             (click)="copyAll($event)"
             style="width: 3rem; height: 3rem"
           >
-            <span class="pi pi-copy" style="font-size: 1.4rem"></span>
+            <span
+              class="pi pi-copy"
+              style="font-size: 1.4rem"
+              aria-hidden="true"
+            ></span>
+            <span class="sr-only">Copy All</span>
           </button>
         </div>
 
         <div
           *ngIf="isExpanded"
+          id="preview-panel-content"
           class="p-panel-content p-mt-2"
           style="
             background-color: white;
@@ -165,11 +188,12 @@
       <button
         pButton
         type="button"
-        label="Format target language content"
         icon="pi pi-align-left"
         class="p-button-primary"
         (click)="onFormatTargetLanguageContent()"
-      ></button>
+      >
+        Format target language content
+      </button>
     </div>
   </p-card>
 </div>
@@ -195,11 +219,12 @@
       <button
         pButton
         type="button"
-        label="Download file"
         icon="pi pi-download"
         class="p-button-primary"
         (click)="onDownloadFile()"
-      ></button>
+      >
+        Download file
+      </button>
     </div>
   </p-card>
 </div>

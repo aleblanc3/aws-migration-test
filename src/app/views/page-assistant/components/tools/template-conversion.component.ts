@@ -4,8 +4,6 @@ import { Component } from '@angular/core';
   selector: 'ca-template-conversion',
   imports: [],
   templateUrl: './template-conversion.component.html',
-  styles: ``
+  styles: ``,
 })
-export class TemplateConversionComponent {
-
-}
+export class TemplateConversionComponent {}

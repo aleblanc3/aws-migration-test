@@ -1,0 +1,63 @@
+<p>Add description here.</p>
+
+<!--REMINDER: remove *ngIf="!production" as tools are finished (or close enough for people to use them)-->
+
+<p-accordion
+  [(value)]="activePanels"
+  [multiple]="true"
+  class="flex flex-column gap-3"
+>
+  <p-accordion-panel
+    [value]="0"
+    class="border-1 border-round-md border-surface"
+    *ngIf="!production"
+  >
+    <p-accordion-header>Search</p-accordion-header>
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(0)">
+      Add doormat text.
+    </p>
+    <p-accordion-content>
+      <ca-search></ca-search>
+    </p-accordion-content>
+  </p-accordion-panel>
+
+  <p-accordion-panel
+    [value]="1"
+    class="border-1 border-round-md border-surface"
+  >
+    <p-accordion-header>Chat logs</p-accordion-header>
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(1)">
+      Add doormat text.
+    </p>
+    <p-accordion-content>
+      <ca-chat-logs></ca-chat-logs>
+    </p-accordion-content>
+  </p-accordion-panel>
+
+  <p-accordion-panel
+    [value]="2"
+    class="border-1 border-round-sm border-surface"
+  >
+    <p-accordion-header>Feedback</p-accordion-header>
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(2)">
+      Add doormat text.
+    </p>
+    <p-accordion-content>
+      <ca-feedback></ca-feedback>
+    </p-accordion-content>
+  </p-accordion-panel>
+
+  <p-accordion-panel
+    [value]="3"
+    class="border-1 border-round-sm border-surface"
+    *ngIf="!production"
+  >
+    <p-accordion-header>UX testing</p-accordion-header>
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(3)">
+      Add doormat text.
+    </p>
+    <p-accordion-content>
+      <ca-ux-testing></ca-ux-testing>
+    </p-accordion-content>
+  </p-accordion-panel>
+</p-accordion>

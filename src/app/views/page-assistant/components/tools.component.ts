@@ -8,35 +8,32 @@ import { AccordionModule } from 'primeng/accordion';
 import { TranslateModule } from '@ngx-translate/core';
 
 //Child components
-import { HeadingStructureComponent } from "./tools/heading-structure.component";
-import { IaStructureComponent } from "./tools/ia-structure.component";
-import { ComponentGuidanceComponent } from "./tools/component-guidance.component";
-import { SeoComponent } from "./tools/seo.component";
-import { UserInsightsComponent } from "./tools/user-insights.component";
-import { LinkReportComponent } from "./tools/link-report.component";
-import { TemplateConversionComponent } from "./tools/template-conversion.component";
-
+import { IaStructureComponent } from './tools/ia-structure.component';
+import { TemplateConversionComponent } from './tools/template-conversion.component';
 import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'ca-page-tools',
-  imports: [CommonModule, TranslateModule,
+  standalone: true,
+  imports: [
+    CommonModule,
+    TranslateModule,
     AccordionModule,
-    TemplateConversionComponent, LinkReportComponent, SeoComponent, UserInsightsComponent, ComponentGuidanceComponent, HeadingStructureComponent, IaStructureComponent],
+    IaStructureComponent,
+    TemplateConversionComponent,
+  ],
   templateUrl: './tools.component.html',
   styles: `
     :host {
       display: block;
     }
-  `
+  `,
 })
 export class PageToolsComponent {
-
   production: boolean = environment.production;
   activePanels: number[] = [];
 
   isPanelOpen(panelIndex: number): boolean {
     return this.activePanels.includes(panelIndex);
   }
-
 }

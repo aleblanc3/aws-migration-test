@@ -39,6 +39,19 @@ export class ShadowDomService {
     // Clear previous content
     this.clearShadowDOM(shadowRoot);
 
+    // Add external stylesheets
+    const externalStyles = [
+      'https://use.fontawesome.com/releases/v5.15.4/css/all.css',
+      'https://www.canada.ca/etc/designs/canada/wet-boew/css/theme.min.css',
+      'https://www.canada.ca/etc/designs/canada/wet-boew/méli-mélo/2024-09-kejimkujik.min.css'
+    ];
+    for (const href of externalStyles) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = href;
+      shadowRoot.appendChild(link);
+    }
+
     // Add base styles
     const style = document.createElement('style');
     style.textContent = this.webDiffService.getRenderedDiffStyles();

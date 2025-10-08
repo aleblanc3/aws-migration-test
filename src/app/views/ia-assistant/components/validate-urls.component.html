@@ -1,0 +1,114 @@
+<!--Enter URLs-->
+<h2 class="my-0">Canada.ca URLs</h2>
+<p class="my-0 text-color-secondary text-xs">Paste some relevant Canada.ca URLs to get started. These links will be crawled to find any child pages to include in your inventory. Each link should begin on a new line. If you have prototype links, you can paste both columns or separate them with a comma or semicolon.</p>
+
+<p-iftalabel>
+    <textarea id="urls" autoResize="true" rows="5" pTextarea [(ngModel)]="iaState.getUrlData().rawUrls" (change)="setUrlPairs()" (paste)="onPasteUrls()" fluid></textarea>
+    <label for="urls">URLs</label>
+</p-iftalabel>
+
+<!--Show url pairs if prototype links were included-->
+<p-table [value]="iaState.getUrlData().urlPairs" *ngIf="iaState.getUrlData().includePrototypeLinks" size="small" stripedRows [scrollable]="true" scrollHeight="400px" styleClass="mb-2">
+    <ng-template #header>
+        <tr>
+            <th>Production URL</th>
+            <th>Prototype URL</th>
+        </tr>
+    </ng-template>
+    <ng-template #body let-url>
+        <tr>
+            <td>{{ url.production.href }}</td>
+            <td>{{ url.prototype?.href }}</td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<!--Validate links button-->
+<p-button label="Validate URLs" icon="pi pi-check-square" [loading]="iaState.getUrlData().isValidating" (onClick)="validateUrlPairs()" [disabled]="iaState.getUrlData().rawUrls.length === 0 || iaState.getUrlData().isValidated" />
+
+<!--Show link validation-->
+<ng-container *ngIf="iaState.getUrlData().isValidating || iaState.getUrlData().isValidated">
+    <h2 *ngIf="urlsChecking.length > 0">Validating links</h2>
+    <h2 *ngIf="urlsChecking.length === 0">Validated links</h2>
+
+    <p-progressbar [value]="iaState.getUrlData().urlPercent">
+        <ng-template #content let-value>
+            <span>{{iaState.getUrlData().urlChecked}}/{{iaState.getUrlData().urlTotal}}</span>
+        </ng-template>
+    </p-progressbar>
+
+    <div class="flex flex-column gap-2 mt-3" *ngIf="urlsChecking.length > 0 || urlsProtoChecking.length > 0">
+        <ng-container *ngFor="let url of urlsChecking">
+            <p-chip styleClass="bg-yellow-100 text-black-alpha-90" class="max-w-max">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>{{ url.href }}</span>
+            </p-chip>
+        </ng-container>
+        <ng-container *ngFor="let url of urlsProtoChecking">
+            <p-chip styleClass="bg-orange-100 text-black-alpha-90" class="max-w-max">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>{{ url.href }}</span>
+            </p-chip>
+        </ng-container>
+    </div>
+</ng-container>
+
+<p-confirmpopup />
+<h2 *ngIf="urlsBad.length > 0 || urlsProtoBad.length > 0" class="mb-0">Broken links</h2>
+<div class="flex flex-column gap-2">
+    <ca-link-list labelKey="Broken"
+                  [links]="urlsBad"
+                  type="prod"
+                  (approve)="approve($event.url, $event.event, 'prod')"
+                  (remove)="remove($event, 'prod')"
+                  *ngIf="urlsBad.length > 0">
+    </ca-link-list>
+    <ca-link-list labelKey="Broken"
+                  [links]="urlsProtoBad"
+                  type="proto"
+                  (approve)="approve($event.url, $event.event, 'proto')"
+                  (remove)="remove($event, 'proto')"
+                  *ngIf="urlsProtoBad.length > 0">
+    </ca-link-list>
+</div>
+<h2 *ngIf="urlsRedirected.length > 0 || urlsProtoRedirected.length > 0" class="mb-0">Redirected links</h2>
+<div class="flex flex-column gap-2">
+    <ca-link-list labelKey="Redirected"
+                  [links]="urlsRedirected"
+                  type="prod"
+                  (approve)="approve($event.url, $event.event, 'prod')"
+                  (remove)="remove($event, 'prod')"
+                  *ngIf="urlsRedirected.length > 0">
+    </ca-link-list>
+    <ca-link-list labelKey="Redirected"
+                  [links]="urlsProtoRedirected"
+                  type="proto"
+                  (approve)="approve($event.url, $event.event, 'proto')"
+                  (remove)="remove($event, 'proto')"
+                  *ngIf="urlsProtoRedirected.length > 0">
+    </ca-link-list>
+</div>
+<h2 *ngIf="urlsBlocked.length > 0 || urlsProtoBlocked.length > 0" class="mb-0">Blocked links</h2>
+<div class="flex flex-column gap-2">
+    <ca-link-list labelKey="Blocked"
+                  [links]="urlsBlocked"
+                  type="prod"
+                  (approve)="approve($event.url, $event.event, 'prod')"
+                  (remove)="remove($event, 'prod')"
+                  *ngIf="urlsBlocked.length > 0">
+    </ca-link-list>
+    <ca-link-list labelKey="Blocked"
+                  [links]="urlsProtoBlocked"
+                  type="proto"
+                  (approve)="approve($event.url, $event.event, 'proto')"
+                  (remove)="remove($event, 'proto')"
+                  *ngIf="urlsProtoBlocked.length > 0">
+    </ca-link-list>
+</div>
+<ng-container *ngIf="urlsOk.length > 0 || urlsProtoOk.length > 0">
+    <h2 class="mb-0">Valid links</h2>
+    <ul class="my-0 list-none">
+        <li *ngFor="let url of urlsOk"><i class="pi pi-check text-green-500 mr-2"></i>{{ url.href }}</li>
+        <li *ngFor="let url of urlsProtoOk"><i class="pi pi-check text-blue-500 mr-2"></i>{{ url.href }}</li>
+    </ul>
+</ng-container>

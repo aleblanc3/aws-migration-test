@@ -1,10 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
-//primeNG
+// primeNG
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { PanelModule } from 'primeng/panel';
@@ -12,16 +12,17 @@ import { MessageModule } from 'primeng/message';
 import { FileUploadModule } from 'primeng/fileupload';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 
-//FontAwesome
+// FontAwesome
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faFilePowerpoint } from '@fortawesome/free-regular-svg-icons';
-//services
+
+// services
 import { ApiKeyService } from '../../services/api-key.service';
 import { FileParseService } from '../../services/file-parse.service';
 import { TranslationService } from '../../services/translation.service';
 
 @Component({
-  selector: 'app-translation-assistant',
+  selector: 'ca-translation-assistant', // was 'app-translation-assistant'
   imports: [
     CommonModule,
     RouterModule,
@@ -38,6 +39,13 @@ import { TranslationService } from '../../services/translation.service';
   styles: ``,
 })
 export class TranslationAssistantComponent implements OnInit {
+  // prefer-inject: replace constructor DI with inject()
+  public readonly apiKeyService = inject(ApiKeyService);
+  private readonly translationService = inject(TranslationService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly parseSrv = inject(FileParseService);
+
   isExpanded = false;
   isDragging = false;
   selectedFile: File | null = null;
@@ -51,14 +59,6 @@ export class TranslationAssistantComponent implements OnInit {
   finalFrenchHtml = '';
   sourceError = '';
   faFilePowerpoint = faFilePowerpoint;
-
-  constructor(
-    public apiKeyService: ApiKeyService,
-    private translationService: TranslationService,
-    private router: Router,
-    private route: ActivatedRoute,
-    private parseSrv: FileParseService,
-  ) {}
 
   onClear(): void {
     this.router
@@ -76,6 +76,7 @@ export class TranslationAssistantComponent implements OnInit {
       }
     });
   }
+
   onFileSelected(event: Event) {
     this.previewText = '';
     this.showSecondUpload = false;
@@ -95,6 +96,7 @@ export class TranslationAssistantComponent implements OnInit {
   isPptx(file: File): boolean {
     return file.name.toLowerCase().endsWith('.pptx');
   }
+
   onDragOver(event: DragEvent) {
     event.preventDefault(); // Prevent browser from opening the file
     this.isDragging = true;
@@ -215,6 +217,7 @@ export class TranslationAssistantComponent implements OnInit {
       this.isProcessing = false;
     }
   }
+
   async onDownloadFile() {
     if (!this.finalFrenchHtml || !this.finalFrenchHtml.trim()) {
       alert('No formatted French document available.');
@@ -330,7 +333,7 @@ export class TranslationAssistantComponent implements OnInit {
     });
 
     return Object.values(aggregated).map((entry) => {
-      let combined = entry.texts.join('').replace(/\s+/g, ' ').trim();
+      const combined = entry.texts.join('').replace(/\s+/g, ' ').trim(); // was let
       return { id: entry.id, text: combined };
     });
   }
