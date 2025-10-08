@@ -36,6 +36,12 @@ export interface IaData {
   searchMatches: SearchMatches[];
 }
 
+export interface GitHubData {
+  owner: string;
+  repo: string;
+  branch: string;
+}
+
 export interface IaState {
   version: number;
   activeStep: number;
@@ -43,6 +49,7 @@ export interface IaState {
   breadcrumbData: BreadcrumbData;
   searchData: SearchData;
   iaData: IaData;
+  gitHubData: GitHubData;
 }
 
 @Injectable({
@@ -128,6 +135,17 @@ export class IaStateService {
     this.iaData.update(curr => ({ ...curr, ...partial }));
   }
 
+  // Step 5: GitHub export (optional)
+  private gitHubData = signal<GitHubData>({
+    owner: 'cra-design',
+    repo: '',
+    branch: 'main',
+  });
+  getGitHubData = computed(() => this.gitHubData());
+  setGitHubData(partial: Partial<GitHubData>) {
+    this.gitHubData.update(curr => ({ ...curr, ...partial }));
+  }
+
   // Reset
   resetIaFlow(mode: "all" | "form" = "all") {
 
@@ -150,6 +168,7 @@ export class IaStateService {
         isOk: false,
         urlPairs: [],
       });
+      this.gitHubData.set({ owner: 'cra-design', repo: '', branch: 'main' });
     }
 
     //reset breadcrumb data
@@ -192,6 +211,7 @@ export class IaStateService {
       breadcrumbData: this.breadcrumbData(),
       searchData: this.searchData(),
       iaData: this.iaData(),
+      gitHubData: this.gitHubData(),
     };
   }
 
@@ -239,6 +259,13 @@ export class IaStateService {
       console.log('Broken Links:', state.iaData.brokenLinks);
       console.log('Search Matches:', state.iaData.searchMatches);
 
+      console.log('--- GitHub Data ---');
+      console.table({
+        owner: state.gitHubData.owner,
+        repo: state.gitHubData.repo,
+        branch: state.gitHubData.branch,
+      });
+
       console.groupEnd();
     }
   }
@@ -264,6 +291,7 @@ export class IaStateService {
     this.breadcrumbData.set(state.breadcrumbData);
     this.searchData.set(state.searchData);
     this.iaData.set(state.iaData);
+    this.gitHubData.set(state.gitHubData);
   }
 
   // Export as JSON (for sharing with someone else)
@@ -309,6 +337,7 @@ export class IaStateService {
         this.searchData.set(state.searchData);
         this.updateTerms(); //rebuild terms from rawTerms
         this.iaData.set(state.iaData);
+        this.gitHubData.set(state.gitHubData || { owner: 'cra-design', repo: '', branch: 'main' });
         this.saveToLocalStorage();
         console.log('IA state successfully imported');
       } catch (error) {
