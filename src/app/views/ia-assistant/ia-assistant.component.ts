@@ -2,10 +2,12 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
+import { Router } from '@angular/router';
 
 import { StepperModule } from 'primeng/stepper';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
+import { PopoverModule } from 'primeng/popover';
 import { TextareaModule } from 'primeng/textarea';
 import { InputTextModule } from 'primeng/inputtext';
 import { IftaLabelModule } from 'primeng/iftalabel';
@@ -18,6 +20,7 @@ import { TableModule } from 'primeng/table';
 import { BadgeModule } from 'primeng/badge';
 import { ToolbarModule } from 'primeng/toolbar';
 import { FileUploadModule } from 'primeng/fileupload';
+import { DropdownModule } from 'primeng/dropdown';
 
 import { IaStateService } from './services/ia-state.service';
 import { ValidateUrlsComponent } from "./components/validate-urls.component";
@@ -25,12 +28,11 @@ import { SetRootsComponent } from "./components/set-roots.component";
 import { SearchCriteriaComponent } from './components/search-criteria.component';
 import { IaTreeComponent } from './components/ia-tree.component';
 
-
 @Component({
   selector: 'ca-ia-assistant',
   imports: [CommonModule, FormsModule, TranslateModule,
     TextareaModule, InputTextModule, IftaLabelModule, InputGroupModule, InputGroupAddonModule, ButtonModule, FileUploadModule,
-    ProgressBarModule, ChipModule, StepperModule, ConfirmPopupModule, TableModule, BadgeModule, TooltipModule, ToolbarModule,
+    ProgressBarModule, ChipModule, StepperModule, ConfirmPopupModule, TableModule, BadgeModule, TooltipModule, ToolbarModule, PopoverModule, DropdownModule,
     SearchCriteriaComponent, IaTreeComponent, ValidateUrlsComponent, SetRootsComponent],
   templateUrl: './ia-assistant.component.html',
   styles: `
@@ -51,5 +53,11 @@ import { IaTreeComponent } from './components/ia-tree.component';
 })
 export class IaAssistantComponent {
   public iaState = inject(IaStateService);
+  private router = inject(Router);
+
+  goToGitHubExport() {
+    this.iaState.saveToLocalStorage();
+    this.router.navigate(['/ia-assistant/github']);
+  }
 }
 

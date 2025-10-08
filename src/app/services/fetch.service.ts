@@ -48,7 +48,7 @@ export class FetchService {
   }
 
   //Uses specified fetch method and retries if initial fetch fails (can happen due to intermittent server issues etc.)
-  private async fetchWithRetry(
+  public async fetchWithRetry(
     url: string,
     mode: "GET" | "HEAD" = "HEAD",
     retries = 3,
