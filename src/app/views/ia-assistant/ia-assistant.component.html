@@ -11,7 +11,9 @@
 
                     <p-button icon="pi pi-download" pTooltip="Download CSV" tooltipPosition="top" outlined styleClass="secondary-outline" severity="secondary" (onClick)="iaState.exportIaTreeAsCsv()" [disabled]="iaState.getIaData().iaTree.length === 0" />
 
-                    <p-button *ngIf="isDev" icon="pi pi-github" pTooltip="Export to GitHub" tooltipPosition="top" outlined styleClass="secondary-outline" severity="secondary" (onClick)="op.toggle($event)" [disabled]="iaState.getIaData().iaTree.length === 0" />
+                    <p-button icon="pi pi-github" pTooltip="Export to GitHub" tooltipPosition="top" outlined styleClass="secondary-outline" severity="secondary" (onClick)="goToGitHubExport()" [disabled]="iaState.getIaData().iaTree.length === 0" />
+
+                    <!--p-button *ngIf="isDev" icon="pi pi-github" pTooltip="Export to GitHub" tooltipPosition="top" outlined styleClass="secondary-outline" severity="secondary" (onClick)="op.toggle($event)" [disabled]="iaState.getIaData().iaTree.length === 0" />
 
 
                     <p-popover #op>
@@ -40,10 +42,7 @@
                             <p-button icon="pi pi-github" label="Export to GitHub" severity="primary" (onClick)="exportProjectToGitHub(owner,repo,branch,userToken,true)" [disabled]="iaState.getIaData().iaTree.length === 0" />
 
                         </div>
-                    </p-popover>
-
-
-
+                    </p-popover-->
 
                 </div>
             </ng-template>
@@ -114,7 +113,6 @@
                 <ng-template #content let-activateCallback="activateCallback">
                     <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
 
-
                         <ca-search-criteria></ca-search-criteria>
 
                     </div>
@@ -131,6 +129,7 @@
                     <div class="flex flex-column gap-2 p-3 border-2 border-dashed border-primary">
 
                         <ca-ia-tree></ca-ia-tree>
+
                     </div>
                     <div class="flex pt-4 justify-content-start">
                         <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" (onClick)="activateCallback(3)" />
