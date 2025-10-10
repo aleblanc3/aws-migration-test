@@ -1,39 +1,106 @@
-<!-- <ul>
-    <li *ngFor="let item of guidanceList">
-        <a [href]="item.url | translate" target="_blank" rel="noopener">{{ item.name | translate }}<i class="pi pi-external-link ml-1" style="font-size: .75rem"></i></a>
-    </li>
-</ul>
-<ng-container *ngIf="!production">
-    <p class="m-0">Unfinished. Will add fxn to:</p>
-    <ul>
-        <li>detect which components are used on the page and link to relevant UCDG guidance (in progress)</li>
-        <li>warn user if they are using a depracated version of a component</li>
-        <li>auto-fix deprecated code w/ option to accept & merge with page</li>
-    </ul>
-    <p>This button just checks if you have any classes or elements that aren't in theme.min.css</p>
-    <p-button severity="primary" (click)="runValidation()" class="mt-2">Check classes and elements</p-button>
-    <ul>
-        <li *ngFor="let v of violations">
-            {{v.type}}: {{v.detail}}
-        </li>
-    </ul>
-</ng-container> -->
-<p-table [value]="tableRows" dataKey="url" styleClass="p-datatable-sm">
+<p-table
+  [value]="tableRows"
+  dataKey="url"
+  styleClass="p-datatable-sm"
+  [(selection)]="selectedRows"
+  selectionMode="multiple"
+>
   <ng-template pTemplate="header">
     <tr>
-      <th *ngFor="let col of cols">{{ col.header }}</th>
+      <!-- checkbox column -->
+      <th style="width: 3rem; text-align: center">
+        <p-tableHeaderCheckbox></p-tableHeaderCheckbox>
+      </th>
+
+      <!-- Index -->
+      <th style="width: 4rem">
+        <span class="pi pi-list mr-1" aria-hidden="true"></span>
+        Index
+      </th>
+
+      <th>Component</th>
+      <th>UCDG guidance</th>
+      <th style="width: 11rem">Component health</th>
+      <th>Explanation</th>
     </tr>
   </ng-template>
 
-  <ng-template pTemplate="body" let-row>
-    <tr>
+  <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
+    <tr [pSelectableRow]="row">
+      <!-- checkbox cell -->
+      <td style="text-align: center">
+        <p-tableCheckbox [value]="row"></p-tableCheckbox>
+      </td>
+
+      <!-- Index -->
       <td>{{ row.order }}</td>
+
+      <!-- Component -->
       <td>{{ row.component }}</td>
+
+      <!-- URL -->
       <td>
-        <a [href]="row.url" target="_blank" rel="noopener">
-          {{ row.url }}
-        </a>
+        <a [href]="row.url" target="_blank" rel="noopener">{{ row.url }}</a>
+      </td>
+
+      <!-- Health -->
+      <td class="health-cell">
+        <ng-container [ngSwitch]="row.health">
+          <span *ngSwitchCase="'ok'" class="chip chip-ok">
+            <i class="pi pi-check-circle" aria-hidden="true"></i>
+            <span>OK</span>
+          </span>
+          <span *ngSwitchCase="'issue'" class="chip chip-issue">
+            <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+            <span>Issues</span>
+          </span>
+          <span *ngSwitchDefault class="chip chip-unk">
+            <i class="pi pi-question-circle" aria-hidden="true"></i>
+            <span>Unknown</span>
+          </span>
+        </ng-container>
+
+        <!-- optional: show codeUpToDate tag when AI returns it -->
+        <span *ngIf="row.codeUpToDate === true" class="tag tag-ok"
+          >code up to date</span
+        >
+        <span *ngIf="row.codeUpToDate === false" class="tag tag-warn"
+          >update code</span
+        >
+      </td>
+
+      <!-- Explanation (keep simple for now as requested) -->
+      <td>
+        <div *ngIf="(row.issues?.length || 0) > 0; else rationaleOnly">
+          <ul class="issues">
+            <li *ngFor="let it of row.issues">{{ it }}</li>
+          </ul>
+          <div class="muted" *ngIf="row.rationale">{{ row.rationale }}</div>
+        </div>
+        <ng-template #rationaleOnly>
+          <span>{{ row.rationale || "—" }}</span>
+        </ng-template>
       </td>
     </tr>
   </ng-template>
 </p-table>
+
+<!-- GenAI action button -->
+<div class="mt-3">
+  <button
+    pButton
+    type="button"
+    class="ai-btn"
+    [label]="'Get GenAI recommendations based on user data'"
+    [icon]="'pi pi-sparkles'"
+    aria-label="Get GenAI recommendations based on user data"
+    (click)="sendToAI()"
+    [disabled]="!selectedRows.length || isLoading"
+    pTooltip="Select one or more components"
+    [showDelay]="1000"
+    [hideDelay]="300"
+  >
+    <!-- satisfy elements-content lint rule -->
+    <span class="sr-only">Get GenAI recommendations based on user data</span>
+  </button>
+</div>
