@@ -17,7 +17,15 @@
     class="border-1 border-round-md border-surface"
     *ngIf="!production"
   >
-    <p-accordion-header>Heading structure</p-accordion-header>
+    <p-accordion-header
+      >Heading structure
+      <span class="flex-spacer"></span>
+      <span
+        class="feature-badge"
+        *ngIf="flags.headingStructure"
+        aria-label="Issues found"
+      ></span>
+    </p-accordion-header>
     <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(0)">
       View or reorganize your heading structure.
     </p>
@@ -27,10 +35,18 @@
   </p-accordion-panel>
 
   <p-accordion-panel
-    [value]="2"
+    [value]="1"
     class="border-1 border-round-sm border-surface"
   >
-    <p-accordion-header>Component guidance</p-accordion-header>
+    <p-accordion-header
+      >Component guidance
+      <span class="flex-spacer"></span>
+      <span
+        class="feature-badge"
+        *ngIf="flags.componentGuidance"
+        aria-label="Issues found"
+      ></span>
+    </p-accordion-header>
     <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(2)">
       Find guidance on the components used on your page and check for deprecated
       code or unexpected classes or elements.
@@ -41,11 +57,19 @@
   </p-accordion-panel>
 
   <p-accordion-panel
-    [value]="3"
+    [value]="2"
     class="border-1 border-round-sm border-surface"
     *ngIf="!production"
   >
-    <p-accordion-header>SEO</p-accordion-header>
+    <p-accordion-header
+      >SEO
+      <span class="flex-spacer"></span>
+      <span
+        class="feature-badge"
+        *ngIf="flags.seo"
+        aria-label="Issues found"
+      ></span>
+    </p-accordion-header>
     <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(3)">
       Add doormat text.
     </p>
@@ -55,11 +79,19 @@
   </p-accordion-panel>
 
   <p-accordion-panel
-    [value]="4"
+    [value]="3"
     class="border-1 border-round-sm border-surface"
     *ngIf="!production"
   >
-    <p-accordion-header>User insights</p-accordion-header>
+    <p-accordion-header
+      >User insights
+      <span class="flex-spacer"></span>
+      <span
+        class="feature-badge"
+        *ngIf="flags.userInsights"
+        aria-label="Issues found"
+      ></span>
+    </p-accordion-header>
     <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(4)">
       Add doormat text.
     </p>
@@ -69,17 +101,28 @@
   </p-accordion-panel>
 
   <p-accordion-panel
-    [value]="5"
+    [value]="4"
     class="border-1 border-round-sm border-surface"
     *ngIf="!production"
   >
-    <p-accordion-header>Link report</p-accordion-header>
+    <p-accordion-header
+      >Link report
+      <span class="flex-spacer"></span>
+      <span
+        class="feature-badge"
+        *ngIf="flags.linkReport"
+        aria-label="Issues found"
+      ></span>
+    </p-accordion-header>
     <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(0)">
       Check link text vs destination content, flag duplicate destinations and
       404 page.
     </p>
     <p-accordion-content>
-      <ca-link-report></ca-link-report>
+      <ca-link-report
+        (hasProblemsChange)="onFeatureProblem('linkReport', $event)"
+      >
+      </ca-link-report>
     </p-accordion-content>
   </p-accordion-panel>
 </p-accordion>

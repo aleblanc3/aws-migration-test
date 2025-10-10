@@ -68,7 +68,7 @@
       </span>
     </p-tab>
     <p-tab value="3"><i class="pi pi-chart-bar mr-1"></i>Data</p-tab>
-    <p-tab value="4"><i class="pi pi-chart-wrench mr-1"></i>Tools</p-tab>
+    <p-tab value="4"><i class="pi pi-wrench mr-1"></i>Tools</p-tab>
   </p-tablist>
   <!-- Rendered page -->
   <p-tabpanels class="shadow-1">
@@ -231,7 +231,9 @@
     </p-tabpanel>
 
     <p-tabpanel value="2">
-      <ca-page-problems></ca-page-problems>
+      <ca-page-problems
+        (summary)="onProblemsSummary($any($event))"
+      ></ca-page-problems>
     </p-tabpanel>
 
     <!-- Data tabpanel -->
