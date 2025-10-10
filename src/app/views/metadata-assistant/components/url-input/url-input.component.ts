@@ -1,7 +1,7 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { InputTextarea } from 'primeng/inputtextarea';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
@@ -29,10 +29,12 @@ export class UrlInputComponent {
   @Output() urlsChange = new EventEmitter<string[]>();
   @Output() urlInputChange = new EventEmitter<string>();
 
+  private translate = inject(TranslateService);
+
   urlText = '';
   validUrls: string[] = [];
   invalidUrls: string[] = [];
-  
+
   // Allowed hosts - same as metadata service
   private allowedHosts = new Set([
     'cra-design.github.io',
@@ -82,11 +84,11 @@ export class UrlInputComponent {
     try {
       const urlObj = new URL(url);
       if (!this.allowedHosts.has(urlObj.host)) {
-        return `Domain not supported: ${urlObj.host}`;
+        return this.translate.instant('metadata.urlInput.errors.domainNotSupported', { host: urlObj.host });
       }
-      return 'Invalid URL format';
+      return this.translate.instant('metadata.urlInput.errors.invalidFormat');
     } catch {
-      return 'Invalid URL format';
+      return this.translate.instant('metadata.urlInput.errors.invalidFormat');
     }
   }
 

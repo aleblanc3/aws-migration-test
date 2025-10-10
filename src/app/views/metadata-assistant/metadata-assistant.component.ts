@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { FormsModule } from '@angular/forms';
@@ -40,6 +40,12 @@ import { CsvExportComponent } from './components/csv-export/csv-export.component
 })
 export class MetadataAssistantComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+
+  private translate = inject(TranslateService);
+  private metadataService = inject(MetadataAssistantService);
+  private stateService = inject(MetadataAssistantStateService);
+  public apiKeyService = inject(ApiKeyService);
+  private messageService = inject(MessageService);
   
   state: MetadataProcessingState = {
     isProcessing: false,
@@ -75,14 +81,6 @@ export class MetadataAssistantComponent implements OnInit, OnDestroy {
       description: 'metadata.models.gemmaDescription'
     }
   ];
-
-  constructor(
-    private translate: TranslateService,
-    private metadataService: MetadataAssistantService,
-    private stateService: MetadataAssistantStateService,
-    public apiKeyService: ApiKeyService,
-    private messageService: MessageService
-  ) {}
 
   ngOnInit(): void {
     // Subscribe to state changes

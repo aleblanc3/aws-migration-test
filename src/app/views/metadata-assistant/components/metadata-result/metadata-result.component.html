@@ -17,8 +17,8 @@
             <div class="flex align-items-center justify-content-between w-full pr-2">
               <div class="flex align-items-center gap-2">
                 <span class="font-semibold">{{ getDomainFromUrl(result.url) }}</span>
-                <p-tag 
-                  [value]="result.language === 'en' ? 'English' : 'Français'" 
+                <p-tag
+                  [value]="result.language === 'en' ? ('common.language.english' | translate) : ('common.language.french' | translate)"
                   [severity]="result.language === 'en' ? 'success' : 'info'"
                   [style]="{'font-size': '0.75rem'}">
                 </p-tag>

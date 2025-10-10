@@ -34,7 +34,7 @@ export class MetadataResultComponent {
   @Input() processingIndex: number | null = null;
   @Output() documentSelected = new EventEmitter<{ file: File, index: number }>();
 
-  expandedStates: { [key: number]: boolean } = {};
+  expandedStates: Record<number, boolean> = {};
 
   toggleExpanded(index: number): void {
     this.expandedStates[index] = !this.expandedStates[index];
@@ -63,7 +63,7 @@ export class MetadataResultComponent {
     }
   }
 
-  truncateContent(content: string, maxLength: number = 200): string {
+  truncateContent(content: string, maxLength = 200): string {
     if (content.length <= maxLength) return content;
     return content.substring(0, maxLength) + '...';
   }

@@ -27,6 +27,7 @@
       #fileInput
       style="display: none"
       [disabled]="disabled"
+      (click)="onFileInputClick($event)"
       (change)="onFileSelected($event)" />
 
     <ng-container *ngIf="selectedFile; else dragArea">

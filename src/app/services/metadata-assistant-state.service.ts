@@ -37,8 +37,6 @@ export class MetadataAssistantStateService {
   private stateSubject = new BehaviorSubject<MetadataProcessingState>(this.initialState);
   public state$: Observable<MetadataProcessingState> = this.stateSubject.asObservable();
 
-  constructor() {}
-
   getState(): MetadataProcessingState {
     return this.stateSubject.value;
   }

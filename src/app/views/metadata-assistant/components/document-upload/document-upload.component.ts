@@ -26,9 +26,21 @@ export class DocumentUploadComponent {
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.selectedFile = input.files[0];
-      this.fileSelected.emit(this.selectedFile);
+      const file = input.files[0];
+      if (this.isDocx(file)) {
+        this.selectedFile = file;
+        this.fileSelected.emit(this.selectedFile);
+      } else {
+        console.warn('Invalid file type. Please select a .docx file.');
+      }
     }
+    // Reset input value to allow re-selection of same file
+    input.value = '';
+  }
+
+  onFileInputClick(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    input.value = '';
   }
 
   onDragOver(event: DragEvent): void {

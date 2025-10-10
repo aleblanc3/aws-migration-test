@@ -1,10 +1,11 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { DropdownModule } from 'primeng/dropdown';
 import { CardModule } from 'primeng/card';
 import { CheckboxModule } from 'primeng/checkbox';
+import { Subject, takeUntil } from 'rxjs';
 
 export interface ModelOption {
   name: string;
@@ -26,33 +27,41 @@ export interface ModelOption {
   templateUrl: './model-selector.component.html',
   styleUrls: ['./model-selector.component.css']
 })
-export class SharedModelSelectorComponent implements OnInit {
+export class SharedModelSelectorComponent implements OnInit, OnDestroy {
   @Input() selectedModel = '';
   @Input() models: ModelOption[] = [];
   @Input() label = 'common.modelSelector.label';
   @Input() showCard = true;
   @Input() cardTitle = 'common.modelSelector.title';
   @Input() disabled = false;
-  
+
   // For metadata assistant translation option
   @Input() showTranslateOption = false;
   @Input() translateToFrench = false;
   @Output() translateChange = new EventEmitter<boolean>();
-  
+
   @Output() modelChange = new EventEmitter<string>();
-  
+
   localModels: ModelOption[] = [];
+  private destroy$ = new Subject<void>();
 
   constructor(private translate: TranslateService) {}
 
   ngOnInit(): void {
     // Initialize models with translations
     this.initializeModels();
-    
+
     // Re-initialize when language changes
-    this.translate.onLangChange.subscribe(() => {
-      this.initializeModels();
-    });
+    this.translate.onLangChange
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.initializeModels();
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
   
   private initializeModels(): void {
