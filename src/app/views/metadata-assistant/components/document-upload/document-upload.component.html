@@ -1,0 +1,51 @@
+<p-card>
+  <ng-template pTemplate="header">
+    <div class="flex align-items-center p-3">
+      <i class="pi pi-file-word mr-2"></i>
+      <h4 class="m-0">{{ 'metadata.document.title' | translate }}</h4>
+    </div>
+  </ng-template>
+
+  <p class="mb-3">{{ 'metadata.document.description' | translate }}</p>
+
+  <!-- Upload Section -->
+  <div
+    class="flex flex-column align-items-center justify-content-center p-3 border-dashed border-round border-200 surface-100 hover:surface-200 hover:border-primary-400 transition-colors transition-duration-300 cursor-pointer w-full min-h-12rem"
+    [class.border-primary-400]="isDragging"
+    role="button"
+    tabindex="0"
+    (click)="fileInput.click()"
+    (keydown.enter)="fileInput.click()"
+    (keydown.space)="fileInput.click(); $event.preventDefault()"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)">
+
+    <input
+      type="file"
+      accept=".docx"
+      #fileInput
+      style="display: none"
+      [disabled]="disabled"
+      (click)="onFileInputClick($event)"
+      (change)="onFileSelected($event)" />
+
+    <ng-container *ngIf="selectedFile; else dragArea">
+      <i class="pi pi-file-word text-blue-500 text-4xl mb-2"></i>
+      <p class="text-xl text-center mb-2">{{ selectedFile.name }}</p>
+      <p-button
+        [label]="'metadata.document.clearFile' | translate"
+        icon="pi pi-times"
+        severity="secondary"
+        [outlined]="true"
+        size="small"
+        (onClick)="clearFile(); $event.stopPropagation()">
+      </p-button>
+    </ng-container>
+
+    <ng-template #dragArea>
+      <i class="pi pi-upload border-2 border-circle border-300 p-3 text-3xl text-color-secondary mb-2"></i>
+      <p class="m-0 text-center text-sm">{{ 'metadata.document.dragDrop' | translate }}</p>
+    </ng-template>
+  </div>
+</p-card>

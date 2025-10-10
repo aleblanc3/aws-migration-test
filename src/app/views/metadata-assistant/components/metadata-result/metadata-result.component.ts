@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { AccordionModule } from 'primeng/accordion';
@@ -8,6 +8,7 @@ import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { TagModule } from 'primeng/tag';
 import { MetadataResult } from '../../../../services/metadata-assistant.service';
+import { DocumentUploadComponent } from '../document-upload/document-upload.component';
 
 @Component({
   selector: 'ca-metadata-result',
@@ -20,7 +21,8 @@ import { MetadataResult } from '../../../../services/metadata-assistant.service'
     ChipModule,
     ButtonModule,
     TagModule,
-    TooltipModule
+    TooltipModule,
+    DocumentUploadComponent
   ],
   templateUrl: './metadata-result.component.html',
   styleUrls: ['./metadata-result.component.css']
@@ -28,8 +30,11 @@ import { MetadataResult } from '../../../../services/metadata-assistant.service'
 export class MetadataResultComponent {
   @Input() results: MetadataResult[] = [];
   @Input() showTranslations = false;
+  @Input() isProcessing = false;
+  @Input() processingIndex: number | null = null;
+  @Output() documentSelected = new EventEmitter<{ file: File, index: number }>();
 
-  expandedStates: { [key: number]: boolean } = {};
+  expandedStates: Record<number, boolean> = {};
 
   toggleExpanded(index: number): void {
     this.expandedStates[index] = !this.expandedStates[index];
@@ -58,8 +63,23 @@ export class MetadataResultComponent {
     }
   }
 
-  truncateContent(content: string, maxLength: number = 200): string {
+  truncateContent(content: string, maxLength = 200): string {
     if (content.length <= maxLength) return content;
     return content.substring(0, maxLength) + '...';
+  }
+
+  onDocumentFileSelected(file: File, index: number): void {
+    this.documentSelected.emit({ file, index });
+  }
+
+  canUploadDocument(result: MetadataResult): boolean {
+    return this.showTranslations &&
+           !!result.frenchTranslatedDescription &&
+           !!result.frenchTranslatedKeywords &&
+           !result.evaluationResult;
+  }
+
+  isProcessingDocument(index: number): boolean {
+    return this.isProcessing && this.processingIndex === index;
   }
 }

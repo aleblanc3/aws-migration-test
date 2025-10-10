@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ButtonModule } from 'primeng/button';
@@ -23,7 +23,7 @@ export class CsvExportComponent {
   @Input() results: MetadataResult[] = [];
   @Input() includeTranslations = false;
 
-  constructor(private translate: TranslateService) {}
+  private translate = inject(TranslateService);
 
   getTranslatedResultsCount(): number {
     return this.results.filter(r => r.frenchTranslatedDescription).length;
