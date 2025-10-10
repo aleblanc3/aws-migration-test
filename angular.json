@@ -46,6 +46,16 @@
                 "output": "pdfjs"
               },
               {
+                "glob": "html.js",
+                "input": "node_modules/prettier/plugins",
+                "output": "prettier"
+              },
+              {
+                "glob": "standalone.js",
+                "input": "node_modules/prettier",
+                "output": "prettier"
+              },
+              {
                 "glob": "prism-okaidia.min.css",
                 "input": "node_modules/prismjs/themes",
                 "output": "css"

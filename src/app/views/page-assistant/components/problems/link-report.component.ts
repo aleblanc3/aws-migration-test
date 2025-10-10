@@ -269,13 +269,18 @@ interface UploadDataShape {
   ],
 })
 export class LinkReportComponent implements OnInit {
+  @Output() hasProblemsChange = new EventEmitter<boolean>();
+  @ViewChild('typePanel') typePanel!: Popover;
   // prefer-inject: replace constructor DI
   private readonly uploadState = inject(UploadStateService);
   private readonly linkAi = inject(LinkAiService);
   private readonly extractor = inject(ContentExtractorService);
   private readonly fetchService = inject(FetchService);
-  @Output() problemsChange = new EventEmitter<boolean>();
-  @ViewChild('typePanel') typePanel!: Popover;
+
+  // data & selection
+  headings: HeadingData[] = [];
+  selectedHeading!: HeadingData;
+
   private emitProblems(): void {
     const hasProblems = this.headings.some(
       (r) =>
@@ -284,11 +289,8 @@ export class LinkReportComponent implements OnInit {
         r.anchorMissing ||
         r.matchStatus === 'mismatch',
     );
-    this.problemsChange.emit(hasProblems);
+    this.hasProblemsChange.emit(hasProblems); // <-- emit the output the parent listens to
   }
-  // data & selection
-  headings: HeadingData[] = [];
-  selectedHeading!: HeadingData;
 
   // columns (with placeholders at the end)
   cols: LinkReportColumn[] = [

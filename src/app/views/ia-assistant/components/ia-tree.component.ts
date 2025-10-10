@@ -106,6 +106,8 @@ export class IaTreeComponent implements OnInit {
   production: boolean = environment.production;
   iaData = this.iaState.getIaData;
 
+  isDev = false;
+
   constructor() {
     effect(() => {
       this.theme.darkMode(); // track dark mode changes
@@ -114,6 +116,10 @@ export class IaTreeComponent implements OnInit {
   }
 
   async ngOnInit() {
+    //Url param for dev mode
+    const params = new URLSearchParams(window.location.search);
+    this.isDev = params.get('dev') === 'true';
+    //Context menu
     this.options = [
       ...this.baseMenu
     ];

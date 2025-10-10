@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { IaStructureComponent } from './ia-structure.component';
+import { ExportGithubComponent } from './export-github.component';
 
-describe('IaStructureComponent', () => {
-  let component: IaStructureComponent;
-  let fixture: ComponentFixture<IaStructureComponent>;
+describe('ExportGithubComponent', () => {
+  let component: ExportGithubComponent;
+  let fixture: ComponentFixture<ExportGithubComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [IaStructureComponent]
+      imports: [ExportGithubComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(IaStructureComponent);
+    fixture = TestBed.createComponent(ExportGithubComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

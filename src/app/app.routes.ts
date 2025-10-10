@@ -13,6 +13,7 @@ import { MetadataAssistantComponent } from './views/metadata-assistant/metadata-
 import { AboutComponent } from './views/static/about.component';
 import { TestComponent } from './views/example/test.component';
 import { IaAssistantComponent } from './views/ia-assistant/ia-assistant.component';
+import { ExportGithubComponent } from './views/ia-assistant/components/export-github.component';
 
 export const routes: Routes = [
     {
@@ -51,6 +52,11 @@ export const routes: Routes = [
     {
         path: 'ia-assistant',
         component: IaAssistantComponent,
+        title: 'title.ia',
+    },
+    {
+        path: 'ia-assistant/github',
+        component: ExportGithubComponent,
         title: 'title.ia',
     },
     {
