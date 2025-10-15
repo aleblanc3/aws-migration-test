@@ -15,6 +15,7 @@ export class SidebarComponent {
   isExpanded = {
     main: true,
     project: true,
+    monitoring: true,
     info: true
   };
 

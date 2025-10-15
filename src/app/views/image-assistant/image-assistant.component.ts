@@ -55,15 +55,25 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
   
   // Model options for the shared selector
   visionModels: ModelOption[] = [
-    { 
-      name: 'image.model.qwen', 
+    {
+      name: 'image.model.qwen32',
       value: 'qwen/qwen2.5-vl-32b-instruct:free',
-      description: 'image.model.qwenDescription'
+      description: 'image.model.qwen32Description'
     },
-    { 
-      name: 'image.model.gemma', 
+    {
+      name: 'image.model.qwen72',
+      value: 'qwen/qwen2.5-vl-72b-instruct:free',
+      description: 'image.model.qwen72Description'
+    },
+    {
+      name: 'image.model.gemma',
       value: 'google/gemma-3-27b-it:free',
       description: 'image.model.gemmaDescription'
+    },
+    {
+      name: 'image.model.llama',
+      value: 'meta-llama/llama-3.2-11b-vision-instruct',
+      description: 'image.model.llamaDescription'
     }
   ];
   
@@ -207,7 +217,12 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
         }
       } else if (file.type.startsWith('image/')) {
         // Process regular images (including PDF pages)
-        this.imageProcessorService.analyzeImage(file, this.selectedVisionModel, displayName, isPdfPage).subscribe({
+        // Prepare fallback models (all models except the selected one)
+        const fallbackModels = this.visionModels
+          .map(m => m.value)
+          .filter(m => m !== this.selectedVisionModel);
+
+        this.imageProcessorService.analyzeImage(file, this.selectedVisionModel, displayName, isPdfPage, fallbackModels).subscribe({
           next: (result: VisionAnalysisResult) => {
             // Check for specific error types and translate them
             let errorMessage = result.error;

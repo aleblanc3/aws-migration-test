@@ -6,9 +6,10 @@ import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
 import { ToastModule } from 'primeng/toast';
+import { TabsModule } from 'primeng/tabs';
 import { MessageService } from 'primeng/api';
 import { Subject, takeUntil } from 'rxjs';
-import { MetadataAssistantService } from '../../services/metadata-assistant.service';
+import { MetadataAssistantService, MetadataResult } from '../../services/metadata-assistant.service';
 import { MetadataAssistantStateService, MetadataProcessingState } from '../../services/metadata-assistant-state.service';
 import { ApiKeyService } from '../../services/api-key.service';
 import { SharedModelSelectorComponent, ModelOption } from '../../components/model-selector/model-selector.component';
@@ -16,6 +17,7 @@ import { ProgressIndicatorComponent } from '../../components/progress-indicator/
 import { UrlInputComponent } from './components/url-input/url-input.component';
 import { MetadataResultComponent } from './components/metadata-result/metadata-result.component';
 import { CsvExportComponent } from './components/csv-export/csv-export.component';
+import { DocumentUploadComponent } from './components/document-upload/document-upload.component';
 
 @Component({
   selector: 'ca-metadata-assistant',
@@ -28,11 +30,13 @@ import { CsvExportComponent } from './components/csv-export/csv-export.component
     CardModule,
     MessageModule,
     ToastModule,
+    TabsModule,
     SharedModelSelectorComponent,
     ProgressIndicatorComponent,
     UrlInputComponent,
     MetadataResultComponent,
-    CsvExportComponent
+    CsvExportComponent,
+    DocumentUploadComponent
   ],
   providers: [MessageService],
   templateUrl: './metadata-assistant.component.html',
@@ -63,27 +67,37 @@ export class MetadataAssistantComponent implements OnInit, OnDestroy {
 
   urlInput = '';
   urls: string[] = [];
-  
+
+  // Document tab properties
+  selectedDocument: File | null = null;
+  documentLanguage: 'en' | 'fr' | null = null;
+  documentText = '';
+  documentResults: MetadataResult[] = [];
+
   models: ModelOption[] = [
-    { 
-      name: 'Mistral Small 3.2 24B', 
+    {
+      name: 'Mistral Small 3.2 24B',
       value: 'mistralai/mistral-small-3.2-24b-instruct:free',
       description: 'metadata.models.mistralDescription'
     },
-    { 
-      name: 'Meta Llama 3.3 70B', 
+    {
+      name: 'Meta Llama 3.3 70B',
       value: 'meta-llama/llama-3.3-70b-instruct:free',
       description: 'metadata.models.llamaDescription'
     },
-    { 
-      name: 'Google Gemma 3 27B', 
+    {
+      name: 'Google Gemma 3 27B',
       value: 'google/gemma-3-27b-it:free',
       description: 'metadata.models.gemmaDescription'
+    },
+    {
+      name: 'Tencent Hunyuan A13B',
+      value: 'tencent/hunyuan-a13b-instruct:free',
+      description: 'metadata.models.hunyuanDescription'
     }
   ];
 
   ngOnInit(): void {
-    // Subscribe to state changes
     this.stateService.state$
       .pipe(takeUntil(this.destroy$))
       .subscribe(state => {
@@ -138,7 +152,6 @@ export class MetadataAssistantComponent implements OnInit, OnDestroy {
       this.state.translateToFrench
     );
 
-    // Process URLs with fallback models
     const fallbackModels = this.models
       .map(m => m.value)
       .filter(m => m !== this.state.selectedModel);
@@ -152,11 +165,9 @@ export class MetadataAssistantComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe({
       next: (results) => {
-        // Results are accumulated in the state service
         results.forEach(result => {
           this.stateService.addResult(result);
-          
-          // Show fallback notification if fallback was used
+
           if (result.fallbackUsed && result.modelUsed) {
             this.messageService.add({
               severity: 'info',
@@ -169,8 +180,7 @@ export class MetadataAssistantComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('Processing error:', error);
         let errorMessage = error.message || this.translate.instant('metadata.errors.processingFailed');
-        
-        // Handle specific error for when all models fail
+
         if (error.message?.includes('All models failed')) {
           errorMessage = this.translate.instant('metadata.errors.allModelsFailed');
         }
@@ -211,7 +221,6 @@ export class MetadataAssistantComponent implements OnInit, OnDestroy {
     return model ? model.name : modelValue;
   }
 
-  // Document processing methods
   onDocumentSelected(file: File, resultIndex: number): void {
     if (!this.apiKeyService.hasApiKey$.value) {
       this.stateService.setError(this.translate.instant('metadata.errors.noApiKey'));
@@ -240,8 +249,6 @@ export class MetadataAssistantComponent implements OnInit, OnDestroy {
       next: (documentMetadata) => {
         this.stateService.updateResultWithDocumentMetadata(resultIndex, documentMetadata);
         this.stateService.updateState({ currentStep: 'evaluating' });
-
-        // Now evaluate the metadata
         this.evaluateMetadata(resultIndex, documentMetadata);
       },
       error: (error) => {
@@ -297,5 +304,89 @@ export class MetadataAssistantComponent implements OnInit, OnDestroy {
         });
       }
     });
+  }
+
+  onDocumentFileSelected(file: File): void {
+    this.selectedDocument = file;
+    this.documentLanguage = null;
+    this.documentText = '';
+  }
+
+  startDocumentProcessing(): void {
+    if (!this.apiKeyService.hasApiKey$.value) {
+      this.stateService.setError(this.translate.instant('metadata.errors.noApiKey'));
+      return;
+    }
+
+    if (!this.selectedDocument) {
+      this.stateService.setError(this.translate.instant('metadata.document.errors.processingFailed'));
+      return;
+    }
+
+    this.stateService.updateState({
+      isProcessing: true,
+      currentStep: 'extracting-text',
+      totalUrls: 1,
+      processedUrls: 0,
+      currentUrl: this.selectedDocument.name
+    });
+
+    this.metadataService.processDocumentForMetadata(
+      this.selectedDocument,
+      this.state.selectedModel
+    ).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (result) => {
+        this.documentLanguage = result.language;
+        this.documentText = result.text;
+        this.documentResults = [result.metadata];
+
+        this.stateService.updateState({
+          isProcessing: false,
+          currentStep: 'complete',
+          processedUrls: 1
+        });
+
+        this.messageService.add({
+          severity: 'success',
+          summary: this.translate.instant('metadata.progress.completeTitle'),
+          detail: this.translate.instant('metadata.document.languageDetected') + ': ' +
+                  this.translate.instant(result.language === 'en' ? 'common.language.english' : 'common.language.french'),
+          life: 4000
+        });
+      },
+      error: (error) => {
+        console.error('Document processing error:', error);
+        this.stateService.updateState({
+          isProcessing: false,
+          currentStep: 'idle'
+        });
+        this.messageService.add({
+          severity: 'error',
+          summary: this.translate.instant('metadata.document.errors.processingFailed'),
+          detail: error.message,
+          life: 5000
+        });
+      }
+    });
+  }
+
+  resetDocumentTab(): void {
+    this.selectedDocument = null;
+    this.documentLanguage = null;
+    this.documentText = '';
+    this.documentResults = [];
+    this.stateService.updateState({
+      isProcessing: false,
+      currentStep: 'idle',
+      error: null
+    });
+  }
+
+  canProcessDocument(): boolean {
+    return this.apiKeyService.hasApiKey$.value &&
+           this.selectedDocument !== null &&
+           !this.state.isProcessing;
   }
 }

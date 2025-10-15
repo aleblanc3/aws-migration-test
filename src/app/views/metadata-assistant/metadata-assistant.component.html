@@ -16,101 +16,230 @@
   </div>
 </section>
 
-<!-- Main Content Area -->
+<!-- Tabs -->
 <section *ngIf="apiKeyService.hasApiKey$ | async">
-  <div class="grid">
-    <!-- Left Column: Input & Settings -->
-    <div class="col-12 lg:col-6">
-      <!-- URL Input -->
-      <ca-url-input
-        [disabled]="state.isProcessing"
-        (urlsChange)="onUrlsChange($event)"
-        (urlInputChange)="onUrlInputChange($event)">
-      </ca-url-input>
+  <p-tabs value="0" class="mt-3">
+    <p-tablist>
+      <p-tab value="0">
+        <i class="pi pi-globe mr-1"></i>{{ 'metadata.tabs.scrapedContent' | translate }}
+      </p-tab>
+      <p-tab value="1">
+        <i class="pi pi-file mr-1"></i>{{ 'metadata.tabs.documentUpload' | translate }}
+      </p-tab>
+    </p-tablist>
 
-      <!-- Model Selector with Translation Option -->
-      <div class="mt-3">
-        <ca-shared-model-selector
-          [selectedModel]="state.selectedModel"
-          [models]="models"
-          [label]="'metadata.modelSelector.modelLabel'"
-          [cardTitle]="'metadata.modelSelector.title'"
-          [showCard]="true"
-          [showTranslateOption]="true"
-          [translateToFrench]="state.translateToFrench"
-          [disabled]="state.isProcessing"
-          (modelChange)="onModelChange($event)"
-          (translateChange)="onTranslateToggle($event)">
-        </ca-shared-model-selector>
-      </div>
+    <p-tabpanels>
+      <!-- Tab 1: Metadata from Scraped Content -->
+      <p-tabpanel value="0">
+        <div class="grid">
+          <!-- Left Column: Input & Settings -->
+          <div class="col-12 lg:col-6">
+            <!-- URL Input -->
+            <ca-url-input
+              [disabled]="state.isProcessing"
+              (urlsChange)="onUrlsChange($event)"
+              (urlInputChange)="onUrlInputChange($event)">
+            </ca-url-input>
 
-      <!-- Process Button -->
-      <div class="mt-3">
-        <p-button
-          [label]="state.isProcessing ? ('metadata.button.processing' | translate) : ('metadata.button.process' | translate)"
-          icon="pi pi-sparkles"
-          [disabled]="!canProcess()"
-          [loading]="state.isProcessing"
-          severity="primary"
-          styleClass="w-full"
-          (onClick)="startProcessing()">
-        </p-button>
-      </div>
+            <!-- Model Selector with Translation Option -->
+            <div class="mt-3">
+              <ca-shared-model-selector
+                [selectedModel]="state.selectedModel"
+                [models]="models"
+                [label]="'metadata.modelSelector.modelLabel'"
+                [cardTitle]="'metadata.modelSelector.title'"
+                [showCard]="true"
+                [showTranslateOption]="true"
+                [translateToFrench]="state.translateToFrench"
+                [disabled]="state.isProcessing"
+                (modelChange)="onModelChange($event)"
+                (translateChange)="onTranslateToggle($event)">
+              </ca-shared-model-selector>
+            </div>
 
-      <!-- Reset Button -->
-      <div class="mt-2" *ngIf="state.results.length > 0 && !state.isProcessing">
-        <p-button
-          [label]="'metadata.button.reset' | translate"
-          icon="pi pi-refresh"
-          severity="secondary"
-          [outlined]="true"
-          styleClass="w-full"
-          (onClick)="reset()">
-        </p-button>
-      </div>
-    </div>
+            <!-- Process Button -->
+            <div class="mt-3">
+              <p-button
+                [label]="state.isProcessing ? ('metadata.button.processing' | translate) : ('metadata.button.process' | translate)"
+                icon="pi pi-sparkles"
+                [disabled]="!canProcess()"
+                [loading]="state.isProcessing"
+                severity="primary"
+                styleClass="w-full"
+                (onClick)="startProcessing()">
+              </p-button>
+            </div>
 
-    <!-- Right Column: Progress & Error Messages -->
-    <div class="col-12 lg:col-6">
-      <!-- Progress Indicator -->
-      <div *ngIf="state.isProcessing || state.currentStep === 'complete'">
-        <ca-progress-indicator
-          [progressText]="getProgressText()"
-          [processedCount]="state.processedUrls"
-          [totalFiles]="state.totalUrls"
-          [showProgress]="true"
-          [showSpinner]="state.isProcessing">
-        </ca-progress-indicator>
-      </div>
+            <!-- Reset Button -->
+            <div class="mt-2" *ngIf="state.results.length > 0 && !state.isProcessing">
+              <p-button
+                [label]="'metadata.button.reset' | translate"
+                icon="pi pi-refresh"
+                severity="secondary"
+                [outlined]="true"
+                styleClass="w-full"
+                (onClick)="reset()">
+              </p-button>
+            </div>
+          </div>
 
-      <!-- Error Message -->
-      <div *ngIf="state.error" class="mt-3">
-        <p-message
-          severity="error"
-          [text]="state.error"
-          styleClass="w-full">
-        </p-message>
-      </div>
-    </div>
-  </div>
+          <!-- Right Column: Progress & Error Messages -->
+          <div class="col-12 lg:col-6">
+            <!-- Progress Indicator -->
+            <div *ngIf="state.isProcessing || state.currentStep === 'complete'">
+              <ca-progress-indicator
+                [progressText]="getProgressText()"
+                [processedCount]="state.processedUrls"
+                [totalFiles]="state.totalUrls"
+                [showProgress]="true"
+                [showSpinner]="state.isProcessing">
+              </ca-progress-indicator>
+            </div>
 
-  <!-- Results Section -->
-  <div class="results-section mt-4" *ngIf="state.results.length > 0">
-    <!-- Metadata Results -->
-    <ca-metadata-result
-      [results]="state.results"
-      [showTranslations]="state.translateToFrench"
-      [isProcessing]="state.isProcessing"
-      [processingIndex]="state.documentProcessingIndex"
-      (documentSelected)="onDocumentSelected($event.file, $event.index)">
-    </ca-metadata-result>
+            <!-- Error Message -->
+            <div *ngIf="state.error" class="mt-3">
+              <p-message
+                severity="error"
+                [text]="state.error"
+                styleClass="w-full">
+              </p-message>
+            </div>
+          </div>
+        </div>
 
-    <!-- CSV Export -->
-    <ca-metadata-csv-export
-      [results]="state.results"
-      [includeTranslations]="state.translateToFrench">
-    </ca-metadata-csv-export>
-  </div>
+        <!-- Results Section -->
+        <div class="results-section mt-4" *ngIf="state.results.length > 0">
+          <!-- Metadata Results -->
+          <ca-metadata-result
+            [results]="state.results"
+            [showTranslations]="state.translateToFrench"
+            [isProcessing]="state.isProcessing"
+            [processingIndex]="state.documentProcessingIndex"
+            (documentSelected)="onDocumentSelected($event.file, $event.index)">
+          </ca-metadata-result>
+
+          <!-- CSV Export -->
+          <ca-metadata-csv-export
+            [results]="state.results"
+            [includeTranslations]="state.translateToFrench">
+          </ca-metadata-csv-export>
+        </div>
+      </p-tabpanel>
+
+      <!-- Tab 2: Metadata from Document Upload -->
+      <p-tabpanel value="1">
+        <div class="grid">
+          <!-- Left Column: Document Upload & Settings -->
+          <div class="col-12 lg:col-6">
+            <!-- Document Upload -->
+            <ca-document-upload
+              [disabled]="state.isProcessing"
+              (fileSelected)="onDocumentFileSelected($event)">
+            </ca-document-upload>
+
+            <!-- Model Selector -->
+            <div class="mt-3">
+              <ca-shared-model-selector
+                [selectedModel]="state.selectedModel"
+                [models]="models"
+                [label]="'metadata.modelSelector.modelLabel'"
+                [cardTitle]="'metadata.modelSelector.title'"
+                [showCard]="true"
+                [showTranslateOption]="false"
+                [disabled]="state.isProcessing"
+                (modelChange)="onModelChange($event)">
+              </ca-shared-model-selector>
+            </div>
+
+            <!-- Help Message -->
+            <div class="mt-3">
+              <p-message
+                severity="info"
+                [text]="'metadata.document.help' | translate"
+                styleClass="w-full">
+              </p-message>
+            </div>
+
+            <!-- Process Button -->
+            <div class="mt-3">
+              <p-button
+                [label]="state.isProcessing ? ('metadata.button.processing' | translate) : ('metadata.button.process' | translate)"
+                icon="pi pi-sparkles"
+                [disabled]="!canProcessDocument()"
+                [loading]="state.isProcessing"
+                severity="primary"
+                styleClass="w-full"
+                (onClick)="startDocumentProcessing()">
+              </p-button>
+            </div>
+
+            <!-- Reset Button -->
+            <div class="mt-2" *ngIf="documentResults.length > 0 && !state.isProcessing">
+              <p-button
+                [label]="'metadata.button.reset' | translate"
+                icon="pi pi-refresh"
+                severity="secondary"
+                [outlined]="true"
+                styleClass="w-full"
+                (onClick)="resetDocumentTab()">
+              </p-button>
+            </div>
+          </div>
+
+          <!-- Right Column: Progress & Error Messages -->
+          <div class="col-12 lg:col-6">
+            <!-- Progress Indicator -->
+            <div *ngIf="state.isProcessing || state.currentStep === 'complete'">
+              <ca-progress-indicator
+                [progressText]="getProgressText()"
+                [processedCount]="state.processedUrls"
+                [totalFiles]="state.totalUrls"
+                [showProgress]="true"
+                [showSpinner]="state.isProcessing">
+              </ca-progress-indicator>
+            </div>
+
+            <!-- Error Message -->
+            <div *ngIf="state.error" class="mt-3">
+              <p-message
+                severity="error"
+                [text]="state.error"
+                styleClass="w-full">
+              </p-message>
+            </div>
+
+            <!-- Language Detection Result -->
+            <div *ngIf="documentLanguage && !state.isProcessing" class="mt-3">
+              <p-message
+                severity="success"
+                styleClass="w-full">
+                <ng-template #default>
+                  <strong>{{ 'metadata.document.languageDetected' | translate }}:</strong>
+                  {{ documentLanguage === 'en' ? ('common.language.english' | translate) : ('common.language.french' | translate) }}
+                </ng-template>
+              </p-message>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results Section for Documents -->
+        <div class="results-section mt-4" *ngIf="documentResults.length > 0">
+          <ca-metadata-result
+            [results]="documentResults"
+            [showTranslations]="false"
+            [isProcessing]="state.isProcessing"
+            [processingIndex]="null">
+          </ca-metadata-result>
+
+          <!-- CSV Export -->
+          <ca-metadata-csv-export
+            [results]="documentResults"
+            [includeTranslations]="false">
+          </ca-metadata-csv-export>
+        </div>
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
 </section>
 
 <!-- No API Key Message -->

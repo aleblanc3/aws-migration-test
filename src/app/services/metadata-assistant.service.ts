@@ -604,6 +604,57 @@ French keywords (comma-separated):`;
     );
   }
 
+  // New method for document tab - extracts text, detects language, generates metadata
+  processDocumentForMetadata(file: File, model: string): Observable<{language: 'en' | 'fr', text: string, metadata: MetadataResult}> {
+    return from(this.extractDocumentText(file)).pipe(
+      switchMap(content => {
+        if (!content || content.length < 50) {
+          return throwError(() => new Error('Document content too short or invalid for processing'));
+        }
+
+        // Detect language
+        const language = this.detectLanguage(content);
+
+        // Generate metadata based on detected language
+        if (language === 'fr') {
+          // For French documents, generate French metadata
+          return this.generateMetadataFromDocument(content).pipe(
+            map(metadata => ({
+              language,
+              text: content,
+              metadata: {
+                url: file.name,
+                scrapedContent: content.substring(0, 500) + '...', // Show preview
+                metaDescription: metadata.description,
+                metaKeywords: metadata.keywords,
+                language: 'fr' as const,
+                modelUsed: 'mistralai/mistral-small-3.2-24b-instruct:free',
+                fallbackUsed: false
+              }
+            }))
+          );
+        } else {
+          // For English documents, generate English metadata
+          return this.generateMetadata(content, model, language).pipe(
+            map(metadata => ({
+              language,
+              text: content,
+              metadata: {
+                url: file.name,
+                scrapedContent: content.substring(0, 500) + '...', // Show preview
+                metaDescription: metadata.description,
+                metaKeywords: metadata.keywords,
+                language: 'en' as const,
+                modelUsed: model,
+                fallbackUsed: false
+              }
+            }))
+          );
+        }
+      })
+    );
+  }
+
   private async extractDocumentText(file: File): Promise<string> {
     const arrayBuffer = await file.arrayBuffer();
     return this.fileParseService.extractDocxParagraphs(arrayBuffer);
