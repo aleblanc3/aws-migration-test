@@ -10,7 +10,7 @@
     <span *ngIf="apiKeyService.hasApiKey$ | async" class="text-green-600">
       <i class="pi pi-check-circle"></i> {{ 'page.apiKey.active' | translate }}
     </span>
-    <span *ngIf="!(apiKeyService.hasApiKey$ | async)" class="text-orange-600">
+    <span *ngIf="(apiKeyService.hasApiKey$ | async) === false" class="text-orange-600">
       <i class="pi pi-exclamation-circle"></i> {{ 'page.apiKey.notSet' | translate }}
     </span>
   </div>
@@ -243,7 +243,7 @@
 </section>
 
 <!-- No API Key Message -->
-<div *ngIf="!(apiKeyService.hasApiKey$ | async)" class="mt-4">
+<div *ngIf="(apiKeyService.hasApiKey$ | async) === false" class="mt-4">
   <p-message
     severity="warn"
     [text]="'metadata.errors.noApiKey' | translate"

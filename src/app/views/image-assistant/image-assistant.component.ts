@@ -145,7 +145,14 @@ export class ImageAssistantComponent implements OnInit, OnDestroy {
 
   onModelChange(model: string): void {
     this.selectedVisionModel = model;
-    alert(this.translate.instant('image.model.changeAlert'));
+
+    this.messageService.add({
+      severity: 'warn',
+      summary: this.translate.instant('image.model.changeWarning'),
+      detail: this.translate.instant('image.model.changeAlert'),
+      life: 5000
+    });
+
     this.stateService.resetState();
   }
 

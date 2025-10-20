@@ -30,7 +30,19 @@ export class CsvDownloadComponent {
   hasCompletedResults(): boolean {
     return Object.values(this.results).some(result => result.status === 'completed');
   }
-  
+
+  isProcessingFinished(): boolean {
+    // Processing is finished when there are results and none are in 'pending' or 'processing' state
+    const allResults = Object.values(this.results);
+    return allResults.length > 0 &&
+           !allResults.some(result => result.status === 'pending' || result.status === 'processing');
+  }
+
+  shouldShowNoDataMessage(): boolean {
+    // Only show "no data" message if processing is finished and no results completed successfully
+    return this.isProcessingFinished() && !this.hasCompletedResults();
+  }
+
   downloadCsv(): void {
     let csvContent = this.translate.instant('image.csv.header') + "\n";
     
