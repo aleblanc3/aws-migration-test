@@ -59,7 +59,7 @@ import { environment } from '../../../../../environments/environment';
     InputGroupAddonModule,
   ],
   providers: [TreeDragDropService],
-  templateUrl: './ia-structure.component.html',
+  templateUrl: './ai-structure.component.html',
   styles: `
     /* remove link style from tree & fix indentation for line breaks in table */
     .ia-label {
@@ -863,7 +863,9 @@ export class IaStructureComponent implements OnInit {
   }
 
   //Placeholder for export function
-  exportTable() {}
+  exportTable(): void {
+    throw new Error('exportTable() not implemented yet.');
+  }
 
   //Open link in new tab
   openNodeUrl() {

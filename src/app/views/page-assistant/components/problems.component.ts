@@ -13,6 +13,8 @@ import { ComponentGuidanceComponent } from './problems/component-guidance.compon
 import { SeoComponent } from './problems/seo.component';
 import { UserInsightsComponent } from './problems/user-insights.component';
 import { LinkReportComponent } from './problems/link-report.component';
+import { SummaryComponent } from './problems/summary.component';
+import { IaStructureComponent } from './problems/ai-structure.component';
 import { environment } from '../../../../environments/environment';
 
 export interface ProblemsFlags {
@@ -21,6 +23,7 @@ export interface ProblemsFlags {
   seo: boolean;
   userInsights: boolean;
   linkReport: boolean;
+  iaStructure: boolean;
 }
 
 @Component({
@@ -34,6 +37,8 @@ export interface ProblemsFlags {
     LinkReportComponent,
     ComponentGuidanceComponent,
     HeadingStructureComponent,
+    SummaryComponent,
+    IaStructureComponent,
   ],
   templateUrl: './problems.component.html',
   styles: [
@@ -64,7 +69,7 @@ export interface ProblemsFlags {
 export class PageProblemsComponent {
   // keep your variables
   production: boolean = environment.production;
-  activePanels: number[] = [];
+  activePanels: number[] = [-1];
   isPanelOpen(panelIndex: number): boolean {
     return this.activePanels.includes(panelIndex);
   }
@@ -78,6 +83,7 @@ export class PageProblemsComponent {
     seo: false,
     userInsights: false,
     linkReport: false,
+    iaStructure: false,
   };
 
   /** Call this from each feature panel when its status changes */

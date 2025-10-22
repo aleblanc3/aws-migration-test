@@ -1,5 +1,5 @@
 <p-table
-  [value]="filteredHeadings"
+  [value]="tableRows"
   size="small"
   stripedRows
   [tableStyle]="{ 'min-width': '50rem' }"
@@ -16,7 +16,7 @@
         <div class="header-with-filter">
           <span>{{ col.header }}</span>
 
-          <!-- Down-arrow filter button for Link Type -->
+          <!-- Keep ONLY Link Type filter -->
           <button
             *ngIf="col.field === 'type'"
             pButton
@@ -25,17 +25,6 @@
             icon="pi pi-chevron-down"
             (click)="typePanel?.toggle($event)"
             aria-label="Filter link types"
-          ></button>
-
-          <!-- NEW: Down-arrow filter button for Match status -->
-          <button
-            *ngIf="col.field === 'matchStatus'"
-            pButton
-            type="button"
-            class="p-button-text p-button-sm"
-            icon="pi pi-chevron-down"
-            (click)="statusPanel?.toggle($event)"
-            aria-label="Filter link text health"
           ></button>
         </div>
       </th>
@@ -59,7 +48,7 @@
           <span *ngSwitchCase="'type'">{{ rowData.type }}</span>
 
           <span *ngSwitchCase="'text'" [ngStyle]="getTextStyle(rowData)">
-            <!-- A) DEFAULT (no variants) — keep your existing look -->
+            <!-- A) no variants -->
             <ng-container *ngIf="!rowData.hasTextConflict; else variantNames">
               {{ rowData.text }}
               <div class="muted" *ngIf="rowData.href">
@@ -75,17 +64,12 @@
               </div>
             </ng-container>
 
-            <!-- B) VARIANTS (different link names → same destination) -->
+            <!-- B) variants (different link names → same destination) -->
             <ng-template #variantNames>
-              <!-- main name first, same font/size -->
               <div>{{ rowData.text }}</div>
-
-              <!-- then every other variant on its own line, same font/size -->
               <ul class="variant-list">
                 <li *ngFor="let v of getOtherVariants(rowData)">{{ v }}</li>
               </ul>
-
-              <!-- clickable destination URL under the list -->
               <div class="muted" *ngIf="rowData.href">
                 (
                 <a
@@ -99,9 +83,73 @@
               </div>
             </ng-template>
           </span>
+
+          <span *ngSwitchCase="'destH1'" class="break-all">
+            {{ rowData.destH1 || "—" }}
+          </span>
+
+          <!-- 4-state health chip (icon + label) -->
+          <span *ngSwitchCase="'matchStatus'" class="flex justify-center">
+            <span
+              class="chip"
+              [ngClass]="{
+                'chip-severe':
+                  rowData.hasTextConflict ||
+                  rowData.is404 ||
+                  rowData.anchorMissing,
+                'chip-minor':
+                  !rowData.hasTextConflict &&
+                  !rowData.is404 &&
+                  !rowData.anchorMissing &&
+                  rowData.matchStatus === 'mismatch',
+                'chip-ok': rowData.matchStatus === 'match',
+                'chip-unk':
+                  rowData.matchStatus === 'unknown' ||
+                  rowData.matchStatus === 'na',
+              }"
+            >
+              <i
+                class="pi"
+                [ngClass]="{
+                  'pi-exclamation-triangle':
+                    rowData.hasTextConflict ||
+                    rowData.is404 ||
+                    rowData.anchorMissing,
+                  'pi-times-circle':
+                    !rowData.hasTextConflict &&
+                    !rowData.is404 &&
+                    !rowData.anchorMissing &&
+                    rowData.matchStatus === 'mismatch',
+                  'pi-check-circle': rowData.matchStatus === 'match',
+                  'pi-question-circle':
+                    rowData.matchStatus === 'unknown' ||
+                    rowData.matchStatus === 'na',
+                }"
+                aria-hidden="true"
+              ></i>
+              <span class="chip-label">
+                {{
+                  rowData.hasTextConflict ||
+                  rowData.is404 ||
+                  rowData.anchorMissing
+                    ? "Severe"
+                    : rowData.matchStatus === "mismatch"
+                      ? "Minor"
+                      : rowData.matchStatus === "match"
+                        ? "OK"
+                        : "Unknown"
+                }}
+              </span>
+            </span>
+          </span>
+
+          <!-- Pain points -->
           <span *ngSwitchCase="'explanation'">
             <span
-              *ngIf="rowData.matchStatus === 'mismatch'; else noExp"
+              *ngIf="
+                rowData.uiHealth === 'multi' || rowData.uiHealth === 'mismatch';
+                else noExp
+              "
               class="exp-badge"
               role="note"
               [title]="buildMismatchReason(rowData)"
@@ -111,62 +159,10 @@
             <ng-template #noExp>—</ng-template>
           </span>
 
-          <span *ngSwitchCase="'destH1'" class="break-all">
-            {{ rowData.destH1 || "—" }}
-          </span>
-
-          <span *ngSwitchCase="'matchStatus'" class="flex justify-center">
-            <!-- 404 / broken -->
-            <i
-              *ngIf="rowData.is404"
-              class="pi pi-exclamation-triangle text-bad"
-              title="404/410 (Not found)"
-              style="margin-right: 0.25rem"
-              aria-hidden="true"
-            ></i>
-
-            <!-- Missing anchor on same page -->
-            <i
-              *ngIf="rowData.anchorMissing"
-              class="pi pi-link"
-              title="Anchor target not found on page"
-              style="
-                margin-right: 0.25rem;
-                transform: rotate(45deg);
-                opacity: 0.8;
-              "
-              aria-hidden="true"
-            ></i>
-
-            <!-- Duplicates: show ONLY a red exclamation, hide match/mismatch/question -->
-            <ng-container *ngIf="rowData.hasTextConflict; else normalStatus">
-              <i
-                class="pi pi-exclamation-triangle text-bad"
-                title="Different link names point to the same destination"
-              ></i>
-            </ng-container>
-
-            <ng-template #normalStatus>
-              <i
-                *ngIf="rowData.matchStatus === 'match'"
-                class="pi pi-check-circle text-ok"
-                title="Match"
-              ></i>
-              <i
-                *ngIf="rowData.matchStatus === 'mismatch'"
-                class="pi pi-times-circle text-bad"
-                title="Mismatch"
-              ></i>
-              <i
-                *ngIf="
-                  rowData.matchStatus === 'unknown' ||
-                  rowData.matchStatus === 'na'
-                "
-                class="pi pi-question-circle text-unk"
-                title="Unknown"
-              ></i>
-            </ng-template>
-          </span>
+          <span *ngSwitchCase="'searchTerm'">{{
+            rowData.searchTerm || "—"
+          }}</span>
+          <span *ngSwitchCase="'clicks'">{{ rowData.clicks ?? "—" }}</span>
 
           <span *ngSwitchDefault>{{ rowData[col.field] || "—" }}</span>
         </ng-container>
@@ -175,7 +171,7 @@
   </ng-template>
 </p-table>
 
-<!-- Popover for Link Type -->
+<!-- Link Type popover (kept) -->
 <p-popover
   #typePanel
   [dismissable]="true"
@@ -217,65 +213,8 @@
       </label>
     </div>
 
-    <div class="filter-muted" *ngIf="allSelected">
+    <div class="muted" *ngIf="allSelected">
       All types are currently included.
-    </div>
-  </div>
-</p-popover>
-
-<!-- NEW: Popover for Match status -->
-<p-popover
-  #statusPanel
-  [dismissable]="true"
-  [appendTo]="'body'"
-  [styleClass]="'link-type-popover'"
->
-  <div class="filter-panel">
-    <button
-      pButton
-      type="button"
-      class="p-button-text p-button-sm close-btn"
-      icon="pi pi-times"
-      (click)="statusPanel.hide()"
-      aria-label="Close filter"
-    ></button>
-
-    <div class="filter-row">
-      <p-checkbox
-        [(ngModel)]="matchAllSelected"
-        (onChange)="onMatchAllToggle()"
-        inputId="allMatch"
-        binary="true"
-      ></p-checkbox>
-      <label class="filter-label" for="allMatch">ALL</label>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="filter-row">
-      <p-checkbox
-        [(ngModel)]="matchChecks.match"
-        (pOnChange)="onMatchToggle('match')"
-        [disabled]="matchAllSelected"
-        inputId="ms-match"
-        binary="true"
-      ></p-checkbox>
-      <label class="filter-label" for="ms-match">match</label>
-    </div>
-
-    <div class="filter-row">
-      <p-checkbox
-        [(ngModel)]="matchChecks.mismatch"
-        (pOnChange)="onMatchToggle('mismatch')"
-        [disabled]="matchAllSelected"
-        inputId="ms-mismatch"
-        binary="true"
-      ></p-checkbox>
-      <label class="filter-label" for="ms-mismatch">mismatch</label>
-    </div>
-
-    <div class="filter-muted" *ngIf="matchAllSelected">
-      All match statuses are currently included.
     </div>
   </div>
 </p-popover>
