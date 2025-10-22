@@ -6,7 +6,6 @@ import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { TooltipModule } from 'primeng/tooltip';
-import { SortEvent } from 'primeng/api';
 import { TranslateService, TranslateModule } from '@ngx-translate/core';
 
 import { UploadStateService } from '../../services/upload-state.service';
@@ -21,16 +20,18 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 
-type UiHealth = 'severe' | 'minor' | 'ok' | 'unknown';
+type Health = 'ok' | 'issue' | 'unknown';
 
 interface GuidanceRow {
   order: number;
-  component: string;
-  url: string;
-  health: UiHealth;
+  component: string; // translated label
+  url: string; // translated URL
+  // AI fields:
+  health?: Health;
   codeUpToDate?: boolean;
   issues?: string[];
   rationale?: string;
+  // internal:
   __nameKey?: string;
   __urlKey?: string;
 }
@@ -58,41 +59,28 @@ interface GuidanceRow {
         margin: 0;
         padding-left: 1rem;
       }
-      /* Center table cells vertically like the Link report */
-      :host ::ng-deep .p-datatable-tbody > tr > td {
-        vertical-align: middle;
-      }
-
-      /* Make the Health column centered */
       .health-cell {
-        text-align: center;
+        display: flex;
+        gap: 0.4rem;
+        align-items: center;
+        flex-wrap: wrap;
       }
-
-      /* Pill (chip) used for Health */
       .chip {
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
-        padding: 0.15rem 0.55rem;
+        padding: 0.15rem 0.5rem;
         border-radius: 9999px;
         font-size: 12px;
-        line-height: 1;
-        white-space: nowrap;
+        line-height: 1.2;
         border: 1px solid transparent;
       }
-
-      /* Same color system for both tables */
       .chip-ok {
         background: #dcfce7;
         color: #166534;
         border-color: #bbf7d0;
       }
-      .chip-minor {
-        background: #fef3c7;
-        color: #92400e;
-        border-color: #fde68a;
-      }
-      .chip-severe {
+      .chip-issue {
         background: #fee2e2;
         color: #991b1b;
         border-color: #fecaca;
@@ -102,14 +90,6 @@ interface GuidanceRow {
         color: #374151;
         border-color: #e5e7eb;
       }
-
-      .chip .pi {
-        font-size: 0.95rem;
-      }
-      .chip-label {
-        font-weight: 600;
-      }
-
       .tag {
         font-size: 11px;
         padding: 0.05rem 0.4rem;
@@ -163,8 +143,8 @@ export class ComponentGuidanceComponent implements OnInit {
     { field: 'order', header: 'Index' },
     { field: 'component', header: 'Component' },
     { field: 'url', header: 'UCDG guidance' },
-    { field: 'health', header: 'Health' },
-    { field: 'rationale', header: 'Pain points' },
+    { field: 'health', header: 'Component health' },
+    { field: 'rationale', header: 'Explanation' },
   ];
 
   ngOnInit() {
@@ -173,81 +153,6 @@ export class ComponentGuidanceComponent implements OnInit {
       this.guidanceList = this.validator.collectGuidanceUrls(data.originalHtml);
       this.rows = this.buildRows(this.guidanceList);
     }
-  }
-
-  private readonly HEALTH_RANK: Record<UiHealth, number> = {
-    severe: 3,
-    minor: 2,
-    ok: 1,
-    unknown: 0,
-  } as const;
-
-  private healthRank(h?: UiHealth): number {
-    return this.HEALTH_RANK[h ?? 'unknown'];
-  }
-
-  healthLabel(h?: 'severe' | 'minor' | 'ok' | 'unknown' | null): string {
-    switch (h) {
-      case 'severe':
-        return 'Severe';
-      case 'minor':
-        return 'Minor';
-      case 'ok':
-        return 'OK';
-      default:
-        return 'Unknown';
-    }
-  }
-
-  onCustomSort(event: SortEvent): void {
-    const data = (event.data ?? []) as GuidanceRow[];
-    const order = (event.order ?? 1) as 1 | -1;
-    const field = (event.field ?? 'health') as keyof GuidanceRow;
-
-    switch (field) {
-      case 'health': {
-        data.sort((a, b) => {
-          const ra = this.healthRank(a.health);
-          const rb = this.healthRank(b.health);
-          // Always sort by rank DESC (severe first). Flip if user toggles.
-          const base = rb - ra; // DESC by rank
-          return order === 1 ? base : -base; // respect header toggle
-        });
-        break;
-      }
-
-      case 'order':
-        data.sort((a, b) => (a.order - b.order) * order);
-        break;
-
-      case 'component':
-        data.sort(
-          (a, b) =>
-            a.component.localeCompare(b.component, undefined, {
-              numeric: true,
-            }) * order,
-        );
-        break;
-
-      case 'url':
-        data.sort(
-          (a, b) =>
-            a.url.localeCompare(b.url, undefined, { numeric: true }) * order,
-        );
-        break;
-
-      default:
-        break;
-    }
-
-    this.rows = [...data];
-  }
-
-  private toUiHealth(ai: ComponentAiResult): UiHealth {
-    if (ai.health === 'unknown') return 'unknown';
-    const n = Array.isArray(ai.issues) ? ai.issues.length : 0;
-    if (ai.health === 'ok' && n === 0) return 'ok';
-    return n >= 2 ? 'severe' : 'minor';
   }
 
   /** Build sorted, de-duped table rows from validator findings. */
@@ -320,16 +225,21 @@ export class ComponentGuidanceComponent implements OnInit {
 
   /** Merge AI outputs back into table rows */
   private applyResults(results: ComponentAiResult[]) {
+    // Map by label for simplicity (labels are stable, de-duped)
     const byLabel = new Map(results.map((r) => [r.componentLabel, r]));
+
     this.rows = this.rows.map((r) => {
       const ai = byLabel.get(r.component);
       if (!ai) return r;
-      return {
+
+      const out: GuidanceRow = {
         ...r,
-        health: this.toUiHealth(ai),
+        health: ai.health,
+        codeUpToDate: ai.codeUpToDate,
         issues: ai.issues || [],
         rationale: ai.rationale || '',
       };
+      return out;
     });
   }
 

@@ -5,6 +5,8 @@
   quality, or convert your page to a different template.
 </p>
 
+<!--REMINDER: remove *ngIf="!production" as tools are finished (or close enough for people to use them)-->
+
 <p-accordion
   [(value)]="activePanels"
   [multiple]="true"
@@ -13,9 +15,23 @@
   <p-accordion-panel
     [value]="0"
     class="border-1 border-round-md border-surface"
+    *ngIf="!production"
+  >
+    <p-accordion-header>IA structure</p-accordion-header>
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(0)">
+      Check if your page is an IA orphan and view its current IA diagram.
+    </p>
+    <p-accordion-content>
+      <ca-ia-structure></ca-ia-structure>
+    </p-accordion-content>
+  </p-accordion-panel>
+
+  <p-accordion-panel
+    [value]="1"
+    class="border-1 border-round-sm border-surface"
   >
     <p-accordion-header>Template conversion</p-accordion-header>
-    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(0)">
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(2)">
       Add doormat text.
     </p>
     <p-accordion-content>
