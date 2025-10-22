@@ -59,7 +59,7 @@ import { environment } from '../../../../../environments/environment';
     InputGroupAddonModule,
   ],
   providers: [TreeDragDropService],
-  templateUrl: './ai-structure.component.html',
+  templateUrl: './ia-structure.component.html',
   styles: `
     /* remove link style from tree & fix indentation for line breaks in table */
     .ia-label {
