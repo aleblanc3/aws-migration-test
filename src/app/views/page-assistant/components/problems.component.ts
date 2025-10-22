@@ -14,7 +14,7 @@ import { SeoComponent } from './problems/seo.component';
 import { UserInsightsComponent } from './problems/user-insights.component';
 import { LinkReportComponent } from './problems/link-report.component';
 import { SummaryComponent } from './problems/summary.component';
-import { IaStructureComponent } from './problems/ia-structure.component';
+import { IaStructureComponent } from './problems/ai-structure.component';
 import { environment } from '../../../../environments/environment';
 
 export interface ProblemsFlags {
