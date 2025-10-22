@@ -29,7 +29,7 @@
           <div class="result-content p-3">
             <!-- URL -->
             <div class="field mb-3">
-              <label class="font-semibold text-500 text-sm">{{ 'metadata.results.url' | translate }}</label>
+              <span class="font-semibold text-500 text-sm">{{ 'metadata.results.url' | translate }}</span>
               <div class="flex align-items-center gap-2 mt-1">
                 <a [href]="result.url" target="_blank" class="text-primary hover:underline text-sm">
                   {{ result.url }}
@@ -48,10 +48,10 @@
             <!-- Meta Description -->
             <div class="field mb-3">
               <div class="flex align-items-center justify-content-between mb-1">
-                <label class="font-semibold text-500 text-sm">
+                <span class="font-semibold text-500 text-sm">
                   {{ 'metadata.results.metaDescription' | translate }}
                   <span class="text-xs text-400 ml-1">({{ result.metaDescription.length }} chars)</span>
-                </label>
+                </span>
                 <p-button 
                   icon="pi pi-copy" 
                   [text]="true"
@@ -69,10 +69,10 @@
             <!-- Meta Keywords -->
             <div class="field mb-3">
               <div class="flex align-items-center justify-content-between mb-1">
-                <label class="font-semibold text-500 text-sm">
+                <span class="font-semibold text-500 text-sm">
                   {{ 'metadata.results.metaKeywords' | translate }}
                   <span class="text-xs text-400 ml-1">({{ result.metaKeywords.length }} chars)</span>
-                </label>
+                </span>
                 <p-button 
                   icon="pi pi-copy" 
                   [text]="true"
@@ -97,10 +97,10 @@
               <!-- Translated Description -->
               <div class="field mb-3">
                 <div class="flex align-items-center justify-content-between mb-1">
-                  <label class="font-semibold text-500 text-sm">
+                  <span class="font-semibold text-500 text-sm">
                     {{ 'metadata.results.translatedDescription' | translate }}
                     <span class="text-xs text-400 ml-1">({{ result.frenchTranslatedDescription.length }} chars)</span>
-                  </label>
+                  </span>
                   <p-button
                     icon="pi pi-copy"
                     [text]="true"
@@ -118,10 +118,10 @@
               <!-- Translated Keywords -->
               <div class="field">
                 <div class="flex align-items-center justify-content-between mb-1">
-                  <label class="font-semibold text-500 text-sm">
+                  <span class="font-semibold text-500 text-sm">
                     {{ 'metadata.results.translatedKeywords' | translate }}
                     <span class="text-xs text-400 ml-1">({{ result.frenchTranslatedKeywords!.length }} chars)</span>
-                  </label>
+                  </span>
                   <p-button
                     icon="pi pi-copy"
                     [text]="true"
@@ -155,10 +155,10 @@
               <!-- Document Description -->
               <div class="field mb-3">
                 <div class="flex align-items-center justify-content-between mb-1">
-                  <label class="font-semibold text-500 text-sm">
+                  <span class="font-semibold text-500 text-sm">
                     {{ 'metadata.results.documentDescription' | translate }}
                     <span class="text-xs text-400 ml-1">({{ result.documentMetadata.description.length }} chars)</span>
-                  </label>
+                  </span>
                   <p-button
                     icon="pi pi-copy"
                     [text]="true"
@@ -176,10 +176,10 @@
               <!-- Document Keywords -->
               <div class="field">
                 <div class="flex align-items-center justify-content-between mb-1">
-                  <label class="font-semibold text-500 text-sm">
+                  <span class="font-semibold text-500 text-sm">
                     {{ 'metadata.results.documentKeywords' | translate }}
                     <span class="text-xs text-400 ml-1">({{ result.documentMetadata.keywords.length }} chars)</span>
-                  </label>
+                  </span>
                   <p-button
                     icon="pi pi-copy"
                     [text]="true"
@@ -205,10 +205,10 @@
               <!-- Suggested Description -->
               <div class="field mb-3">
                 <div class="flex align-items-center justify-content-between mb-1">
-                  <label class="font-semibold text-sm">
+                  <span class="font-semibold text-sm">
                     {{ 'metadata.results.suggestedDescription' | translate }}
                     <span class="text-xs ml-1 opacity-80">({{ result.evaluationResult.suggestedDescription.length }} chars)</span>
-                  </label>
+                  </span>
                   <p-button
                     icon="pi pi-copy"
                     [text]="true"
@@ -227,10 +227,10 @@
               <!-- Suggested Keywords -->
               <div class="field mb-3">
                 <div class="flex align-items-center justify-content-between mb-1">
-                  <label class="font-semibold text-sm">
+                  <span class="font-semibold text-sm">
                     {{ 'metadata.results.suggestedKeywords' | translate }}
                     <span class="text-xs ml-1 opacity-80">({{ result.evaluationResult.suggestedKeywords.length }} chars)</span>
-                  </label>
+                  </span>
                   <p-button
                     icon="pi pi-copy"
                     [text]="true"
@@ -248,9 +248,9 @@
 
               <!-- Rationale -->
               <div class="field">
-                <label class="font-semibold text-sm mb-1 block">
+                <span class="font-semibold text-sm mb-1 block">
                   {{ 'metadata.results.rationale' | translate }}
-                </label>
+                </span>
                 <div class="p-2 border-round" style="background: rgba(255,255,255,0.9); color: #333;">
                   <p class="text-sm m-0">{{ result.evaluationResult.rationale }}</p>
                 </div>

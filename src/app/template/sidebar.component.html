@@ -59,6 +59,21 @@
             </a>
           </div>
         </div>
+
+        <!-- Monitoring Tools -->
+        <div class="section">
+          <div class="nav_header text-primary-200 hover:text-primary-400 hover:font-bold" (click)="toggleSection('monitoring')" (keydown)="toggleOnEnter($event, 'monitoring')" tabindex="0" role="button" [attr.aria-expanded]="isExpanded.monitoring" aria-controls="monitoring">
+            <span id="menu-monitoring" class="nav_section_text">{{ 'menu.monitoring' | translate }}</span>
+            <span class="material-icons toggle-icon">{{ isExpanded.monitoring ? 'expand_less' : 'expand_more' }}</span>
+          </div>
+          <div class="nav_section_body" id="monitoring" role="region" aria-labelledby="menu-monitoring" [class.hidden]="!isExpanded.monitoring">
+            <a [routerLink]="['/llm-evaluation']" routerLinkActive="active"
+               class="nav_link flex hover:bg-primary-600 border-round">
+              <span class="material-icons">assessment</span>
+              <span class="nav_link_text">{{ 'menu.llmEvaluation' | translate }}</span>
+            </a>
+          </div>
+        </div>
       </div>
       <!-- App Info -->
       <div class="section">

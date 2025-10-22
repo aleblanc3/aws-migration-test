@@ -24,10 +24,10 @@
       <!-- Completed state -->
       <div *ngIf="result.status === 'completed'">
         <!-- Image preview -->
-        <img 
-          *ngIf="result.data.imageBase64" 
+        <img
+          *ngIf="result.data.imageBase64"
           [src]="result.data.imageBase64"
-          [alt]="'Preview for ' + result.fileName" 
+          [alt]="'image.result.previewFor' | translate: { fileName: result.fileName }"
           class="result-image">
         
         <div class="result-columns">

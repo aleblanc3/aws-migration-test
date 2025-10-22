@@ -10,6 +10,7 @@ import { TranslationAssistantComponent } from './views/translation-assistant/tra
 import { ProjectAssistantComponent } from './views/project-assistant/project-assistant.component';
 import { InventoryAssistantComponent } from './views/inventory-assistant/inventory-assistant.component';
 import { MetadataAssistantComponent } from './views/metadata-assistant/metadata-assistant.component';
+import { LlmEvaluationComponent } from './views/llm-evaluation/llm-evaluation.component';
 import { AboutComponent } from './views/static/about.component';
 import { TestComponent } from './views/example/test.component';
 import { IaAssistantComponent } from './views/ia-assistant/ia-assistant.component';
@@ -83,6 +84,11 @@ export const routes: Routes = [
         path: 'metadata-assistant',
         component: MetadataAssistantComponent,
         title: 'title.metadata',
+    },
+    {
+        path: 'llm-evaluation',
+        component: LlmEvaluationComponent,
+        title: 'title.llmEvaluation',
     },
     {
         path: 'about-us',

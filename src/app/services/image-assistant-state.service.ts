@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 
 export interface FileProcessingResult {
   fileName: string;
@@ -15,7 +15,7 @@ export interface FileProcessingResult {
 }
 
 export interface ProcessingState {
-  results: { [fileName: string]: FileProcessingResult };
+  results: Record<string, FileProcessingResult>;
   filesInProgress: number;
   processedCount: number;
   progressText: string;
@@ -35,8 +35,6 @@ export class ImageAssistantStateService {
   });
 
   public state$ = this.stateSubject.asObservable();
-
-  constructor() {}
 
   getCurrentState(): ProcessingState {
     return this.stateSubject.value;

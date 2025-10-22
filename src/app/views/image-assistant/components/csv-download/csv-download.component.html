@@ -7,7 +7,7 @@
     styleClass="my-2">
   </p-button>
   
-  <p *ngIf="!hasCompletedResults()">
+  <p *ngIf="shouldShowNoDataMessage()">
     {{ 'image.csv.noData' | translate }}
   </p>
 </div>

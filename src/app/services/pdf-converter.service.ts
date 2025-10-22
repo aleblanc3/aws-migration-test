@@ -4,10 +4,8 @@ import { Injectable } from '@angular/core';
   providedIn: 'root'
 })
 export class PdfConverterService {
-  private pdfjsLib: any;
+  private pdfjsLib: typeof import('pdfjs-dist') | null = null;
   private isInitialized = false;
-  
-  constructor() {}
 
   /**
    * Lazy load and initialize pdfjs-dist
@@ -39,7 +37,11 @@ export class PdfConverterService {
   async convertPdfToImages(file: File): Promise<string[]> {
     // Ensure pdfjs is loaded
     await this.initializePdfJs();
-    
+
+    if (!this.pdfjsLib) {
+      throw new Error('PDF.js library failed to initialize');
+    }
+
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await this.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     const images: string[] = [];
@@ -58,13 +60,14 @@ export class PdfConverterService {
       
       canvas.height = viewport.height;
       canvas.width = viewport.width;
-      
+
       // Render PDF page to canvas
       const renderContext = {
         canvasContext: context,
-        viewport: viewport
+        viewport: viewport,
+        canvas: canvas
       };
-      
+
       await page.render(renderContext).promise;
       
       // Convert canvas to image data URL

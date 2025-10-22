@@ -1,8 +1,8 @@
 // src/app/services/image-processor.ts
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, from, throwError } from 'rxjs';
-import { catchError, map, switchMap, tap, timeout, retry } from 'rxjs/operators';
+import { catchError, map, switchMap, timeout, retry } from 'rxjs/operators';
 import { ApiKeyService } from './api-key.service';
 
 // Define interfaces for better type safety
@@ -22,20 +22,19 @@ export class ImageProcessorService {
   // --- UPDATED: New Translation Model and specific prompt ---
   private readonly TRANSLATION_MODEL_FOR_CRA = "mistralai/mistral-small-3.2-24b-instruct:free"; // Using Mistral Small for reliable free translation
 
-  constructor(
-    private http: HttpClient,
-    private apiKeyService: ApiKeyService
-  ) {}
+  private http = inject(HttpClient);
+  private apiKeyService = inject(ApiKeyService);
 
   /**
-   * Main method to analyze an image file using OpenRouter's vision API.
+   * Main method to analyze an image file using OpenRouter's vision API with fallback support.
    * @param file The image file to analyze.
    * @param selectedVisionModel The OpenRouter vision model ID (e.g., 'qwen/qwen2.5-vl-32b-instruct:free').
    * @param identifier A unique identifier for logging (e.g., file name).
    * @param isPdfPage Whether this image is from a PDF page (for different prompting).
+   * @param fallbackModels Optional array of fallback model IDs to try if primary fails.
    * @returns An Observable emitting the analysis result.
    */
-  analyzeImage(file: File, selectedVisionModel: string, identifier: string, isPdfPage: boolean = false): Observable<VisionAnalysisResult> {
+  analyzeImage(file: File, selectedVisionModel: string, identifier: string, isPdfPage = false, fallbackModels: string[] = []): Observable<VisionAnalysisResult> {
     console.log('ImageProcessorService.analyzeImage called with:', file.name, selectedVisionModel);
     const apiKey = this.apiKeyService.getCurrentKey();
     if (!apiKey) {
@@ -47,10 +46,10 @@ export class ImageProcessorService {
     return this.loadImage(file).pipe(
       map(img => {
         const base64Data = this.resizeAndConvertToBase64(img, this.MAX_IMAGE_SIZE);
-        return { img, base64Data }; // Pass both img and base64Data
+        return { base64Data }; // Pass base64Data
       }),
-      switchMap(({ img, base64Data }) =>
-        this.getVisionAnalysis(base64Data, selectedVisionModel, apiKey, identifier, isPdfPage).pipe(
+      switchMap(({ base64Data }) =>
+        this.getVisionAnalysisWithFallback(base64Data, selectedVisionModel, apiKey, identifier, isPdfPage, fallbackModels).pipe(
           map(visionResult => {
             // If vision analysis failed, throw error to stop the pipeline
             if (visionResult.error) {
@@ -113,12 +112,12 @@ export class ImageProcessorService {
           observer.next(img);
           observer.complete();
         };
-        img.onerror = (err) => {
+        img.onerror = () => {
           observer.error(new Error(`Failed to load image '${file.name}'.`));
         };
         img.src = e.target?.result as string;
       };
-      reader.onerror = (err) => {
+      reader.onerror = () => {
         observer.error(new Error(`Failed to read file '${file.name}'.`));
       };
       reader.readAsDataURL(file);
@@ -150,7 +149,68 @@ export class ImageProcessorService {
     return canvas.toDataURL('image/png');
   }
 
-  private getVisionAnalysis(base64Data: string, selectedVisionModel: string, apiKey: string, identifier: string, isPdfPage: boolean = false): Observable<VisionAnalysisResult> {
+  private getVisionAnalysisWithFallback(base64Data: string, selectedVisionModel: string, apiKey: string, identifier: string, isPdfPage = false, fallbackModels: string[] = []): Observable<VisionAnalysisResult> {
+    // Try primary model first, then fallbacks
+    const modelsToTry = [selectedVisionModel, ...fallbackModels.filter(m => m !== selectedVisionModel)];
+
+    return this.tryVisionModelsInSequence(base64Data, modelsToTry, apiKey, identifier, isPdfPage, 0, selectedVisionModel);
+  }
+
+  private tryVisionModelsInSequence(base64Data: string, models: string[], apiKey: string, identifier: string, isPdfPage: boolean, attemptIndex: number, primaryModel: string): Observable<VisionAnalysisResult> {
+    if (attemptIndex >= models.length) {
+      return from([{
+        english: null,
+        french: null,
+        error: 'All vision models failed due to rate limits or errors'
+      }]);
+    }
+
+    const currentModel = models[attemptIndex];
+    console.log(`Attempting vision analysis with model: ${currentModel} (attempt ${attemptIndex + 1}/${models.length})`);
+
+    return this.getVisionAnalysis(base64Data, currentModel, apiKey, identifier, isPdfPage).pipe(
+      catchError(error => {
+        console.warn(`Vision model ${currentModel} failed:`, error);
+
+        // Check if it's a rate limit error
+        if (this.isRateLimitError(error)) {
+          console.log(`Rate limit detected for ${currentModel}, trying next model...`);
+          return this.tryVisionModelsInSequence(base64Data, models, apiKey, identifier, isPdfPage, attemptIndex + 1, primaryModel);
+        }
+
+        // For other errors, still try fallback if available
+        if (attemptIndex < models.length - 1) {
+          console.log(`Error with ${currentModel}, trying next model...`);
+          return this.tryVisionModelsInSequence(base64Data, models, apiKey, identifier, isPdfPage, attemptIndex + 1, primaryModel);
+        }
+
+        // If no more models to try, return the error result
+        return from([{
+          english: null,
+          french: null,
+          error: error.error || error.message || 'All vision models failed'
+        }]);
+      })
+    );
+  }
+
+  private isRateLimitError(error: unknown): boolean {
+    if (!error) return false;
+
+    const errorAny = error as { error?: string; message?: string; status?: number };
+    const errorMessage = errorAny.error || errorAny.message || '';
+    const errorLower = typeof errorMessage === 'string' ? errorMessage.toLowerCase() : '';
+
+    return errorLower.includes('rate limit') ||
+           errorLower.includes('quota exceeded') ||
+           errorLower.includes('too many requests') ||
+           errorLower.includes('429') ||
+           errorLower.includes('key limit exceeded') ||
+           errorAny.status === 403 ||
+           errorAny.status === 429;
+  }
+
+  private getVisionAnalysis(base64Data: string, selectedVisionModel: string, apiKey: string, identifier: string, isPdfPage = false): Observable<VisionAnalysisResult> {
     console.log('getVisionAnalysis called for:', identifier, 'model:', selectedVisionModel, 'isPdfPage:', isPdfPage);
     
     let prompt: string;
@@ -210,7 +270,11 @@ export class ImageProcessorService {
       "Content-Type": "application/json"
     });
 
-    return this.http.post<any>(this.OPENROUTER_API_URL, payload, { headers }).pipe(
+    interface OpenRouterResponse {
+      choices?: { message?: { content?: string } }[];
+    }
+
+    return this.http.post<OpenRouterResponse>(this.OPENROUTER_API_URL, payload, { headers }).pipe(
       timeout(60000),
       map(response => {
         const englishText = response?.choices?.[0]?.message?.content?.trim();
@@ -272,12 +336,16 @@ export class ImageProcessorService {
       "Content-Type": "application/json"
     });
 
-    return this.http.post<any>(this.OPENROUTER_API_URL, payload, { headers }).pipe(
+    interface OpenRouterTranslationResponse {
+      choices?: { message?: { content?: string } }[];
+    }
+
+    return this.http.post<OpenRouterTranslationResponse>(this.OPENROUTER_API_URL, payload, { headers }).pipe(
       timeout(90000), // Increased timeout to 90 seconds for PDF content
       retry({ count: 1, delay: 2000 }), // Retry once after 2 seconds on failure
       map(response => {
         console.log(`Translation response for ${identifier}:`, response);
-        
+
         // Check if the response has the expected structure
         if (!response || !response.choices || !Array.isArray(response.choices) || response.choices.length === 0) {
           console.error(`Invalid response structure from translation model for ${identifier}:`, response);

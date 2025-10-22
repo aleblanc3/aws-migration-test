@@ -5,7 +5,7 @@ import { MetadataResult } from './metadata-assistant.service';
 export interface MetadataProcessingState {
   isProcessing: boolean;
   currentUrl: string;
-  currentStep: 'idle' | 'scraping' | 'generating' | 'translating' | 'processing-document' | 'evaluating' | 'complete';
+  currentStep: 'idle' | 'scraping' | 'generating' | 'translating' | 'extracting-text' | 'processing-document' | 'evaluating' | 'complete';
   progress: number;
   totalUrls: number;
   processedUrls: number;

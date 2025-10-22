@@ -113,16 +113,17 @@ export class CsvExportComponent {
     const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    
+
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-    const filename = this.includeTranslations 
-      ? `metadata-with-translations-${timestamp}.csv`
-      : `metadata-results-${timestamp}.csv`;
-    
+    const baseFilename = this.includeTranslations
+      ? this.translate.instant('metadata.csv.fileNameWithTranslations')
+      : this.translate.instant('metadata.csv.fileNameResults');
+    const filename = `${baseFilename}-${timestamp}.csv`;
+
     link.setAttribute('href', url);
     link.setAttribute('download', filename);
     link.style.visibility = 'hidden';
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

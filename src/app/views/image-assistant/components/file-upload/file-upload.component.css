@@ -1,0 +1,63 @@
+fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+legend {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+}
+
+:host ::ng-deep .p-fileupload {
+  margin-top: 1rem;
+}
+
+:host ::ng-deep .p-fileupload-content {
+  border: 2px dashed var(--surface-border);
+  border-radius: var(--border-radius);
+  padding: 3rem 2rem;
+  text-align: center;
+  background: var(--surface-card);
+  transition: all 0.3s ease;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:host ::ng-deep .p-fileupload-content:hover {
+  border-color: var(--primary-color);
+  background-color: var(--surface-50);
+}
+
+:host ::ng-deep .p-fileupload-buttonbar {
+  display: none;
+}
+
+.upload-content {
+  width: 100%;
+}
+
+.upload-icon {
+  font-size: 3rem;
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.upload-title {
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.upload-description {
+  color: var(--text-color-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.upload-formats {
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+}
