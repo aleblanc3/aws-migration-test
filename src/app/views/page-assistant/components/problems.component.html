@@ -5,13 +5,24 @@
   quality, or convert your page to a different template.
 </p>
 
-<!--REMINDER: remove *ngIf="!production" as tools are finished (or close enough for people to use them)-->
-
 <p-accordion
   [(value)]="activePanels"
   [multiple]="true"
   class="flex flex-column gap-3"
 >
+  <p-accordion-panel
+    [value]="-1"
+    class="border-1 border-round-md border-surface"
+  >
+    <p-accordion-header>Summary</p-accordion-header>
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(-1)">
+      Overview of issues detected across all reports.
+    </p>
+    <p-accordion-content>
+      <ca-summary></ca-summary>
+    </p-accordion-content>
+  </p-accordion-panel>
+
   <p-accordion-panel
     [value]="0"
     class="border-1 border-round-md border-surface"
@@ -47,7 +58,7 @@
         aria-label="Issues found"
       ></span>
     </p-accordion-header>
-    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(2)">
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(1)">
       Find guidance on the components used on your page and check for deprecated
       code or unexpected classes or elements.
     </p>
@@ -70,7 +81,7 @@
         aria-label="Issues found"
       ></span>
     </p-accordion-header>
-    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(3)">
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(2)">
       Add doormat text.
     </p>
     <p-accordion-content>
@@ -92,7 +103,7 @@
         aria-label="Issues found"
       ></span>
     </p-accordion-header>
-    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(4)">
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(3)">
       Add doormat text.
     </p>
     <p-accordion-content>
@@ -114,7 +125,7 @@
         aria-label="Issues found"
       ></span>
     </p-accordion-header>
-    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(0)">
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(4)">
       Check link text vs destination content, flag duplicate destinations and
       404 page.
     </p>
@@ -123,6 +134,24 @@
         (hasProblemsChange)="onFeatureProblem('linkReport', $event)"
       >
       </ca-link-report>
+    </p-accordion-content>
+  </p-accordion-panel>
+
+  <p-accordion-panel
+    [value]="5"
+    class="border-1 border-round-sm border-surface"
+    *ngIf="!production"
+  >
+    <p-accordion-header
+      >IA structure
+      <span class="flex-spacer"></span>
+      <span class="feature-badge" *ngIf="flags.iaStructure"></span>
+    </p-accordion-header>
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(5)">
+      Check if your page is an IA orphan and view its current IA diagram.
+    </p>
+    <p-accordion-content>
+      <ca-ia-structure></ca-ia-structure>
     </p-accordion-content>
   </p-accordion-panel>
 </p-accordion>
