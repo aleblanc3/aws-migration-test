@@ -4,6 +4,8 @@
   styleClass="p-datatable-sm"
   [(selection)]="selectedRows"
   selectionMode="multiple"
+  [customSort]="true"
+  (sortFunction)="onCustomSort($event)"
 >
   <ng-template pTemplate="header">
     <tr>
@@ -13,15 +15,29 @@
       </th>
 
       <!-- Index -->
-      <th style="width: 4rem">
-        <span class="pi pi-list mr-1" aria-hidden="true"></span>
-        Index
+      <th pSortableColumn="order">
+        <span>Index</span>
+        <p-sortIcon field="order"></p-sortIcon>
       </th>
 
-      <th>Component</th>
-      <th>UCDG guidance</th>
-      <th style="width: 11rem">Component health</th>
-      <th>Explanation</th>
+      <!-- Component -->
+      <th>
+        <span>Component</span>
+      </th>
+
+      <!-- UCDG guidance URL -->
+      <th>
+        <span>UCDG guidance</span>
+      </th>
+
+      <!-- Health (custom sort) -->
+      <th pSortableColumn="health" class="health-col">
+        <span>Health</span>
+        <p-sortIcon field="health"></p-sortIcon>
+      </th>
+
+      <!-- Pain points (not sortable) -->
+      <th>Pain points</th>
     </tr>
   </ng-template>
 
@@ -44,32 +60,33 @@
       </td>
 
       <!-- Health -->
-      <td class="health-cell">
-        <ng-container [ngSwitch]="row.health">
-          <span *ngSwitchCase="'ok'" class="chip chip-ok">
-            <i class="pi pi-check-circle" aria-hidden="true"></i>
-            <span>OK</span>
-          </span>
-          <span *ngSwitchCase="'issue'" class="chip chip-issue">
-            <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
-            <span>Issues</span>
-          </span>
-          <span *ngSwitchDefault class="chip chip-unk">
-            <i class="pi pi-question-circle" aria-hidden="true"></i>
-            <span>Unknown</span>
-          </span>
-        </ng-container>
-
-        <!-- optional: show codeUpToDate tag when AI returns it -->
-        <span *ngIf="row.codeUpToDate === true" class="tag tag-ok"
-          >code up to date</span
+      <td class="health-cell health-col">
+        <span
+          class="chip"
+          [ngClass]="{
+            'chip-severe': row.health === 'severe',
+            'chip-minor': row.health === 'minor',
+            'chip-ok': row.health === 'ok',
+            'chip-unk': !row.health || row.health === 'unknown',
+          }"
         >
-        <span *ngIf="row.codeUpToDate === false" class="tag tag-warn"
-          >update code</span
-        >
+          <i
+            class="pi"
+            [ngClass]="{
+              'pi-exclamation-triangle': row.health === 'severe',
+              'pi-times-circle': row.health === 'minor',
+              'pi-check-circle': row.health === 'ok',
+              'pi-question-circle': !row.health || row.health === 'unknown',
+            }"
+            aria-hidden="true"
+          ></i>
+          <span class="chip-label">
+            {{ healthLabel(row.health) }}
+          </span>
+        </span>
       </td>
 
-      <!-- Explanation (keep simple for now as requested) -->
+      <!-- Pain points -->
       <td>
         <div *ngIf="(row.issues?.length || 0) > 0; else rationaleOnly">
           <ul class="issues">
@@ -100,7 +117,6 @@
     [showDelay]="1000"
     [hideDelay]="300"
   >
-    <!-- satisfy elements-content lint rule -->
     <span class="sr-only">Get GenAI recommendations based on user data</span>
   </button>
 </div>
