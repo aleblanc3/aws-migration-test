@@ -47,7 +47,7 @@
         aria-label="Issues found"
       ></span>
     </p-accordion-header>
-    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(2)">
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(1)">
       Find guidance on the components used on your page and check for deprecated
       code or unexpected classes or elements.
     </p>
@@ -70,7 +70,7 @@
         aria-label="Issues found"
       ></span>
     </p-accordion-header>
-    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(3)">
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(2)">
       Add doormat text.
     </p>
     <p-accordion-content>
@@ -92,7 +92,7 @@
         aria-label="Issues found"
       ></span>
     </p-accordion-header>
-    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(4)">
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(3)">
       Add doormat text.
     </p>
     <p-accordion-content>
@@ -114,7 +114,7 @@
         aria-label="Issues found"
       ></span>
     </p-accordion-header>
-    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(0)">
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(4)">
       Check link text vs destination content, flag duplicate destinations and
       404 page.
     </p>
@@ -123,6 +123,28 @@
         (hasProblemsChange)="onFeatureProblem('linkReport', $event)"
       >
       </ca-link-report>
+    </p-accordion-content>
+  </p-accordion-panel>
+
+  <p-accordion-panel
+    [value]="5"
+    class="border-1 border-round-sm border-surface"
+    *ngIf="!production"
+  >
+    <p-accordion-header
+      >IA structure
+      <span class="flex-spacer"></span>
+      <span
+        class="feature-badge"
+        *ngIf="flags.userInsights"
+        aria-label="Issues found"
+      ></span>
+    </p-accordion-header>
+    <p class="mt-0 ml-4 text-color-secondary" *ngIf="!isPanelOpen(5)">
+      Add doormat text.
+    </p>
+    <p-accordion-content>
+      <ca-ia-structure></ca-ia-structure>
     </p-accordion-content>
   </p-accordion-panel>
 </p-accordion>

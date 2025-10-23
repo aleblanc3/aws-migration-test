@@ -5,6 +5,7 @@ import { TableModule } from 'primeng/table';
 import { PopoverModule, Popover } from 'primeng/popover';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ButtonModule } from 'primeng/button';
+import { SortEvent } from 'primeng/api';
 import { UploadStateService } from '../../services/upload-state.service';
 import { LinkAiService, AiVerdict } from '../../services/link-ai.service';
 import { ContentExtractorService } from '../../services/content-extractor.service';
@@ -22,7 +23,8 @@ type LinkType =
   | 'anchor'
   | 'mailto'
   | 'download';
-type MatchStatus = 'match' | 'mismatch' | 'unknown' | 'na';
+type UiHealth = 'severe' | 'minor' | 'ok' | 'unknown';
+type LinkMatchStatus = 'match' | 'mismatch' | 'unknown' | 'na';
 
 const CANADA_ORIGIN = 'https://www.canada.ca';
 
@@ -125,7 +127,7 @@ interface HeadingData {
   href: string; // Original href
   absUrl: string | null; // Resolved absolute URL
   destH1: string | null; // Destination title (guessed/extracted)
-  matchStatus: MatchStatus;
+  matchStatus: LinkMatchStatus;
   searchTerm: string;
   clicks: number | null;
 
@@ -185,14 +187,52 @@ interface UploadDataShape {
   templateUrl: './link-report.component.html',
   styles: [
     `
-      .text-ok {
-        color: #16a34a;
+      /* Base chip */
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.15rem 0.55rem;
+        border-radius: 9999px;
+        border: 1px solid transparent;
+        font-weight: 500;
+        line-height: 1.1;
       }
-      .text-bad {
-        color: #dc2626;
+
+      /* Make the PrimeIcons inherit the chip color (wins over theme) */
+      .chip .pi {
+        color: inherit !important;
       }
-      .text-unk {
-        color: #64748b;
+
+      /* Variants */
+      .chip-severe {
+        background: #fee2e2;
+        border-color: #fecaca;
+        color: #b91c1c; /* text + icon */
+      }
+      .chip-minor {
+        background: #fef3c7;
+        border-color: #fde68a;
+        color: #92400e;
+      }
+      .chip-ok {
+        background: #dcfce7;
+        border-color: #86efac;
+        color: #166534;
+      }
+      .chip-unk {
+        background: #e5e7eb;
+        border-color: #cbd5e1;
+        color: #334155;
+      }
+
+      .health-cell .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      .chip-label {
+        line-height: 1;
       }
       .break-all {
         word-break: break-all;
@@ -276,10 +316,68 @@ export class LinkReportComponent implements OnInit {
   private readonly linkAi = inject(LinkAiService);
   private readonly extractor = inject(ContentExtractorService);
   private readonly fetchService = inject(FetchService);
+  private readonly HEALTH_RANK: Record<UiHealth, number> = {
+    severe: 3,
+    minor: 2,
+    ok: 1,
+    unknown: 0,
+  };
+
+  uiHealth(r: HeadingData): UiHealth {
+    // count “issues”
+    const issues =
+      (r.hasTextConflict ? 1 : 0) +
+      (r.is404 ? 1 : 0) +
+      (r.anchorMissing ? 1 : 0) +
+      (r.matchStatus === 'mismatch' ? 1 : 0);
+
+    if (issues >= 2) return 'severe';
+    if (issues === 1) return 'minor';
+
+    // explicit OK states
+    if (r.matchStatus === 'match' || r.matchStatus === 'na') return 'ok';
+
+    return 'unknown';
+  }
+  healthLabel(h: UiHealth): string {
+    switch (h) {
+      case 'severe':
+        return 'Severe';
+      case 'minor':
+        return 'Minor';
+      case 'ok':
+        return 'OK';
+      default:
+        return 'Unknown';
+    }
+  }
 
   // data & selection
   headings: HeadingData[] = [];
   selectedHeading!: HeadingData;
+
+  onCustomSort(event: SortEvent): void {
+    const data = (event.data ?? []) as HeadingData[];
+    const order = (event.order ?? 1) as 1 | -1;
+    const field = event.field as 'order' | 'matchStatus' | string;
+
+    if (field === 'order') {
+      data.sort((a, b) => (a.order - b.order) * order);
+      return;
+    }
+
+    if (field === 'matchStatus') {
+      data.sort(
+        (a, b) =>
+          (this.HEALTH_RANK[this.uiHealth(a)] -
+            this.HEALTH_RANK[this.uiHealth(b)]) *
+          order,
+      );
+      return;
+    }
+
+    // ignore sort for any other field (no-op)
+  }
 
   private emitProblems(): void {
     const hasProblems = this.headings.some(
@@ -298,8 +396,8 @@ export class LinkReportComponent implements OnInit {
     { field: 'type', header: 'Link Type' },
     { field: 'text', header: 'Link name on page' },
     { field: 'destH1', header: 'Destination link content' },
-    { field: 'matchStatus', header: 'Link text health' },
-    { field: 'explanation', header: 'Explanation' },
+    { field: 'matchStatus', header: 'Health' },
+    { field: 'explanation', header: 'Pain points' },
     { field: 'searchTerm', header: 'Search term' },
     { field: 'clicks', header: 'Clicks' },
   ];
@@ -340,9 +438,9 @@ export class LinkReportComponent implements OnInit {
     result: ExtractResult | null,
     meta: DestMeta | null,
     candidate: string | null,
-    heuristic: MatchStatus,
+    heuristic: LinkMatchStatus,
     ai: AiVerdict | null,
-    finalStatus: MatchStatus,
+    finalStatus: LinkMatchStatus,
     err?: unknown,
   ): void {
     if (!this.DEBUG_LOG) return;
@@ -648,7 +746,7 @@ export class LinkReportComponent implements OnInit {
       const type = this.classify(rawHref, absUrl, a);
 
       let destH1: string | null = null;
-      let matchStatus: MatchStatus = 'unknown';
+      let matchStatus: LinkMatchStatus = 'unknown';
 
       if (type === 'anchor') {
         const h1 = doc.querySelector('h1');
@@ -830,11 +928,14 @@ export class LinkReportComponent implements OnInit {
           }
 
           // Blend AI with heuristic
-          const heuristic: MatchStatus = this.smartMatch(row.text, candidate);
+          const heuristic: LinkMatchStatus = this.smartMatch(
+            row.text,
+            candidate,
+          );
           const blend = (
             v: AiVerdict | null,
-            fallback: MatchStatus,
-          ): MatchStatus => {
+            fallback: LinkMatchStatus,
+          ): LinkMatchStatus => {
             if (!v) return fallback;
             if (v.verdict === 'match' && v.confidence >= 0.7) return 'match';
             if (v.verdict === 'mismatch' && v.confidence >= 0.7)
@@ -1211,7 +1312,7 @@ export class LinkReportComponent implements OnInit {
     linkText: string,
     candidate: string | null,
     extraTokens?: Set<string>,
-  ): MatchStatus {
+  ): LinkMatchStatus {
     if (!candidate && (!extraTokens || extraTokens.size === 0))
       return 'unknown';
 
