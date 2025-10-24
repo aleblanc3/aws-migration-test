@@ -4,6 +4,12 @@ import { TreeNode } from 'primeng/api';
 import { environment } from '../../../../environments/environment';
 import { FileUploadHandlerEvent } from 'primeng/fileupload';
 
+export interface SavedProject {
+  key: string;
+  timestamp: number;
+  pages: number;
+}
+
 export interface UrlData {
   rawUrls: string;
   includePrototypeLinks: boolean;
@@ -215,9 +221,45 @@ export class IaStateService {
     };
   }
 
+  //Count in-scope pages
+  countInScopePages(): number {
+    let count = 0;
+    const traverse = (nodes: TreeNode[]) => {
+      for (const node of nodes) {
+        if (node.data?.isUserAdded) count++;
+        if (node.children?.length) traverse(node.children);
+      }
+    };
+    traverse(this.iaData().iaTree);
+    return count;
+  }
+
+  //Update project timestamp
+  updateProjectList(key: string) {
+    const savedProjects: SavedProject[] = JSON.parse(localStorage.getItem('savedProjects') || '[]');
+    const existingIndex = savedProjects.findIndex(p => p.key === key);
+    const timestamp = Date.now();
+    const pages = this.countInScopePages();
+    if (existingIndex >= 0) {
+      savedProjects[existingIndex].timestamp = timestamp; //update timestamp for existing projects
+      savedProjects[existingIndex].pages = pages; //update in-scope pages for existing projects
+    } else {
+      savedProjects.push({ key, timestamp, pages }); //add new project
+    }
+    savedProjects.sort((a, b) => b.timestamp - a.timestamp);
+    localStorage.setItem('savedProjects', JSON.stringify(savedProjects));
+    console.groupCollapsed('Project list saved to localStorage');
+    console.table(savedProjects.map(p => ({
+      project: p.key,
+      modified: new Date(p.timestamp).toLocaleString()
+    })));
+    console.groupEnd();
+  }
+
   // Save IA state to local storage (browser memory)
   saveToLocalStorage() {
     const state = this.getIaState();
+    const key = state.gitHubData.repo || "autosave";
     const cleanTree = this.removeParents(state.iaData.iaTree);
     const cleanState = {
       ...state,
@@ -227,8 +269,12 @@ export class IaStateService {
       }
     };
     console.log('Clean state:', cleanState);
-    localStorage.setItem('iaState', JSON.stringify(cleanState));
+    //Save project data
+    localStorage.setItem(key, JSON.stringify(cleanState));
+    //Update saved project list
+    this.updateProjectList(key);
 
+    //Console log
     if (!this.production) {
       console.groupCollapsed('IA State saved to localStorage');
       console.log('Active step:', state.activeStep);
@@ -282,9 +328,16 @@ export class IaStateService {
   }
 
   // Load from local storage (browser memory)
-  loadFromLocalStorage() {
-    const saved = localStorage.getItem('iaState');
-    if (!saved) return;
+  loadFromLocalStorage(project?: string) {
+    let projectKey = "";
+    if (project) { projectKey = project } //load specific project
+    else { //load most recent project
+      const projects: SavedProject[] = JSON.parse(localStorage.getItem('savedProjects') || '[]');
+      projectKey = projects[0].key
+    }
+    const saved = localStorage.getItem(projectKey);
+
+    if (!saved) { console.warn(`No project found for ${projectKey}`); return; }
     const state = JSON.parse(saved);
     this.activeStep.set(state.activeStep);
     this.urlData.set(state.urlData);
