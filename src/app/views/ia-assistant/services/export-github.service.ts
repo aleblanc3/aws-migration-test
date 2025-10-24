@@ -14,6 +14,8 @@ export interface GitHubFileRequest {
 export class ExportGitHubService {
   private fetchService = inject(FetchService);
 
+  public token = "";
+
   private async formatHtmlWithPrettier(html: string): Promise<string> {
     if (!(navigator as any).languages) {
       (navigator as any).languages = ['en']; // fallback locale
@@ -498,13 +500,14 @@ Add information on how to manage the repo here.
     owner: string,
     repo: string,
     branch: string,
-    token: string
+    token?: string
   ): Promise<Map<string, string>> {
     const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`;
 
-    const response = await fetch(treeUrl, {
-      headers: { Authorization: `token ${token}` },
-    });
+    const headers: Record<string, string> = {}; //fallback if token not provided
+    if (token) headers['Authorization'] = `token ${token}`;
+
+    const response = await fetch(treeUrl, { headers });
 
     if (!response.ok) {
       console.warn(`Failed to fetch repo tree: ${response.status}`);
