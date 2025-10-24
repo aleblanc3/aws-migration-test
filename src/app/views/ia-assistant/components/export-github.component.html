@@ -44,7 +44,7 @@
             <p-message severity="error" variant="simple" size="small" *ngIf="ownerError">{{ownerError}}</p-message>
         </div>
         <p-iftalabel>
-            <p-autocomplete id="repo" [(ngModel)]="gitHubData().repo" [suggestions]="filteredRepos" (input)="updateRepo()" (completeMethod)="filterRepos($event)" [dropdown]=true pSize="small" maxlength="100" [pKeyFilter]="repoFilter" fluid />
+            <p-autocomplete id="repo" [(ngModel)]="gitHubData().repo" [suggestions]="filteredRepos" (input)="updateRepo()" (onBlur)="compareFiles(gitHubData().owner,gitHubData().repo,gitHubData().branch,exportGitHubService.token)" (completeMethod)="filterRepos($event)" [dropdown]=true pSize="small" maxlength="100" [pKeyFilter]="repoFilter" fluid />
             <label for="repo">Repository</label>
         </p-iftalabel>
         <p-iftalabel>
@@ -52,9 +52,36 @@
             <label for="branch">Branch</label>
         </p-iftalabel>
         <p-iftalabel *ngIf="mode === 'export'">
-            <p-password feedback="false" id="token" [(ngModel)]="userToken" pSize="small" fluid />
+            <p-password feedback="false" id="token" [(ngModel)]="exportGitHubService.token" pSize="small" fluid />
             <label for="token">GitHub Token</label>
         </p-iftalabel>
-        <p-button *ngIf="mode === 'export'" icon="pi pi-github" label="Export to GitHub" severity="primary" (onClick)="exportProjectToGitHub(gitHubData().owner,gitHubData().repo,gitHubData().branch,userToken,true)" [disabled]="iaData().iaTree.length === 0" />
+        <p-button *ngIf="mode === 'export'" icon="pi pi-github" label="Export to GitHub" severity="primary" (onClick)="exportProjectToGitHub(gitHubData().owner,gitHubData().repo,gitHubData().branch,exportGitHubService.token,true)" [disabled]="iaData().iaTree.length === 0" />
     </div>
+</p-fieldset>
+
+<p-fieldset legend="Files to export" *ngIf="mode === 'export'">
+    <p-table [value]="filesTable()">
+        <ng-template pTemplate="header">
+            <tr>
+                <th>File</th>
+                <th>Status</th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-file>
+            <tr>
+                <td>{{ file.path }}</td>
+                <td>
+                    <p-chip
+                            [label]="file.location"
+                            [icon]="getIcon(file.location)"
+                            class="capitalize font-bold center-chip w-9rem p-1"
+                            [class.bg-primary-500]="file.location === 'update'"
+                            [class.bg-yellow-400]="file.location === 'new page'"
+                            [class.bg-blue-400]="file.location === 'github only'"
+                            [class.text-white]="file.location === 'update' || file.location === 'github only'"
+                            [class.text-black]="file.location === 'new page'"></p-chip>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
 </p-fieldset>

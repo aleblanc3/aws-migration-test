@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, Input } from '@angular/core';
+import { Component, OnInit, inject, Input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -15,6 +15,7 @@ import { FilterService, SelectItemGroup, TreeNode } from 'primeng/api';
 import { KeyFilterModule } from 'primeng/keyfilter';
 import { MessageModule } from 'primeng/message';
 import { FieldsetModule } from 'primeng/fieldset';
+import { ChipModule } from 'primeng/chip';
 
 import { ExportGitHubService } from '../services/export-github.service';
 import { IaStateService } from '../services/ia-state.service';
@@ -25,16 +26,22 @@ export interface PageData {
   content: string;
 }
 
+interface FileCompareRow {
+  path: string;
+  location: 'update' | 'new page' | 'github only';
+  newer?: 'export' | 'github' | 'same';
+}
+
 @Component({
   selector: 'ca-export-github',
   imports: [CommonModule, FormsModule, TranslateModule,
-    TableModule, IftaLabelModule, InputTextModule, KeyFilterModule, AutoCompleteModule, PasswordModule, ButtonModule, MessageModule, FieldsetModule],
+    TableModule, IftaLabelModule, InputTextModule, KeyFilterModule, AutoCompleteModule, PasswordModule, ButtonModule, MessageModule, FieldsetModule, ChipModule],
   templateUrl: './export-github.component.html',
   styles: ``
 })
 export class ExportGithubComponent implements OnInit {
   private iaState = inject(IaStateService);
-  private exportGitHubService = inject(ExportGitHubService);
+  public exportGitHubService = inject(ExportGitHubService);
   private fetchService = inject(FetchService);
   public translate = inject(TranslateService);
 
@@ -46,11 +53,11 @@ export class ExportGithubComponent implements OnInit {
   filteredRepos: string[] = [];
   ownerError = '';
   showHelp = false;
-  userToken = '';
 
   async ngOnInit() {
     this.iaState.loadFromLocalStorage();
     await this.updateRepoList();
+    await this.compareFiles(this.gitHubData().owner, this.gitHubData().repo, this.gitHubData().branch, this.exportGitHubService.token);
   }
 
   async updateRepoList() {
@@ -86,7 +93,7 @@ export class ExportGithubComponent implements OnInit {
     if (!this.gitHubData().owner) { this.gitHubData().owner = 'cra-design'; }
   }
 
-  updateRepo() {
+  async updateRepo() {
     this.gitHubData().repo = this.gitHubData().repo.trim().replace(/^[.-]+|[.-]+$/g, '').replace(/(\/|.)lock$/, '').replace(/[.]{2,}/g, '.').replace(/[-]{2,}/g, '-');
   }
 
@@ -158,9 +165,10 @@ export class ExportGithubComponent implements OnInit {
     // Step 3: Trim common root from urls for GitHub paths
     const exportPages = pages.map(p => {
       let path = new URL(p.url).pathname;
-      if (path.startsWith(commonRoot)) {
-        path = path.slice(commonRoot.length);
-      }
+      //comment out this if statement if we want paths to start at /en & /fr
+      //if (path.startsWith(commonRoot)) {
+      //  path = path.slice(commonRoot.length);
+      //}
       path = path.replace(/^\/+/, ""); // strip leading slashes
       const lastSegment = path.split("/").pop() || "index.html";
       //console.log(`Mapping URL ${p.url} to path ${path}, filename ${lastSegment}`);
@@ -195,5 +203,104 @@ export class ExportGithubComponent implements OnInit {
     await this.exportGitHubService.exportToGitHub(owner, repo, branch, "source/data/exclude-redirect-links.json", "exclude-redirect-links.json", redirectsJson, token, existingFiles, overwrite);
 
     console.log("Page export complete.");
+  }
+
+  //Create file list
+  filesTable = signal<FileCompareRow[]>([]);
+
+  async compareFiles(owner: string, repo: string, branch: string, token?: string) {
+    console.log("Compare!")
+
+    const nodes = this.iaState.getIaData().iaTree;
+    const pageData: PageData[] = await this.getUrlandContent(nodes[0]);
+    const inScopePages = new Map<string, string>(pageData.map(page => [page.url.replace("https://www.canada.ca/", ""), page.content]));
+
+    const githubPages: Map<string, string> = await this.exportGitHubService.getRepoTree(owner, repo, branch, token);
+
+    const githubFilePatterns = [
+      /^_config\.yml$/,
+      /^index\.html$/,
+      /^README\.md$/,
+      /^_includes\/header\/header\.html$/,
+      /^_includes\/resources-inc\/footer\.html$/,
+      /^source\/data\/exclude-redirect-links\.json$/,
+      /^source\/exit-intent-e\.html$/,
+      /^source\/exit-intent-f\.html$/,
+      /^404\.html$/,
+      /^en\/.*/,   // anything under /en/
+      /^fr\/.*/,   // anything under /fr/
+    ];
+
+    const filteredGithubPages = new Map(
+      [...githubPages].filter(([path]) =>
+        githubFilePatterns.some((pattern) => pattern.test(path))
+      )
+    );
+
+    //Add jekyll files to export list
+    const jekyllFiles: { path: string; content: string; condition?: () => boolean }[] = [
+      // Always copy latest version from core-prototype
+      { path: "_includes/header/header.html", content: "<!-- header -->" },
+      { path: "_includes/resources-inc/footer.html", content: "<!-- footer -->" },
+      { path: "source/exit-intent-e.html", content: "<!-- exit intent -->" },
+      { path: "404.html", content: "<!-- 404 page -->" },
+      //Regenerate this file with in-scope pages
+      { path: "source/data/exclude-redirect-links.json", content: "<!-- redirects -->" },
+      // Add _config.yml if it's missing in GitHub
+      {
+        path: "_config.yml",
+        content: "theme: jekyll-theme-minimal\nlang: en\n",
+        condition: () => !githubPages.has("_config.yml"),
+      },
+      // Add README.md for new repos only (no files in GitHub)
+      {
+        path: "README.md",
+        content: "# New Project\n\nThis repository was initialized by the export tool.\n",
+        condition: () => githubPages.size === 0,
+      },
+    ];
+
+    for (const file of jekyllFiles) {
+      if (!file.condition || file.condition()) {
+        inScopePages.set(file.path, file.content);
+      }
+    }
+
+    //De-dupe paths
+    const allPaths = new Set<string>([
+      ...inScopePages.keys(),
+      ...filteredGithubPages.keys(),
+    ]);
+
+    console.log(allPaths);
+
+    //Table data
+    const table: FileCompareRow[] = [];
+    for (const path of allPaths) {
+      const inExport = inScopePages.has(path);
+      const inGitHub = filteredGithubPages.has(path);
+
+      let location: FileCompareRow['location'];
+      if (inExport && inGitHub) location = 'update';
+      else if (inExport) location = 'new page';
+      else location = 'github only';
+
+      table.push({ path, location });
+    }
+
+    this.filesTable.set(table);
+  }
+
+  getIcon(location: string): string {
+    switch (location) {
+      case 'update':
+        return 'pi pi-sync';       // e.g., exists in both, maybe needs update
+      case 'new page':
+        return 'pi pi-file-plus';  // exists only in export
+      case 'github only':
+        return 'pi pi-github';     // exists only in GitHub
+      default:
+        return '';
+    }
   }
 }
