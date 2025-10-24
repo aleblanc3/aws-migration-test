@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -37,6 +37,8 @@ export class ExportGithubComponent implements OnInit {
   private exportGitHubService = inject(ExportGitHubService);
   private fetchService = inject(FetchService);
   public translate = inject(TranslateService);
+
+  @Input() mode: 'export' | 'select' = 'export';
 
   iaData = this.iaState.getIaData;
   gitHubData = this.iaState.getGitHubData;
