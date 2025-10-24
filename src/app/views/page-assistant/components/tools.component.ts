@@ -8,7 +8,6 @@ import { AccordionModule } from 'primeng/accordion';
 import { TranslateModule } from '@ngx-translate/core';
 
 //Child components
-import { IaStructureComponent } from './tools/ia-structure.component';
 import { TemplateConversionComponent } from './tools/template-conversion.component';
 import { environment } from '../../../../environments/environment';
 
@@ -19,7 +18,6 @@ import { environment } from '../../../../environments/environment';
     CommonModule,
     TranslateModule,
     AccordionModule,
-    IaStructureComponent,
     TemplateConversionComponent,
   ],
   templateUrl: './tools.component.html',

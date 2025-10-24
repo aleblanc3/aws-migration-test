@@ -13,6 +13,7 @@ import { ComponentGuidanceComponent } from './problems/component-guidance.compon
 import { SeoComponent } from './problems/seo.component';
 import { UserInsightsComponent } from './problems/user-insights.component';
 import { LinkReportComponent } from './problems/link-report.component';
+import { IaStructureComponent } from './problems/ia-structure.component';
 import { environment } from '../../../../environments/environment';
 
 export interface ProblemsFlags {
@@ -34,6 +35,7 @@ export interface ProblemsFlags {
     LinkReportComponent,
     ComponentGuidanceComponent,
     HeadingStructureComponent,
+    IaStructureComponent,
   ],
   templateUrl: './problems.component.html',
   styles: [

@@ -7,6 +7,7 @@ import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { TooltipModule } from 'primeng/tooltip';
 import { TranslateService, TranslateModule } from '@ngx-translate/core';
+import { SortEvent } from 'primeng/api';
 
 import { UploadStateService } from '../../services/upload-state.service';
 import { ValidatorService } from '../../services/validator.service';
@@ -20,14 +21,15 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 
-type Health = 'ok' | 'issue' | 'unknown';
+// UI shows these:
+type UiHealth = 'severe' | 'minor' | 'ok' | 'unknown';
 
 interface GuidanceRow {
   order: number;
   component: string; // translated label
   url: string; // translated URL
-  // AI fields:
-  health?: Health;
+  // AI fields mapped to UI:
+  health: UiHealth;
   codeUpToDate?: boolean;
   issues?: string[];
   rationale?: string;
@@ -65,47 +67,53 @@ interface GuidanceRow {
         align-items: center;
         flex-wrap: wrap;
       }
+
+      /* Base chip */
       .chip {
         display: inline-flex;
         align-items: center;
-        gap: 0.35rem;
-        padding: 0.15rem 0.5rem;
+        gap: 0.4rem;
+        padding: 0.15rem 0.55rem;
         border-radius: 9999px;
-        font-size: 12px;
-        line-height: 1.2;
         border: 1px solid transparent;
+        font-weight: 500;
+        line-height: 1.1;
+      }
+
+      /* Make the PrimeIcons inherit the chip color (wins over theme) */
+      .chip .pi {
+        color: inherit !important;
+      }
+
+      /* Variants */
+      .chip-severe {
+        background: #fee2e2;
+        border-color: #fecaca;
+        color: #b91c1c; /* text + icon */
+      }
+      .chip-minor {
+        background: #fef3c7;
+        border-color: #fde68a;
+        color: #92400e;
       }
       .chip-ok {
         background: #dcfce7;
+        border-color: #86efac;
         color: #166534;
-        border-color: #bbf7d0;
-      }
-      .chip-issue {
-        background: #fee2e2;
-        color: #991b1b;
-        border-color: #fecaca;
       }
       .chip-unk {
         background: #e5e7eb;
-        color: #374151;
-        border-color: #e5e7eb;
+        border-color: #cbd5e1;
+        color: #334155;
       }
+
       .tag {
         font-size: 11px;
         padding: 0.05rem 0.4rem;
         border-radius: 6px;
         border: 1px solid transparent;
       }
-      .tag-ok {
-        background: #eefdf3;
-        color: #166534;
-        border-color: #bbf7d0;
-      }
-      .tag-warn {
-        background: #fff7ed;
-        color: #9a3412;
-        border-color: #fed7aa;
-      }
+
       .ai-btn {
         font-weight: 600;
       }
@@ -147,6 +155,14 @@ export class ComponentGuidanceComponent implements OnInit {
     { field: 'rationale', header: 'Explanation' },
   ];
 
+  // rank for custom sort (severe > minor > ok > unknown)
+  private readonly HEALTH_RANK: Record<UiHealth, number> = {
+    severe: 3,
+    minor: 2,
+    ok: 1,
+    unknown: 0,
+  };
+
   ngOnInit() {
     const data = this.uploadState.getUploadData();
     if (data?.originalHtml) {
@@ -158,9 +174,11 @@ export class ComponentGuidanceComponent implements OnInit {
   /** Build sorted, de-duped table rows from validator findings. */
   private buildRows(list: { name: string; url: string }[]): GuidanceRow[] {
     const unique = new Map<string, { nameKey: string; urlKey: string }>();
-    for (const g of list)
-      if (!unique.has(g.url))
+    for (const g of list) {
+      if (!unique.has(g.url)) {
         unique.set(g.url, { nameKey: g.name, urlKey: g.url });
+      }
+    }
 
     const resolved = Array.from(unique.values()).map((it) => ({
       component: this.translate.instant(it.nameKey) || it.nameKey,
@@ -198,8 +216,7 @@ export class ComponentGuidanceComponent implements OnInit {
       const inputs: ComponentAiInput[] = this.selectedRows.map((row) => ({
         componentLabel: row.component,
         guidanceUrl: row.url,
-        htmlSnippet:
-          this.findSnippetForRow(doc, row) || this.trimHtml(html, 8000),
+        htmlSnippet: this.findSnippetForRow(doc) || this.trimHtml(html, 8000),
       }));
 
       const results = await this.ai.assess(inputs);
@@ -210,8 +227,7 @@ export class ComponentGuidanceComponent implements OnInit {
   }
 
   /** Try to find a compact snippet in the current page that matches the component */
-  private findSnippetForRow(doc: Document, row: GuidanceRow): string | null {
-    void row; // silence TS6133
+  private findSnippetForRow(doc: Document): string | null {
     const candidate = doc.querySelector('[class]');
     if (!candidate) return null;
     const html = candidate.outerHTML;
@@ -223,24 +239,85 @@ export class ComponentGuidanceComponent implements OnInit {
     return t.length > max ? t.slice(0, max) : t;
   }
 
-  /** Merge AI outputs back into table rows */
+  /** Merge AI outputs back into table rows (derive 4-state UI health) */
   private applyResults(results: ComponentAiResult[]) {
-    // Map by label for simplicity (labels are stable, de-duped)
     const byLabel = new Map(results.map((r) => [r.componentLabel, r]));
 
     this.rows = this.rows.map((r) => {
       const ai = byLabel.get(r.component);
       if (!ai) return r;
 
+      // collect issues (content issues + code outdated counts as an issue)
+      const issues = [...(ai.issues ?? [])];
+      if (ai.codeUpToDate === false) {
+        issues.push('Code not up to date');
+      }
+
+      const uiHealth: UiHealth =
+        ai.health === 'unknown'
+          ? 'unknown'
+          : issues.length >= 2
+            ? 'severe'
+            : issues.length === 1
+              ? 'minor'
+              : 'ok';
+
       const out: GuidanceRow = {
         ...r,
-        health: ai.health,
+        health: uiHealth,
         codeUpToDate: ai.codeUpToDate,
-        issues: ai.issues || [],
+        issues,
         rationale: ai.rationale || '',
       };
       return out;
     });
+  }
+
+  // ---- Sorting (Index & Health only) ----
+
+  /** Map UI health to a numeric rank for sorting. */
+  private healthRank(h: UiHealth | undefined | null): number {
+    return this.HEALTH_RANK[(h ?? 'unknown') as UiHealth];
+  }
+
+  /** Custom sort: supports 'order' (numeric) and 'health' (by rank). */
+  onCustomSort(event: SortEvent): void {
+    const data = (event.data ?? []) as GuidanceRow[];
+    const order = (event.order ?? 1) as 1 | -1;
+    const field = (event.field ?? '') as keyof GuidanceRow;
+
+    if (!Array.isArray(data) || data.length === 0) return;
+
+    switch (field) {
+      case 'order': {
+        data.sort((a, b) => (a.order - b.order) * order);
+        break;
+      }
+      case 'health': {
+        data.sort(
+          (a, b) =>
+            (this.healthRank(a.health) - this.healthRank(b.health)) * order,
+        );
+        break;
+      }
+      default:
+        // no-op: we don't sort other columns
+        break;
+    }
+  }
+
+  /** Label used in the chip */
+  healthLabel(h?: UiHealth | null): string {
+    switch (h) {
+      case 'severe':
+        return 'Severe';
+      case 'minor':
+        return 'Minor';
+      case 'ok':
+        return 'OK';
+      default:
+        return 'Unknown';
+    }
   }
 
   // (leftover dev helper if you still need it)
