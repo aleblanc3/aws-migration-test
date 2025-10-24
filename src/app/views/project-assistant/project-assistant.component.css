@@ -1,0 +1,47 @@
+.loading-dots {
+    display: inline-block;
+    width: 1em;
+    text-align: left;
+}
+
+.loading-dots::after {
+    content: '...';
+    animation: dots 1s steps(5, end) infinite;
+}
+
+@keyframes dots {
+
+    0% {
+        content: '';
+    }
+
+    20% {
+        content: '.';
+    }
+
+    40% {
+        content: '..';
+    }
+
+    60% {
+        content: '...';
+    }
+
+    80%,
+    100% {
+        content: '....';
+    }
+}
+
+/*Override full width for split buttons*/
+:host ::ng-deep .p-splitbutton {
+    width: 100% !important;
+}
+
+:host ::ng-deep .p-splitbutton .p-button {
+    width: 100%;
+}
+
+:host ::ng-deep .p-splitbutton .p-splitbutton-dropdown {
+    width: 3rem;
+}
