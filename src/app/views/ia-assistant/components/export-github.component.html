@@ -34,7 +34,7 @@
 </ng-container>
 
 <!--TODO: Generate link to repo and a bookmarklet for toggling between repo and Canada.ca-->
-<p-fieldset legend="Settings">
+<p-fieldset legend="GitHub settings">
     <div class="flex flex-column gap-2">
         <div class="flex flex-column gap-1">
             <p-iftalabel>
@@ -55,33 +55,42 @@
             <p-password feedback="false" id="token" [(ngModel)]="exportGitHubService.token" pSize="small" fluid />
             <label for="token">GitHub Token</label>
         </p-iftalabel>
-        <p-button *ngIf="mode === 'export'" icon="pi pi-github" label="Export to GitHub" severity="primary" (onClick)="exportProjectToGitHub(gitHubData().owner,gitHubData().repo,gitHubData().branch,exportGitHubService.token,true)" [disabled]="iaData().iaTree.length === 0" />
     </div>
 </p-fieldset>
 
 <p-fieldset legend="Files to export" *ngIf="mode === 'export'">
-    <p-table [value]="filesTable()">
-        <ng-template pTemplate="header">
+    <p-table [value]="filesTable()" size="small">
+        <ng-template pTemplate="header" stripedRows>
             <tr>
                 <th>File</th>
-                <th>Status</th>
+                <th><span class="flex flex-row align-items-center gap-2">
+                        Status
+                        <p-button icon="pi pi-angle-double-right" pTooltip="Skip all" tooltipPosition="top" size="small" severity="secondary" (onClick)="setAll('skip')" />
+                        <p-button icon="pi pi-sync" pTooltip="Update all" tooltipPosition="top" size="small" severity="primary" (onClick)="setAll('update')" />
+                    </span>
+                </th>
             </tr>
         </ng-template>
         <ng-template pTemplate="body" let-file>
             <tr>
                 <td>{{ file.path }}</td>
                 <td>
-                    <p-chip
-                            [label]="file.location"
+                    <p-chip [label]="file.location"
                             [icon]="getIcon(file.location)"
                             class="capitalize font-bold center-chip w-9rem p-1"
                             [class.bg-primary-500]="file.location === 'update'"
                             [class.bg-yellow-400]="file.location === 'new page'"
                             [class.bg-blue-400]="file.location === 'github only'"
                             [class.text-white]="file.location === 'update' || file.location === 'github only'"
-                            [class.text-black]="file.location === 'new page'"></p-chip>
+                            [class.text-black]="file.location === 'new page'"
+                            [class.cursor-pointer]="file.location === 'skip' || file.location === 'update'"
+                            (click)="(file.location === 'skip' || file.location === 'update') && toggleUpdate(file)"></p-chip>
                 </td>
             </tr>
         </ng-template>
     </p-table>
+    <p-button *ngIf="mode === 'export'" styleClass="mt-3" icon="pi pi-github" label="Export to GitHub" severity="primary" (onClick)="exportProjectToGitHub(gitHubData().owner,gitHubData().repo,gitHubData().branch,exportGitHubService.token,true)" [disabled]="iaData().iaTree.length === 0" />
+    <span *ngIf="mode === 'export' && filesTable().length" class="text-color-secondary">
+        {{ newCount() }} new and {{ updatedCount() }} updated pages
+    </span>
 </p-fieldset>

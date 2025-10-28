@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, Input, signal } from '@angular/core';
+import { Component, OnInit, inject, Input, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -16,6 +16,7 @@ import { KeyFilterModule } from 'primeng/keyfilter';
 import { MessageModule } from 'primeng/message';
 import { FieldsetModule } from 'primeng/fieldset';
 import { ChipModule } from 'primeng/chip';
+import { TooltipModule } from 'primeng/tooltip';
 
 import { ExportGitHubService } from '../services/export-github.service';
 import { IaStateService } from '../services/ia-state.service';
@@ -28,14 +29,14 @@ export interface PageData {
 
 interface FileCompareRow {
   path: string;
-  location: 'update' | 'new page' | 'github only';
+  location: 'update' | 'skip' | 'new page' | 'github only';
   newer?: 'export' | 'github' | 'same';
 }
 
 @Component({
   selector: 'ca-export-github',
   imports: [CommonModule, FormsModule, TranslateModule,
-    TableModule, IftaLabelModule, InputTextModule, KeyFilterModule, AutoCompleteModule, PasswordModule, ButtonModule, MessageModule, FieldsetModule, ChipModule],
+    TableModule, IftaLabelModule, InputTextModule, KeyFilterModule, AutoCompleteModule, PasswordModule, ButtonModule, MessageModule, FieldsetModule, ChipModule, TooltipModule],
   templateUrl: './export-github.component.html',
   styles: ``
 })
@@ -207,6 +208,13 @@ export class ExportGithubComponent implements OnInit {
 
   //Create file list
   filesTable = signal<FileCompareRow[]>([]);
+  updatedCount = computed(() =>
+    this.filesTable().filter(f => f.location === 'update').length
+  );
+
+  newCount = computed(() =>
+    this.filesTable().filter(f => f.location === 'new page').length
+  );
 
   async compareFiles(owner: string, repo: string, branch: string, token?: string) {
     console.log("Compare!")
@@ -237,34 +245,24 @@ export class ExportGithubComponent implements OnInit {
       )
     );
 
-    //Add jekyll files to export list
-    const jekyllFiles: { path: string; content: string; condition?: () => boolean }[] = [
-      // Always copy latest version from core-prototype
-      { path: "_includes/header/header.html", content: "<!-- header -->" },
-      { path: "_includes/resources-inc/footer.html", content: "<!-- footer -->" },
-      { path: "source/exit-intent-e.html", content: "<!-- exit intent -->" },
-      { path: "404.html", content: "<!-- 404 page -->" },
-      //Regenerate this file with in-scope pages
-      { path: "source/data/exclude-redirect-links.json", content: "<!-- redirects -->" },
-      // Add _config.yml if it's missing in GitHub
-      {
-        path: "_config.yml",
-        content: "theme: jekyll-theme-minimal\nlang: en\n",
-        condition: () => !githubPages.has("_config.yml"),
-      },
-      // Add README.md for new repos only (no files in GitHub)
-      {
-        path: "README.md",
-        content: "# New Project\n\nThis repository was initialized by the export tool.\n",
-        condition: () => githubPages.size === 0,
-      },
+    // Jekyll files created or copied by the Design Assistant
+    const jekyllUpdateFiles: { path: string; content: string }[] = [
+      { path: "404.html", content: "<!-- 404 page -->" }, //copied from core-prototype
+      { path: "_includes/header/header.html", content: "<!-- header -->" }, //copied from core-prototype
+      { path: "_includes/resources-inc/footer.html", content: "<!-- footer -->" }, //copied from core-prototype
+      { path: "source/exit-intent-e.html", content: "<!-- exit intent - english -->" }, //copied from core-prototype
+      { path: "source/data/exclude-redirect-links.json", content: "<!-- redirects -->" }, //generated for all pages in repo
     ];
 
-    for (const file of jekyllFiles) {
-      if (!file.condition || file.condition()) {
-        inScopePages.set(file.path, file.content);
-      }
-    }
+    const jekyllSkipFiles: { path: string; content: string }[] = [
+      { path: "_config.yml", content: "<!-- config -->" }, //genertated
+      { path: "README.md", content: "<!-- readme -->" }, //generated
+    ];
+
+    // Add all Jekyll files to export list
+    [...jekyllUpdateFiles, ...jekyllSkipFiles].forEach(file => {
+      inScopePages.set(file.path, file.content);
+    });
 
     //De-dupe paths
     const allPaths = new Set<string>([
@@ -279,9 +277,15 @@ export class ExportGithubComponent implements OnInit {
     for (const path of allPaths) {
       const inExport = inScopePages.has(path);
       const inGitHub = filteredGithubPages.has(path);
+      const isAutoUpdateFile = jekyllUpdateFiles.some(f => f.path === path);
+      const isAlwaysSkipFile = jekyllSkipFiles.some(f => f.path === path);
 
       let location: FileCompareRow['location'];
-      if (inExport && inGitHub) location = 'update';
+      if (inExport && inGitHub) {
+        if (isAutoUpdateFile) location = 'update';
+        else if (isAlwaysSkipFile) location = 'skip';
+        else location = 'skip';
+      }
       else if (inExport) location = 'new page';
       else location = 'github only';
 
@@ -293,14 +297,30 @@ export class ExportGithubComponent implements OnInit {
 
   getIcon(location: string): string {
     switch (location) {
-      case 'update':
-        return 'pi pi-sync';       // e.g., exists in both, maybe needs update
-      case 'new page':
-        return 'pi pi-file-plus';  // exists only in export
-      case 'github only':
-        return 'pi pi-github';     // exists only in GitHub
-      default:
-        return '';
+      case 'skip': return 'pi pi-angle-double-right';
+      case 'update': return 'pi pi-sync';
+      case 'new page': return 'pi pi-file-plus';
+      case 'github only': return 'pi pi-github';
+      default: return '';
     }
+  }
+
+  toggleUpdate(file: FileCompareRow) {
+    if (file.location === 'skip') {
+      file.location = 'update';
+    } else if (file.location === 'update') {
+      file.location = 'skip';
+    }
+    this.filesTable.set([...this.filesTable()]); // triggers UI refresh
+  }
+
+  setAll(target: 'skip' | 'update') {
+    const updated = this.filesTable().map(file => {
+      if (file.location === 'skip' || file.location === 'update') {
+        return { ...file, location: target };
+      }
+      return file;
+    });
+    this.filesTable.set(updated);
   }
 }
